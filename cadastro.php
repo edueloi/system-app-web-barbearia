@@ -13,18 +13,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (strlen($senha) < 6) {
         $mensagem = 'A senha deve ter pelo menos 6 caracteres.';
     } else {
-        // Verifica se o usuário padrão (ID 1) já existe
-        $check = $pdo->query("SELECT count(*) FROM usuarios WHERE id = 1")->fetchColumn();
-
-        if ($check > 0) {
-            $mensagem = 'O profissional principal já está cadastrado. Use a opção "Esqueci a senha" se necessário.';
+        // Permitir múltiplos cadastros
+        $existe = $pdo->prepare("SELECT COUNT(*) FROM usuarios WHERE email = ?");
+        $existe->execute([$email]);
+        if ($existe->fetchColumn() > 0) {
+            $mensagem = 'Já existe um usuário com este e-mail.';
         } else {
             $hash = password_hash($senha, PASSWORD_DEFAULT);
-            
-            // Cadastra o usuário principal (ID 1)
-            $pdo->prepare("INSERT INTO usuarios (id, nome, email, senha) VALUES (1, ?, ?, ?)")
-                ->execute([$nome, $email, $hash]);
-
+            $pdo->prepare("INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)")->execute([$nome, $email, $hash]);
             $mensagem = 'Cadastro realizado com sucesso! Faça login.';
             $tipoMensagem = 'success';
         }

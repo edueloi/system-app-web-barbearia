@@ -1,8 +1,12 @@
 
 <?php
-// 1. Iniciar Sessão e Definições Básicas
+// 1. Iniciar Sessão e Proteção de Login
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.php' && basename($_SERVER['PHP_SELF']) !== 'cadastro.php' && basename($_SERVER['PHP_SELF']) !== 'recuperar_senha.php') {
+    header('Location: /karen_site/controle-salao/login.php');
+    exit;
 }
 
 $baseUrl = ""; // Ajusta se estiveres numa subpasta
