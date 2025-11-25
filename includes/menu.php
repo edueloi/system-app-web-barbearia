@@ -1,3 +1,4 @@
+
 <?php
 // 1. Iniciar Sessão e Definições Básicas
 if (session_status() === PHP_SESSION_NONE) {
@@ -247,7 +248,7 @@ function isActive($pageName) {
         <button class="menu-btn" id="openMenuBtn">
             <i class="bi bi-list"></i>
         </button>
-        <a href="/karen_site/controle-salao/index.php" class="brand-logo">
+        <a href="/karen_site/controle-salao/pages/dashboard.php" class="brand-logo">
             <div class="brand-icon"><i class="bi bi-scissors"></i></div>
             <span>Salão<span style="color:var(--app-primary)">Top</span></span>
         </a>
@@ -297,8 +298,9 @@ function isActive($pageName) {
     </div>
     <ul class="sidebar-menu">
         <div class="menu-label">Principal</div>
-        <li><a href="/karen_site/controle-salao/index.php" class="sidebar-link <?php echo isActive('index.php'); ?>"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a></li>
+        <li><a href="/karen_site/controle-salao/pages/dashboard.php" class="sidebar-link <?php echo isActive('index.php'); ?>"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a></li>
         <li><a href="/karen_site/controle-salao/pages/agenda/agenda.php" class="sidebar-link <?php echo isActive('agenda.php'); ?>"><i class="bi bi-calendar-check-fill"></i> Agenda</a></li>
+        <li><a href="/karen_site/controle-salao/pages/horarios/horarios.php" class="sidebar-link <?php echo isActive('horarios.php'); ?>"><i class="bi bi-clock-fill"></i> Horários</a></li>
         <li><a href="/karen_site/controle-salao/pages/clientes/clientes.php" class="sidebar-link <?php echo isActive('clientes.php'); ?>"><i class="bi bi-people-fill"></i> Clientes</a></li>
 
         <div class="menu-label">Gestão</div>
