@@ -255,8 +255,43 @@ function isActive($pageName) {
     </div>
 
     <div class="navbar-right">
-        <i class="bi bi-bell" style="font-size:1.2rem; color:#64748b; cursor:pointer;"></i>
-        
+        <?php
+        // Notificações não lidas
+        $notiCount = 0;
+        if (isset($pdo) && isset($userId)) {
+            $notiCount = $pdo->query("SELECT COUNT(*) FROM notifications WHERE user_id = " . intval($userId) . " AND is_read = 0")->fetchColumn();
+        }
+        ?>
+        <div style="position:relative;">
+            <i class="bi bi-bell" id="notiBell" style="font-size:1.2rem; color:#64748b; cursor:pointer;"></i>
+            <?php if($notiCount > 0): ?>
+                <span id="notiBadge" style="position:absolute;top:-6px;right:-6px;background:#ef4444;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;font-weight:700;min-width:18px;text-align:center;z-index:10;">
+                    <?php echo $notiCount; ?>
+                </span>
+            <?php endif; ?>
+            <div id="notiDropdown" style="display:none;position:absolute;right:0;top:30px;width:320px;max-width:90vw;background:white;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);border:1px solid #e2e8f0;z-index:9999;overflow:hidden;">
+                <div style="padding:12px 16px;font-weight:600;border-bottom:1px solid #f1f5f9;background:#f8fafc;">Notificações</div>
+                <div id="notiList">
+                <?php
+                if (isset($pdo) && isset($userId)) {
+                    $notis = $pdo->query("SELECT * FROM notifications WHERE user_id = " . intval($userId) . " AND is_read = 0 ORDER BY created_at DESC LIMIT 10")->fetchAll();
+                    if (count($notis) === 0) {
+                        echo '<div style=\'padding:18px;text-align:center;color:#94a3b8;\'>Sem novos alertas.</div>';
+                    } else {
+                        foreach($notis as $n) {
+                            $link = $n['link'] ? $n['link'] : '#';
+                            echo "<div class='noti-item' data-id='{$n['id']}' style='padding:14px 16px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:10px;'>";
+                            echo "<i class='bi bi-info-circle' style='color:#6366f1;font-size:1.2rem;'></i>";
+                            echo "<div style='flex:1;'><div style='font-size:0.97rem;'>{$n['message']}</div><div style='font-size:0.75rem;color:#94a3b8;margin-top:2px;'>".date('d/m H:i', strtotime($n['created_at']))."</div></div>";
+                            echo "<button class='noti-mark-read' data-id='{$n['id']}' style='background:#e2e8f0;border:none;border-radius:6px;padding:4px 8px;font-size:0.8rem;cursor:pointer;'>Ok</button>";
+                            echo "</div>";
+                        }
+                    }
+                }
+                ?>
+                </div>
+            </div>
+        </div>
         <div class="user-menu-wrap">
             <div class="user-avatar-sm" id="userAvatarBtn">
                 <i class="bi bi-person"></i>
@@ -268,10 +303,10 @@ function isActive($pageName) {
                     <span><?php echo htmlspecialchars($userRole); ?></span>
                 </div>
                 
-                <a href="/karen_site/controle-salao/pages/perfil.php" class="dropdown-item">
+                <a href="/karen_site/controle-salao/pages/perfil/perfil.php" class="dropdown-item">
                     <i class="bi bi-person-circle"></i> Meu Perfil
                 </a>
-                <a href="/karen_site/controle-salao/pages/configuracoes.php" class="dropdown-item">
+                <a href="/karen_site/controle-salao/pages/configuracoes/configuracoes.php" class="dropdown-item">
                     <i class="bi bi-gear"></i> Configurações
                 </a>
                 
@@ -305,6 +340,7 @@ function isActive($pageName) {
 
         <div class="menu-label">Gestão</div>
         <li><a href="/karen_site/controle-salao/pages/servicos/servicos.php" class="sidebar-link <?php echo isActive('servicos.php'); ?>"><i class="bi bi-scissors"></i> Serviços</a></li>
+        <li><a href="/karen_site/controle-salao/pages/produtos-estoque/produtos-estoque.php" class="sidebar-link <?php echo isActive('produtos-estoque.php'); ?>"><i class="bi bi-box-seam-fill"></i> Produtos & Estoque</a></li>
         <!-- Produtos & Estoque e Relatórios ainda não possuem arquivos -->
         <!-- <li><a href="/karen_site/controle-salao/pages/produtos-estoque/produtos-estoque.php" class="sidebar-link <?php echo isActive('produtos-estoque.php'); ?>"><i class="bi bi-box-seam-fill"></i> Produtos & Estoque</a></li> -->
         <!-- <li><a href="/karen_site/controle-salao/pages/relatorio/relatorio.php" class="sidebar-link <?php echo isActive('relatorio.php'); ?>"><i class="bi bi-graph-up-arrow"></i> Relatórios</a></li> -->
@@ -315,6 +351,35 @@ function isActive($pageName) {
 </aside>
 
 <script>
+// Dropdown de notificações
+const notiBell = document.getElementById('notiBell');
+const notiDropdown = document.getElementById('notiDropdown');
+if(notiBell && notiDropdown) {
+    notiBell.addEventListener('click', function(e) {
+        e.stopPropagation();
+        notiDropdown.style.display = notiDropdown.style.display === 'block' ? 'none' : 'block';
+    });
+    document.addEventListener('click', function(e) {
+        if(notiDropdown.style.display === 'block' && !notiDropdown.contains(e.target) && e.target !== notiBell) {
+            notiDropdown.style.display = 'none';
+        }
+    });
+}
+// Marcar notificação como lida (AJAX)
+document.addEventListener('click', function(e) {
+    if(e.target.classList.contains('noti-mark-read')) {
+        const id = e.target.getAttribute('data-id');
+        fetch('/karen_site/controle-salao/pages/notificacao_ler.php?id='+id)
+            .then(() => { e.target.closest('.noti-item').remove(); });
+        // Atualiza badge
+        const badge = document.getElementById('notiBadge');
+        if(badge) {
+            let n = parseInt(badge.textContent)-1;
+            if(n <= 0) badge.remove();
+            else badge.textContent = n;
+        }
+    }
+});
     /* Lógica da Sidebar */
     const openBtn = document.getElementById('openMenuBtn');
     const closeBtn = document.getElementById('closeMenuBtn');

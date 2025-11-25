@@ -8,18 +8,17 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
-    // --- CRIAÇÃO DAS TABELAS (Estrutura Base) ---
+    // --- CRIAÇÃO DAS TABELAS ---
 
     // 1. Agendamentos
-    // Já incluímos os campos novos aqui para instalações novas
     $pdo->exec("CREATE TABLE IF NOT EXISTS agendamentos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
-        cliente_id INTEGER,   -- Link com a tabela clientes
+        cliente_id INTEGER,
         cliente_nome TEXT NOT NULL,
-        cliente_cpf TEXT,     -- CPF do cliente
+        cliente_cpf TEXT,
         servico TEXT NOT NULL,
-        valor REAL DEFAULT 0, -- Valor do serviço (Novo)
+        valor REAL DEFAULT 0,
         data_agendamento DATE NOT NULL,
         horario TIME NOT NULL,
         status TEXT DEFAULT 'Pendente',
@@ -47,14 +46,14 @@ try {
         user_id INTEGER NOT NULL,
         nome TEXT NOT NULL,
         telefone TEXT,
-        cpf TEXT,             -- CPF
+        cpf TEXT,
         email TEXT,
         data_nascimento DATE,
         observacoes TEXT, 
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // 4. Horários de Atendimento
+    // 4. Horários
     $pdo->exec("CREATE TABLE IF NOT EXISTS horarios_atendimento (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
@@ -64,51 +63,70 @@ try {
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // 5. Usuários (Perfil do Profissional)
+    // 5. Usuários (COM SENHA)
     $pdo->exec("CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT,
-        email TEXT,
-        telefone TEXT,
-        foto TEXT,
-        biografia TEXT,
-        cep TEXT,
-        endereco TEXT,
-        numero TEXT,
-        bairro TEXT,
-        cidade TEXT,
-        estado TEXT,
+        nome TEXT, email TEXT, telefone TEXT, 
+        senha TEXT, -- Campo Essencial para Login
+        foto TEXT, biografia TEXT,
+        cep TEXT, endereco TEXT, numero TEXT, bairro TEXT, cidade TEXT, estado TEXT,
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // --- ATUALIZAÇÃO AUTOMÁTICA (MIGRATION) ---
-    // Isto garante que quem já tem o banco criado receba as novas colunas sem perder dados.
+    // 6. NOVA TABELA: Produtos e Estoque
+    $pdo->exec("CREATE TABLE IF NOT EXISTS produtos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        nome TEXT NOT NULL,
+        marca TEXT,
+        quantidade INTEGER DEFAULT 0,
+        unidade TEXT DEFAULT 'unidade', -- Ex: ml, kg, unidade
+        custo_unitario REAL,           -- Valor pago ao fornecedor
+        preco_venda REAL,              -- Valor sugerido para venda (se aplicável)
+        data_compra DATE,
+        data_validade DATE,
+        observacoes TEXT,
+        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
 
-    // 1. Atualizar Tabela Clientes (Adicionar CPF)
-    try { 
-        $pdo->exec("ALTER TABLE clientes ADD COLUMN cpf TEXT"); 
-    } catch (Exception $e) { /* Ignora se já existir */ }
+    // 7. Tabela de Notificações/Alertas
+    $pdo->exec("CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        type TEXT NOT NULL, -- agendamento, produto, etc
+        message TEXT NOT NULL,
+        link TEXT, -- link para ação
+        is_read INTEGER DEFAULT 0, -- 0=não lido, 1=lido
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
 
-    // 2. Atualizar Tabela Agendamentos (Adicionar CPF, ID e Valor)
-    try { 
-        $pdo->exec("ALTER TABLE agendamentos ADD COLUMN cliente_cpf TEXT"); 
-    } catch (Exception $e) { }
-
-    try { 
-        $pdo->exec("ALTER TABLE agendamentos ADD COLUMN cliente_id INTEGER"); 
-    } catch (Exception $e) { }
-
-    try { 
-        $pdo->exec("ALTER TABLE agendamentos ADD COLUMN valor REAL DEFAULT 0"); 
-    } catch (Exception $e) { }
-
-
-    // --- DADOS PADRÃO (SEEDS) ---
+    // --- MIGRATIONS (Atualiza bancos antigos) ---
     
-    // Cria usuário padrão se a tabela estiver vazia
+    try { $pdo->exec("ALTER TABLE clientes ADD COLUMN cpf TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN cliente_cpf TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN cliente_id INTEGER"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN valor REAL DEFAULT 0"); } catch (Exception $e) { }
+    // Importante: Adiciona a coluna senha se não existir
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN senha TEXT"); } catch (Exception $e) { }
+
+    // --- SEEDS (Dados Iniciais) ---
+    
+    // Verifica se usuário existe
     $check = $pdo->query("SELECT count(*) FROM usuarios WHERE id = 1")->fetchColumn();
+    
+    // Senha padrão hash: 123456
+    $senhaPadrao = password_hash('123456', PASSWORD_DEFAULT);
+
     if ($check == 0) {
-        $pdo->exec("INSERT INTO usuarios (id, nome, email) VALUES (1, 'Profissional', 'admin@salao.com')");
+        // Cria usuário novo com senha
+        $pdo->prepare("INSERT INTO usuarios (id, nome, email, senha) VALUES (1, 'Profissional', 'admin@salao.com', ?)")
+            ->execute([$senhaPadrao]);
+    } else {
+        // Se usuário já existe mas não tem senha (migração), define a padrão
+        $user = $pdo->query("SELECT senha FROM usuarios WHERE id = 1")->fetch();
+        if (empty($user['senha'])) {
+            $pdo->prepare("UPDATE usuarios SET senha = ? WHERE id = 1")->execute([$senhaPadrao]);
+        }
     }
 
 } catch (PDOException $e) {
