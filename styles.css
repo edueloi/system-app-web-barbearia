@@ -1,0 +1,228 @@
+/* Login simples */
+.login-container {
+    max-width: 350px;
+    margin: 60px auto;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 2rem;
+    text-align: center;
+}
+.login-container input {
+    width: 90%;
+    padding: 0.7rem;
+    margin: 0.5rem 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.login-container button {
+    width: 100%;
+    padding: 0.7rem;
+    background: #222;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 1rem;
+}
+.login-container button:hover {
+    background: #444;
+}
+/* Navbar responsiva */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #222;
+    color: #fff;
+    padding: 0.5rem 1rem;
+}
+.navbar-logo a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+.navbar-links {
+    list-style: none;
+    display: flex;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+}
+.navbar-links li a {
+    color: #fff;
+    text-decoration: none;
+    padding: 0.5rem 0.8rem;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+.navbar-links li a:hover {
+    background: #444;
+}
+.navbar-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 2rem;
+    cursor: pointer;
+}
+@media (max-width: 768px) {
+    .navbar-links {
+        display: none;
+        flex-direction: column;
+        background: #222;
+        position: absolute;
+        top: 60px;
+        right: 0;
+        width: 200px;
+        z-index: 1000;
+    }
+    .navbar-links.active {
+        display: flex;
+    }
+    .navbar-toggle {
+        display: block;
+    }
+}
+
+/* Sidebar responsiva */
+.sidebar {
+    position: fixed;
+    left: -220px;
+    top: 0;
+    width: 200px;
+    height: 100%;
+    background: #222;
+    color: #fff;
+    padding-top: 60px;
+    transition: left 0.3s;
+    z-index: 999;
+}
+.sidebar.active {
+    left: 0;
+}
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+.sidebar ul li a {
+    display: block;
+    color: #fff;
+    text-decoration: none;
+    padding: 1rem;
+    border-bottom: 1px solid #333;
+    transition: background 0.2s;
+}
+.sidebar ul li a:hover {
+    background: #444;
+}
+.sidebar-toggle {
+    position: fixed;
+    left: 10px;
+    top: 10px;
+    background: #222;
+    color: #fff;
+    border: none;
+    font-size: 2rem;
+    z-index: 1001;
+    display: none;
+}
+@media (max-width: 768px) {
+    .sidebar-toggle {
+        display: block;
+    }
+}
+/*
+    Estilos para o Template
+*/
+
+body {
+    background-color: #f8f9fa;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.d-flex {
+    min-height: 100vh;
+}
+
+/* ---------------------------------------------------
+    SIDEBAR STYLE
+----------------------------------------------------- */
+.sidebar {
+    min-width: 250px;
+    max-width: 250px;
+    color: #fff;
+    transition: all 0.3s;
+    background: #212529; /* bg-dark */
+}
+
+.sidebar .sidebar-header {
+    padding: 20px;
+    background: #1a1a1a;
+}
+
+.sidebar .sidebar-header h3 {
+    color: #fff;
+    font-size: 1.5rem;
+}
+
+.sidebar ul.components {
+    padding: 20px 0;
+}
+
+.sidebar ul li a {
+    padding: 15px 20px;
+    font-size: 1.1em;
+    display: block;
+    color: #adb5bd;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.sidebar ul li a:hover {
+    color: #fff;
+    background: #343a40;
+}
+
+.sidebar ul li.active > a,
+a[aria-expanded="true"] {
+    color: #fff;
+    background: #007bff;
+}
+
+.sidebar ul li a i {
+    margin-right: 10px;
+}
+
+/* ---------------------------------------------------
+    CONTENT STYLE
+----------------------------------------------------- */
+#content {
+    width: 100%;
+    min-height: 100vh;
+    transition: all 0.3s;
+}
+
+/* ---------------------------------------------------
+    MEDIAQUERIES
+----------------------------------------------------- */
+@media (max-width: 768px) {
+    .sidebar {
+        margin-left: -250px;
+        position: absolute;
+        z-index: 1000;
+        height: 100%;
+    }
+    .sidebar.active {
+        margin-left: 0;
+    }
+    #content {
+        width: 100%;
+    }
+    #sidebarCollapse {
+        display: block !important;
+    }
+}
