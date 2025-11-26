@@ -1,13 +1,7 @@
 <?php
-$pageTitle = 'Meu Perfil';
-include '../../includes/header.php';
-include '../../includes/menu.php';
 include '../../includes/db.php';
-
-// Cria pasta uploads se não existir
-if (!is_dir('../../uploads')) { mkdir('../../uploads', 0777, true); }
-
 // ID Fixo (Simulação)
+session_start();
 if (!isset($_SESSION['user_id'])) $_SESSION['user_id'] = 1;
 $userId = $_SESSION['user_id'];
 
@@ -17,7 +11,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
     $telefone = $_POST['telefone'];
     $bio = $_POST['biografia'];
-    
     // Endereço
     $cep = $_POST['cep'];
     $endereco = $_POST['endereco'];
@@ -44,16 +37,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             nome=?, email=?, telefone=?, foto=?, biografia=?, 
             cep=?, endereco=?, numero=?, bairro=?, cidade=?, estado=? 
             WHERE id=?";
-    
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$nome, $email, $telefone, $fotoPath, $bio, $cep, $endereco, $numero, $bairro, $cidade, $estado, $userId]);
-    
     // Atualiza nome na sessão
     $_SESSION['user']['name'] = $nome;
     $_SESSION['perfil_msg'] = 'Perfil atualizado com sucesso!';
     header('Location: perfil.php');
     exit;
 }
+
+$pageTitle = 'Meu Perfil';
+include '../../includes/header.php';
+include '../../includes/menu.php';
+
+// Cria pasta uploads se não existir
+if (!is_dir('../../uploads')) { mkdir('../../uploads', 0777, true); }
 
 if (isset($_SESSION['perfil_msg'])) {
     echo "<script>alert('" . $_SESSION['perfil_msg'] . "');</script>";
