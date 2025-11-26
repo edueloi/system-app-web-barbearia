@@ -1,193 +1,730 @@
 <?php
-$pageTitle = 'Configurações';
-include '../../includes/header.php';
-include '../../includes/menu.php';
+// pages/configuracoes/configuracoes.php
+
+// =========================================================
+// 1. PROCESSAMENTO DE POST (DEVE VIR PRIMEIRO)
+// =========================================================
+
 include '../../includes/db.php';
 
-// Proteção de Sessão
-if (!isset($_SESSION['user_id'])) $_SESSION['user_id'] = 1;
+if (!isset($_SESSION['user_id'])) {
+    $_SESSION['user_id'] = 1;
+}
 $userId = $_SESSION['user_id'];
 
-$msg = '';
-$msgType = '';
+// --- PROCESSAR FORMULÁRIOS ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-// --- 1. ALTERAR SENHA ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao']) && $_POST['acao'] === 'nova_senha') {
-    $senhaAtual     = $_POST['senha_atual'] ?? '';
-    $novaSenha      = $_POST['nova_senha'] ?? '';
-    $confirmarSenha = $_POST['confirmar_senha'] ?? '';
+    // 1. ALTERAR SENHA
+    if (isset($_POST['acao']) && $_POST['acao'] === 'nova_senha') {
+        $senhaAtual     = $_POST['senha_atual'] ?? '';
+        $novaSenha      = $_POST['nova_senha'] ?? '';
+        $confirmarSenha = $_POST['confirmar_senha'] ?? '';
 
-    // Buscar senha atual no banco
-    $stmt = $pdo->prepare("SELECT senha FROM usuarios WHERE id = ?");
-    $stmt->execute([$userId]);
-    $user = $stmt->fetch();
+        $stmt = $pdo->prepare("SELECT senha FROM usuarios WHERE id = ?");
+        $stmt->execute([$userId]);
+        $user = $stmt->fetch();
 
-    if ($user) {
-        // Verifica se a senha atual bate
-        if (password_verify($senhaAtual, $user['senha'])) {
-            if ($novaSenha === $confirmarSenha) {
-                if (strlen($novaSenha) >= 6) {
-                    $hash = password_hash($novaSenha, PASSWORD_DEFAULT);
-                    $pdo->prepare("UPDATE usuarios SET senha = ? WHERE id = ?")
-                        ->execute([$hash, $userId]);
-                    $_SESSION['config_msg']     = 'Senha atualizada com sucesso!';
-                    $_SESSION['config_msgType'] = 'success';
-                } else {
-                    $_SESSION['config_msg']     = 'A nova senha deve ter pelo menos 6 caracteres.';
-                    $_SESSION['config_msgType'] = 'error';
-                }
+        if ($user && password_verify($senhaAtual, $user['senha'])) {
+            if ($novaSenha === $confirmarSenha && strlen($novaSenha) >= 6) {
+                $hash = password_hash($novaSenha, PASSWORD_DEFAULT);
+                $pdo->prepare("UPDATE usuarios SET senha = ? WHERE id = ?")->execute([$hash, $userId]);
+                $_SESSION['config_msg']     = 'Senha atualizada com sucesso!';
+                $_SESSION['config_msgType'] = 'success';
             } else {
-                $_SESSION['config_msg']     = 'A confirmação de senha não coincide.';
+                $_SESSION['config_msg']     = 'Senhas não coincidem ou muito curtas.';
                 $_SESSION['config_msgType'] = 'error';
             }
         } else {
             $_SESSION['config_msg']     = 'Senha atual incorreta.';
             $_SESSION['config_msgType'] = 'error';
         }
+        header('Location: configuracoes.php');
+        exit;
     }
 
-    header('Location: configuracoes.php');
-    exit;
+    // 2. SALVAR APARÊNCIA (COR DO TEMA)
+    if (isset($_POST['acao']) && $_POST['acao'] === 'salvar_aparencia') {
+        $corTema = $_POST['cor_tema'] ?? '#4f46e5';
+
+        $pdo->prepare("UPDATE usuarios SET cor_tema = ? WHERE id = ?")->execute([$corTema, $userId]);
+
+        $_SESSION['config_msg']     = 'Cor do agendamento atualizada!';
+        $_SESSION['config_msgType'] = 'success';
+        header('Location: configuracoes.php');
+        exit;
+    }
 }
 
-if (isset($_SESSION['config_msg'])) {
-    $msg     = $_SESSION['config_msg'];
-    $msgType = $_SESSION['config_msgType'] ?? '';
-    unset($_SESSION['config_msg'], $_SESSION['config_msgType']);
-}
+// =========================================================
+// 2. LÓGICA DE DADOS (APÓS POST)
+// =========================================================
 
-// --- 2. BACKUP DO BANCO ---
+// Mensagens Flash
+$msg     = $_SESSION['config_msg']     ?? '';
+$msgType = $_SESSION['config_msgType'] ?? '';
+unset($_SESSION['config_msg'], $_SESSION['config_msgType']);
+
+// Download Backup
 if (isset($_GET['download_backup'])) {
     $file = '../../banco_salao.sqlite';
     if (file_exists($file)) {
-        header('Content-Description: File Transfer');
         header('Content-Type: application/octet-stream');
-        header('Content-Disposition: attachment; filename="backup_salao_'.date('Y-m-d').'.sqlite"');
-        header('Expires: 0');
-        header('Cache-Control: must-revalidate');
-        header('Pragma: public');
+        header('Content-Disposition: attachment; filename="backup_salao_' . date('Y-m-d') . '.sqlite"');
         header('Content-Length: ' . filesize($file));
         readfile($file);
         exit;
     }
 }
 
-// --- 3. LINK PÚBLICO PARA AGENDAMENTO ---
-// Ex.: http://localhost/karen_site/controle-salao/agendar.php?user=2
-
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
-$host     = $_SERVER['HTTP_HOST'];
-
-// Diretório deste arquivo: /karen_site/controle-salao/pages/configuracoes
+// Link Público
+$protocol  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+$host      = $_SERVER['HTTP_HOST'];
 $scriptDir = dirname($_SERVER['PHP_SELF']);
-
-// Sobe 2 níveis: /karen_site/controle-salao
-$appRoot = dirname(dirname($scriptDir));
-
-$appRoot  = rtrim($appRoot, '/');               // garante sem barra no final
+$appRoot   = rtrim(dirname(dirname($scriptDir)), '/');
 $linkFinal = $protocol . '://' . $host . $appRoot . '/agendar.php?user=' . $userId;
+
+// Cor atual
+$stmt = $pdo->prepare("SELECT cor_tema FROM usuarios WHERE id = ?");
+$stmt->execute([$userId]);
+$dadosUser = $stmt->fetch();
+$corAtual  = $dadosUser['cor_tema'] ?? '#4f46e5';
+
+// =========================================================
+// 3. INCLUSÃO DE HTML E APRESENTAÇÃO
+// =========================================================
+$pageTitle = 'Configurações';
+include '../../includes/header.php';
+include '../../includes/menu.php';
 ?>
+
 <style>
-    .config-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
-    @media(min-width: 768px) { .config-grid { grid-template-columns: 1fr 1fr; } }
+    :root {
+        --primary: #6366f1;
+        --primary-hover: #4f46e5;
+        --bg-page: #f8fafc;
+        --text-dark: #0f172a;
+        --text-gray: #64748b;
+        --shadow: 0 10px 30px rgba(15,23,42,0.10);
+    }
 
-    .card { background: white; border-radius: 16px; padding: 25px; box-shadow: var(--shadow); border: 1px solid #f1f5f9; }
-    .card-title { margin-top: 0; display: flex; align-items: center; gap: 10px; color: var(--text-dark); font-size: 1.2rem; }
-    .card-desc { color: var(--text-gray); font-size: 0.9rem; margin-bottom: 20px; }
+    .main-content {
+        padding-bottom: 90px;
+        padding-inline: 14px;
+    }
 
-    .form-group { margin-bottom: 15px; }
-    .form-label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; }
-    .form-control { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; }
+    @media (min-width: 768px) {
+        .main-content {
+            padding-inline: 24px;
+        }
+    }
 
-    .btn-primary { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: 600; width: 100%; }
-    .btn-primary:hover { background: var(--primary-hover); }
+    .config-header {
+        margin: 8px 0 20px 0;
+    }
+    .config-header h2 {
+        margin: 0;
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--text-dark);
+    }
+    .config-header p {
+        margin: 4px 0 0 0;
+        color: var(--text-gray);
+        font-size: 0.9rem;
+    }
 
-    .btn-download { background: #0f172a; color: white; text-decoration: none; padding: 12px 20px; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 600; transition: 0.2s; }
-    .btn-download:hover { background: #334155; }
+    .config-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+    @media(min-width: 900px) {
+        .config-grid {
+            grid-template-columns: 2fr 1.3fr;
+            align-items: flex-start;
+        }
+        .card-full {
+            grid-column: 1 / -1;
+        }
+    }
 
-    .copy-box { display: flex; gap: 10px; }
-    .btn-copy { background: #e0e7ff; color: var(--primary); border: none; padding: 0 20px; border-radius: 10px; cursor: pointer; font-weight: 600; }
-    .btn-copy:hover { background: #c7d2fe; }
+    .card {
+        background: white;
+        border-radius: 16px;
+        padding: 18px 18px 18px 18px;
+        box-shadow: var(--shadow);
+        border: 1px solid #f1f5f9;
+    }
+    @media (min-width: 768px) {
+        .card {
+            padding: 22px 22px 20px 22px;
+        }
+    }
 
-    .alert { padding: 15px; border-radius: 10px; margin-bottom: 20px; font-size: 0.95rem; }
-    .alert.success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-    .alert.error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .card-title {
+        margin-top: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-dark);
+        font-size: 1.02rem;
+        font-weight: 700;
+    }
+    .card-desc {
+        color: var(--text-gray);
+        font-size: 0.9rem;
+        margin-bottom: 16px;
+        line-height: 1.5;
+    }
+
+    .form-group { margin-bottom: 13px; }
+    .form-label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        font-size: 0.88rem;
+        color: #475569;
+    }
+    .form-control {
+        width: 100%;
+        padding: 11px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        box-sizing: border-box;
+        font-size: 0.93rem;
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 11px 18px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 600;
+        width: 100%;
+        transition: 0.18s;
+        font-size: 0.93rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .btn-primary:hover {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+    }
+
+    /* Alertas */
+    .alert {
+        padding: 11px 12px;
+        border-radius: 10px;
+        margin-bottom: 16px;
+        font-size: 0.87rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .alert.success {
+        background: #dcfce7;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+    .alert.error {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+
+    /* Color Picker + Paletas */
+    .color-picker-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border: 1px solid #e2e8f0;
+        padding: 8px 10px;
+        border-radius: 12px;
+        margin-bottom: 10px;
+    }
+    input[type="color"] {
+        border: none;
+        width: 42px;
+        height: 42px;
+        cursor: pointer;
+        background: transparent;
+        padding: 0;
+    }
+    .preview-area {
+        flex: 1;
+        min-width: 0;
+    }
+    .preview-label {
+        font-size: 0.78rem;
+        color: #64748b;
+        margin-bottom: 3px;
+    }
+    .preview-btn {
+        padding: 7px 16px;
+        border-radius: 999px;
+        color: white;
+        font-weight: 600;
+        border: none;
+        font-size: 0.82rem;
+        pointer-events: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 8px 18px rgba(15,23,42,0.25);
+        white-space: nowrap;
+    }
+
+    .hex-helper {
+        font-size: 0.78rem;
+        color: #94a3b8;
+        margin-top: 3px;
+    }
+
+    .theme-palettes-title {
+        font-size: 0.84rem;
+        font-weight: 600;
+        color: #475569;
+        margin: 10px 0 4px 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+    .theme-palettes-title span {
+        font-size: 0.74rem;
+        font-weight: 500;
+        color: #9ca3af;
+    }
+
+    .theme-grid-wrapper {
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+
+    .theme-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 8px;
+        min-width: 260px;
+    }
+
+    .theme-card {
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        padding: 7px 8px;
+        cursor: pointer;
+        transition: 0.18s;
+        background: #f9fafb;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    .theme-card-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .theme-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        border: 2px solid #e5e7eb;
+        box-shadow: 0 0 0 1px rgba(15,23,42,0.1);
+        flex-shrink: 0;
+    }
+    .theme-name {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #0f172a;
+    }
+    .theme-meta {
+        font-size: 0.74rem;
+        color: #6b7280;
+    }
+
+    .theme-swatches {
+        display: flex;
+        gap: 4px;
+        margin-top: 3px;
+    }
+    .theme-swatch {
+        width: 14px;
+        height: 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(15,23,42,0.08);
+        flex-shrink: 0;
+    }
+
+    .theme-preview-bar {
+        height: 6px;
+        border-radius: 999px;
+        background: #e5e7eb;
+        overflow: hidden;
+        position: relative;
+        margin-top: 4px;
+    }
+    .theme-preview-bar-inner {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(90deg, rgba(15,23,42,0.10), rgba(15,23,42,0.22));
+        mix-blend-mode: multiply;
+    }
+
+    .theme-card.active {
+        border-color: #6366f1;
+        background: #eef2ff;
+        box-shadow: 0 0 0 1px rgba(99,102,241,0.45);
+    }
+
+    /* Download / link */
+    .btn-download {
+        background: #0f172a;
+        color: white;
+        text-decoration: none;
+        padding: 11px 18px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-weight: 600;
+        transition: 0.18s;
+        font-size: 0.93rem;
+    }
+    .btn-download:hover {
+        background: #334155;
+        transform: translateY(-1px);
+    }
+
+    .copy-box {
+        display: flex;
+        gap: 9px;
+    }
+    .btn-copy {
+        background: #e0e7ff;
+        color: #4f46e5;
+        border: none;
+        padding: 0 16px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.84rem;
+        white-space: nowrap;
+        transition: 0.15s;
+    }
+    .btn-copy:hover {
+        background: #c7d2fe;
+    }
+
+    @media (max-width: 640px) {
+        .copy-box {
+            flex-direction: column;
+        }
+        .btn-copy {
+            width: 100%;
+            text-align: center;
+            padding: 9px 0;
+        }
+    }
 </style>
 
 <main class="main-content">
 
-    <div style="margin-bottom: 30px;">
-        <h2 style="margin:0;">Configurações</h2>
-        <p style="color:var(--text-gray); margin-top:5px;">Gerencie a segurança e ferramentas do sistema.</p>
+    <div class="config-header">
+        <h2>Configurações</h2>
+        <p>Gerencie segurança, aparência e backups do seu painel e agendamentos.</p>
     </div>
 
-    <?php if($msg): ?>
+    <?php if ($msg): ?>
         <div class="alert <?php echo $msgType; ?>">
-            <?php echo $msg; ?>
+            <i class="bi <?php echo $msgType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'; ?>"></i>
+            <?php echo htmlspecialchars($msg); ?>
         </div>
     <?php endif; ?>
 
     <div class="config-grid">
 
+        <!-- PERSONALIZAR AGENDAMENTO -->
+        <div class="card card-full">
+            <h3 class="card-title">
+                <i class="bi bi-palette-fill" style="color:#ec4899;"></i>
+                Personalizar Agendamento
+            </h3>
+            <p class="card-desc">
+                Defina a cor principal da sua página pública de agendamento. Essa cor será usada em botões, destaques e detalhes para combinar com a identidade visual do seu salão.
+            </p>
+
+            <form method="POST">
+                <input type="hidden" name="acao" value="salvar_aparencia">
+
+                <label class="form-label">Cor da marca</label>
+                <div class="color-picker-wrapper">
+                    <input
+                        type="color"
+                        name="cor_tema"
+                        id="colorInput"
+                        value="<?php echo htmlspecialchars($corAtual); ?>"
+                        oninput="updatePreview(this.value)"
+                    >
+
+                    <div class="preview-area">
+                        <div class="preview-label">Prévia do botão principal</div>
+                        <button
+                            type="button"
+                            id="btnPreview"
+                            class="preview-btn"
+                            style="background-color: <?php echo htmlspecialchars($corAtual); ?>;"
+                        >
+                            <i class="bi bi-calendar-check"></i>
+                            Agendar horário
+                        </button>
+                        <div class="hex-helper">
+                            Cor atual: <code id="hexLabel"><?php echo htmlspecialchars($corAtual); ?></code>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="theme-palettes-title">
+                    Temas prontos
+                    <span>Toque em um tema ou ajuste a cor manualmente</span>
+                </div>
+
+                <div class="theme-grid-wrapper">
+                    <div class="theme-grid" id="themeGrid">
+                        <!-- Tema Roxo -->
+                        <div class="theme-card" data-color="#6366f1">
+                            <div class="theme-card-header">
+                                <div class="theme-dot" style="background:#6366f1;"></div>
+                                <div>
+                                    <div class="theme-name">Roxo Clássico</div>
+                                    <div class="theme-meta">Moderno para salões e barbearias</div>
+                                </div>
+                            </div>
+                            <div class="theme-swatches">
+                                <span class="theme-swatch" style="background:#4338ca;"></span>
+                                <span class="theme-swatch" style="background:#6366f1;"></span>
+                                <span class="theme-swatch" style="background:#818cf8;"></span>
+                                <span class="theme-swatch" style="background:#c7d2fe;"></span>
+                            </div>
+                            <div class="theme-preview-bar">
+                                <div class="theme-preview-bar-inner"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tema Rosa -->
+                        <div class="theme-card" data-color="#ec4899">
+                            <div class="theme-card-header">
+                                <div class="theme-dot" style="background:#ec4899;"></div>
+                                <div>
+                                    <div class="theme-name">Rosa Beauty</div>
+                                    <div class="theme-meta">Estética, cílios, sobrancelhas</div>
+                                </div>
+                            </div>
+                            <div class="theme-swatches">
+                                <span class="theme-swatch" style="background:#be185d;"></span>
+                                <span class="theme-swatch" style="background:#ec4899;"></span>
+                                <span class="theme-swatch" style="background:#f472b6;"></span>
+                                <span class="theme-swatch" style="background:#f9a8d4;"></span>
+                            </div>
+                            <div class="theme-preview-bar">
+                                <div class="theme-preview-bar-inner"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tema Verde -->
+                        <div class="theme-card" data-color="#22c55e">
+                            <div class="theme-card-header">
+                                <div class="theme-dot" style="background:#22c55e;"></div>
+                                <div>
+                                    <div class="theme-name">Verde Spa</div>
+                                    <div class="theme-meta">Calmo, cara de bem-estar</div>
+                                </div>
+                            </div>
+                            <div class="theme-swatches">
+                                <span class="theme-swatch" style="background:#15803d;"></span>
+                                <span class="theme-swatch" style="background:#22c55e;"></span>
+                                <span class="theme-swatch" style="background:#4ade80;"></span>
+                                <span class="theme-swatch" style="background:#bbf7d0;"></span>
+                            </div>
+                            <div class="theme-preview-bar">
+                                <div class="theme-preview-bar-inner"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tema Laranja -->
+                        <div class="theme-card" data-color="#f97316">
+                            <div class="theme-card-header">
+                                <div class="theme-dot" style="background:#f97316;"></div>
+                                <div>
+                                    <div class="theme-name">Laranja Energia</div>
+                                    <div class="theme-meta">Clínicas, estúdios e vibe jovem</div>
+                                </div>
+                            </div>
+                            <div class="theme-swatches">
+                                <span class="theme-swatch" style="background:#ea580c;"></span>
+                                <span class="theme-swatch" style="background:#f97316;"></span>
+                                <span class="theme-swatch" style="background:#fb923c;"></span>
+                                <span class="theme-swatch" style="background:#fed7aa;"></span>
+                            </div>
+                            <div class="theme-preview-bar">
+                                <div class="theme-preview-bar-inner"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tema Dark Luxo -->
+                        <div class="theme-card" data-color="#0f172a">
+                            <div class="theme-card-header">
+                                <div class="theme-dot" style="background:#0f172a;"></div>
+                                <div>
+                                    <div class="theme-name">Dark Luxo</div>
+                                    <div class="theme-meta">Salões premium, barbearia clássica</div>
+                                </div>
+                            </div>
+                            <div class="theme-swatches">
+                                <span class="theme-swatch" style="background:#020617;"></span>
+                                <span class="theme-swatch" style="background:#0f172a;"></span>
+                                <span class="theme-swatch" style="background:#1e293b;"></span>
+                                <span class="theme-swatch" style="background:#e5e7eb;"></span>
+                            </div>
+                            <div class="theme-preview-bar">
+                                <div class="theme-preview-bar-inner"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tema Dourado -->
+                        <div class="theme-card" data-color="#eab308">
+                            <div class="theme-card-header">
+                                <div class="theme-dot" style="background:#eab308;"></div>
+                                <div>
+                                    <div class="theme-name">Dourado Glam</div>
+                                    <div class="theme-meta">Unhas, noivas, maquiagem</div>
+                                </div>
+                            </div>
+                            <div class="theme-swatches">
+                                <span class="theme-swatch" style="background:#854d0e;"></span>
+                                <span class="theme-swatch" style="background:#eab308;"></span>
+                                <span class="theme-swatch" style="background:#facc15;"></span>
+                                <span class="theme-swatch" style="background:#fef3c7;"></span>
+                            </div>
+                            <div class="theme-preview-bar">
+                                <div class="theme-preview-bar-inner"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tema Azul Claro -->
+                        <div class="theme-card" data-color="#0ea5e9">
+                            <div class="theme-card-header">
+                                <div class="theme-dot" style="background:#0ea5e9;"></div>
+                                <div>
+                                    <div class="theme-name">Azul Fresh</div>
+                                    <div class="theme-meta">Limpeza, clínica, visual leve</div>
+                                </div>
+                            </div>
+                            <div class="theme-swatches">
+                                <span class="theme-swatch" style="background:#0369a1;"></span>
+                                <span class="theme-swatch" style="background:#0ea5e9;"></span>
+                                <span class="theme-swatch" style="background:#38bdf8;"></span>
+                                <span class="theme-swatch" style="background:#e0f2fe;"></span>
+                            </div>
+                            <div class="theme-preview-bar">
+                                <div class="theme-preview-bar-inner"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tema Vermelho -->
+                        <div class="theme-card" data-color="#ef4444">
+                            <div class="theme-card-header">
+                                <div class="theme-dot" style="background:#ef4444;"></div>
+                                <div>
+                                    <div class="theme-name">Vermelho Impacto</div>
+                                    <div class="theme-meta">Marca forte e marcante</div>
+                                </div>
+                            </div>
+                            <div class="theme-swatches">
+                                <span class="theme-swatch" style="background:#b91c1c;"></span>
+                                <span class="theme-swatch" style="background:#ef4444;"></span>
+                                <span class="theme-swatch" style="background:#f97373;"></span>
+                                <span class="theme-swatch" style="background:#fee2e2;"></span>
+                            </div>
+                            <div class="theme-preview-bar">
+                                <div class="theme-preview-bar-inner"></div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <button type="submit" class="btn-primary">
+                        <i class="bi bi-check-circle-fill"></i> Salvar cor do agendamento
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- COLUNA DIREITA (RESPONSIVA) -->
         <div class="card">
             <h3 class="card-title">
-                <i class="bi bi-share-fill" style="color:#6366f1;"></i> 
+                <i class="bi bi-share-fill" style="color:#6366f1;"></i>
                 Link para Clientes
             </h3>
-            <p class="card-desc">Envie este link para os seus clientes agendarem sozinhos.</p>
+            <p class="card-desc">Envie este link para seus clientes agendarem sozinhos online.</p>
 
-            <label class="form-label">Link Público</label>
+            <label class="form-label">Link público de agendamento</label>
             <div class="copy-box">
-                <input type="text" class="form-control" value="<?php echo htmlspecialchars($linkFinal); ?>" id="linkInput" readonly>
+                <input
+                    type="text"
+                    class="form-control"
+                    value="<?php echo htmlspecialchars($linkFinal); ?>"
+                    id="linkInput"
+                    readonly
+                >
                 <button class="btn-copy" type="button" onclick="copiarLink()">Copiar</button>
             </div>
-            <p style="font-size:0.8rem; color:#94a3b8; margin-top:10px;">
-                <i class="bi bi-whatsapp"></i> Dica: Cole este link na bio do Instagram ou envie no WhatsApp.
-            </p>
         </div>
 
         <div class="card">
             <h3 class="card-title">
-                <i class="bi bi-shield-lock-fill" style="color:#10b981;"></i> 
+                <i class="bi bi-shield-lock-fill" style="color:#10b981;"></i>
                 Alterar Senha
             </h3>
-            <p class="card-desc">Atualize a sua senha de acesso ao painel.</p>
+            <p class="card-desc">Mantenha sua conta segura atualizando a senha periodicamente.</p>
 
             <form method="POST">
                 <input type="hidden" name="acao" value="nova_senha">
-
                 <div class="form-group">
-                    <label class="form-label">Senha Atual</label>
-                    <input type="password" name="senha_atual" class="form-control" required placeholder="Digite sua senha atual">
+                    <label class="form-label">Senha atual</label>
+                    <input type="password" name="senha_atual" class="form-control" required>
                 </div>
-
                 <div class="form-group">
-                    <label class="form-label">Nova Senha</label>
-                    <input type="password" name="nova_senha" class="form-control" required placeholder="Mínimo 6 caracteres">
+                    <label class="form-label">Nova senha</label>
+                    <input type="password" name="nova_senha" class="form-control" required placeholder="Min. 6 caracteres">
                 </div>
-
                 <div class="form-group">
-                    <label class="form-label">Confirmar Nova Senha</label>
-                    <input type="password" name="confirmar_senha" class="form-control" required placeholder="Repita a nova senha">
+                    <label class="form-label">Confirmar nova senha</label>
+                    <input type="password" name="confirmar_senha" class="form-control" required>
                 </div>
-
-                <button type="submit" class="btn-primary">Atualizar Senha</button>
+                <button type="submit" class="btn-primary" style="background:#0f172a;">
+                    Atualizar senha
+                </button>
             </form>
         </div>
 
         <div class="card">
             <h3 class="card-title">
-                <i class="bi bi-database-down" style="color:#f59e0b;"></i> 
-                Backup de Dados
+                <i class="bi bi-database-down" style="color:#f59e0b;"></i>
+                Backup
             </h3>
-            <p class="card-desc">Baixe uma cópia de segurança de todos os seus dados (clientes, agenda, financeiro).</p>
-
-            <div style="background:#fff7ed; padding:15px; border-radius:10px; margin-bottom:20px; border:1px solid #ffedd5; font-size:0.9rem; color:#9a3412;">
-                Recomendamos fazer o download semanalmente para garantir que nunca perde as suas informações.
-            </div>
-
+            <p class="card-desc">Faça o download de uma cópia do banco de dados com seus agendamentos, clientes e informações.</p>
             <a href="?download_backup=1" class="btn-download">
-                <i class="bi bi-download"></i> Baixar Banco de Dados
+                <i class="bi bi-download"></i> Baixar banco de dados
             </a>
         </div>
 
@@ -197,28 +734,61 @@ $linkFinal = $protocol . '://' . $host . $appRoot . '/agendar.php?user=' . $user
 <?php include '../../includes/footer.php'; ?>
 
 <script>
+    function updatePreview(color) {
+        var btn = document.getElementById('btnPreview');
+        var hexLabel = document.getElementById('hexLabel');
+        if (btn) {
+            btn.style.backgroundColor = color;
+        }
+        if (hexLabel) {
+            hexLabel.textContent = color;
+        }
+        highlightActiveTheme(color);
+    }
+
     function copiarLink() {
         var copyText = document.getElementById("linkInput");
-        copyText.select();
-        copyText.setSelectionRange(0, 99999); // Para mobile
+        if (!copyText) return;
 
-        try {
-            navigator.clipboard.writeText(copyText.value);
-        } catch (e) {
-            // fallback
-            document.execCommand("copy");
-        }
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(copyText.value);
 
         const btn = document.querySelector('.btn-copy');
-        const originalText = btn.innerText;
-        btn.innerText = 'Copiado!';
-        btn.style.background = '#dcfce7';
-        btn.style.color = '#166534';
-
-        setTimeout(() => {
-            btn.innerText = originalText;
-            btn.style.background = '#e0e7ff';
-            btn.style.color = 'var(--primary)';
-        }, 2000);
+        if (btn) {
+            btn.innerText = 'Copiado!';
+            setTimeout(() => { btn.innerText = 'Copiar'; }, 2000);
+        }
     }
+
+    function highlightActiveTheme(color) {
+        const cards = document.querySelectorAll('.theme-card');
+        cards.forEach(card => {
+            const c = (card.getAttribute('data-color') || '').toLowerCase();
+            if (c === (color || '').toLowerCase()) {
+                card.classList.add('active');
+            } else {
+                card.classList.remove('active');
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const themeGrid  = document.getElementById('themeGrid');
+        const colorInput = document.getElementById('colorInput');
+
+        if (themeGrid && colorInput) {
+            themeGrid.querySelectorAll('.theme-card').forEach(card => {
+                card.addEventListener('click', function () {
+                    const color = card.getAttribute('data-color');
+                    if (!color) return;
+                    colorInput.value = color;
+                    updatePreview(color);
+                });
+            });
+
+            // Marca o tema ativo se coincidir com algum preset
+            highlightActiveTheme(colorInput.value);
+        }
+    });
 </script>

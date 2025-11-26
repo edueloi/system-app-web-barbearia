@@ -8,9 +8,28 @@ if (session_status() === PHP_SESSION_NONE) {
 $dbPath = __DIR__ . '/../banco_salao.sqlite';
 
 try {
+    // 1. CONEXÃO
     $pdo = new PDO("sqlite:$dbPath");
+
+    // 2. CONFIGURAÇÕES ANTI-TRAVAMENTO (CRÍTICO)
+    // Lança exceções em caso de erro
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    // Retorna arrays associativos (padrão)
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    
+    // Aumenta o tempo de espera para 15 segundos antes de dar erro "database locked"
+    $pdo->setAttribute(PDO::ATTR_TIMEOUT, 15);
+
+    // evita "database is locked"
+$pdo->exec('PRAGMA busy_timeout = 5000;'); // 5 segundos
+$pdo->exec('PRAGMA journal_mode = WAL;');  // melhor para concorrência
+
+    // ATIVA O MODO WAL (Write-Ahead Logging)
+    // Isso é o segredo para não travar no Windows: permite leitura e escrita simultâneas
+    $pdo->exec('PRAGMA journal_mode = WAL;');
+    
+    // Garante um timeout interno do SQLite também
+    $pdo->exec('PRAGMA busy_timeout = 5000;');
 
     // =========================================================
     // CRIAÇÃO DAS TABELAS PRINCIPAIS
@@ -84,6 +103,8 @@ try {
         bairro TEXT,
         cidade TEXT,
         estado TEXT,
+        estabelecimento TEXT,
+        cor_tema TEXT DEFAULT '#4f46e5',
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
@@ -118,6 +139,7 @@ try {
     // MIGRAÇÕES (para bancos antigos já existentes)
     // =========================================================
 
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN cor_tema TEXT DEFAULT '#4f46e5'"); } catch (Exception $e) {}
     // Clientes
     try { $pdo->exec("ALTER TABLE clientes ADD COLUMN cpf TEXT"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE clientes ADD COLUMN telefone TEXT"); } catch (Exception $e) {}
@@ -141,6 +163,8 @@ try {
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN bairro TEXT"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN cidade TEXT"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN estado TEXT"); } catch (Exception $e) {}
+    // Adiciona o campo estabelecimento se não existir
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN estabelecimento TEXT"); } catch (Exception $e) {}
 
     // Produtos
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN marca TEXT"); } catch (Exception $e) {}
@@ -176,3 +200,4 @@ try {
 } catch (PDOException $e) {
     die("Erro na base de dados: " . $e->getMessage());
 }
+?>

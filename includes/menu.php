@@ -58,6 +58,8 @@ if (isset($pdo) && isset($_SESSION['user_id'])) {
 
 function isActive($pageName) {
     return basename($_SERVER['PHP_SELF']) === $pageName ? 'active' : '';
+
+
 }
 ?>
 

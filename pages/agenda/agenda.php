@@ -1,513 +1,516 @@
 <?php
-$pageTitle = 'Minha Agenda';
-include '../../includes/header.php';
-include '../../includes/menu.php';
-include '../../includes/db.php';
+// pages/agenda/agenda.php
 
-// Simulação de Login
+// =========================================================
+// 1. CONFIGURAÇÃO E SESSÃO
+// =========================================================
+if (session_status() === PHP_SESSION_NONE) session_start();
 if (!isset($_SESSION['user_id'])) $_SESSION['user_id'] = 1;
 $userId = $_SESSION['user_id'];
 
-// DATA ATUAL EXIBIDA
+// Tenta incluir o DB com verificação de caminho
+$dbPath = '../../includes/db.php';
+if (!file_exists($dbPath)) {
+    // Fallback se a estrutura de pastas for diferente
+    $dbPath = 'includes/db.php'; 
+    if (!file_exists($dbPath)) die("Erro: db.php não encontrado.");
+}
+require_once $dbPath;
+
+// Parâmetros de Entrada
 $dataExibida = $_GET['data'] ?? date('Y-m-d');
+$viewType    = $_GET['view'] ?? 'day'; // 'day', 'week', 'month'
+$hoje        = date('Y-m-d');
 
-// --- AÇÕES ---
-// A. Excluir agendamento
-if (isset($_GET['delete'])) {
-    $idDel = (int)$_GET['delete'];
-    $pdo->prepare("DELETE FROM agendamentos WHERE id = ? AND user_id = ?")
-        ->execute([$idDel, $userId]);
-
-    echo "<script>window.location.href='agenda.php?data={$dataExibida}';</script>";
+// Função Auxiliar de Redirecionamento
+function redirect($data, $view) {
+    header("Location: agenda.php?data=" . urlencode($data) . "&view=" . $view);
     exit;
 }
 
-// B. Atualizar status (Confirmado / Pendente / Cancelado)
-if (isset($_GET['update_status'], $_GET['id'])) {
-    $idUp   = (int)$_GET['id'];
-    $status = $_GET['update_status'];
+// =========================================================
+// 2. AÇÕES DO BACKEND (POST/GET)
+// =========================================================
 
-    $permitidos = ['Pendente','Confirmado','Cancelado'];
-    if (in_array($status, $permitidos, true)) {
-        $stmt = $pdo->prepare("UPDATE agendamentos SET status = ? WHERE id = ? AND user_id = ?");
-        $stmt->execute([$status, $idUp, $userId]);
+try {
+    // 2.1 Excluir Agendamento
+    if (isset($_GET['delete'])) {
+        $id = (int)$_GET['delete'];
+        $stmt = $pdo->prepare("DELETE FROM agendamentos WHERE id=? AND user_id=?");
+        $stmt->execute([$id, $userId]);
+        redirect($dataExibida, $viewType);
     }
-    echo "<script>window.location.href='agenda.php?data={$dataExibida}';</script>";
-    exit;
-}
 
-// C. Salvar novo agendamento
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['novo_agendamento'])) {
-    $cliente   = trim($_POST['cliente'] ?? '');
-    $servicoId = $_POST['servico_id'] ?? null;
-    $valor     = str_replace(',', '.', $_POST['valor'] ?? '0');
-    $horario   = $_POST['horario'] ?? '';
-    $obs       = trim($_POST['obs'] ?? '');
+    // 2.2 Mudar Status
+    if (isset($_GET['status'], $_GET['id'])) {
+        $stmt = $pdo->prepare("UPDATE agendamentos SET status=? WHERE id=? AND user_id=?");
+        $stmt->execute([$_GET['status'], (int)$_GET['id'], $userId]);
+        redirect($dataExibida, $viewType);
+    }
 
-    // Busca o nome do serviço
-    $stmt = $pdo->prepare("SELECT nome FROM servicos WHERE id = ? AND user_id = ?");
-    $stmt->execute([$servicoId, $userId]);
-    $nomeServico = $stmt->fetchColumn() ?: 'Serviço';
+    // 2.3 Novo Agendamento (POST)
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['novo_agendamento'])) {
+        $cliente   = trim($_POST['cliente']);
+        $servicoId = $_POST['servico_id'];
+        $valor     = str_replace(',', '.', $_POST['valor']);
+        $horario   = $_POST['horario'];
+        $obs       = trim($_POST['obs']);
+        $dataAg    = $_POST['data_agendamento'] ?? $dataExibida;
 
-    if (!empty($cliente) && !empty($horario)) {
-        $sql = "INSERT INTO agendamentos 
-                    (user_id, cliente_nome, servico, valor, data_agendamento, horario, observacoes, status) 
-                VALUES 
-                    (?, ?, ?, ?, ?, ?, ?, 'Confirmado')";
-        $stmt = $pdo->prepare($sql);
-        if ($stmt->execute([$userId, $cliente, $nomeServico, $valor, $dataExibida, $horario, $obs])) {
-            echo "<script>window.location.href='agenda.php?data={$dataExibida}';</script>";
-            exit;
-        } else {
-            echo "<script>alert('Erro ao salvar agendamento');</script>";
+        // Validação de segurança: Impede data passada no backend
+        if ($dataAg < $hoje) { 
+            $dataAg = $hoje; 
         }
-    } else {
-        echo "<script>alert('Preencha cliente e horário');</script>";
+
+        // Busca nome do serviço
+        $stmt = $pdo->prepare("SELECT nome FROM servicos WHERE id=? AND user_id=?");
+        $stmt->execute([$servicoId, $userId]);
+        $nomeServico = $stmt->fetchColumn() ?: 'Serviço';
+
+        if ($cliente && $horario) {
+            $sql = "INSERT INTO agendamentos (user_id, cliente_nome, servico, valor, data_agendamento, horario, observacoes, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'Confirmado')";
+            $pdo->prepare($sql)->execute([$userId, $cliente, $nomeServico, $valor, $dataAg, $horario, $obs]);
+        }
+        // Redireciona para o dia que foi agendado para o usuário ver
+        redirect($dataAg, 'day');
+    }
+
+} catch (PDOException $e) {
+    // Captura erros de banco (como o Locked) e mostra amigável
+    die("Erro no banco de dados (Tente novamente em alguns segundos): " . $e->getMessage());
+}
+
+// =========================================================
+// 3. CONSULTA DE DADOS (VIEW LOGIC)
+// =========================================================
+
+$agendamentos = [];
+$faturamento = 0;
+$diasComAgendamento = []; // Para marcar pontinhos no calendário mensal
+
+// Define intervalo de datas baseado na View
+if ($viewType === 'month') {
+    $start = date('Y-m-01', strtotime($dataExibida));
+    $end   = date('Y-m-t', strtotime($dataExibida));
+    
+    // Título do Mês
+    setlocale(LC_TIME, 'pt_BR', 'pt_BR.utf-8', 'portuguese');
+    $meses = [1=>'Janeiro',2=>'Fevereiro',3=>'Março',4=>'Abril',5=>'Maio',6=>'Junho',7=>'Julho',8=>'Agosto',9=>'Setembro',10=>'Outubro',11=>'Novembro',12=>'Dezembro'];
+    $tituloData = $meses[(int)date('m', strtotime($dataExibida))] . ' ' . date('Y', strtotime($dataExibida));
+
+} elseif ($viewType === 'week') {
+    $ts = strtotime($dataExibida);
+    $diaSemana = date('w', $ts);
+    $start = date('Y-m-d', strtotime("-$diaSemana days", $ts));
+    $end   = date('Y-m-d', strtotime("+6 days", strtotime($start)));
+    $tituloData = date('d/m', strtotime($start)) . ' a ' . date('d/m', strtotime($end));
+
+} else {
+    // Dia
+    $start = $dataExibida;
+    $end   = $dataExibida;
+    $diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    $tituloData = $diasSemana[date('w', strtotime($dataExibida))] . ', ' . date('d/m', strtotime($dataExibida));
+}
+
+// Busca principal
+$stmt = $pdo->prepare("SELECT * FROM agendamentos WHERE user_id = ? AND data_agendamento BETWEEN ? AND ? ORDER BY data_agendamento ASC, horario ASC");
+$stmt->execute([$userId, $start, $end]);
+$raw = $stmt->fetchAll();
+
+// Listas para os Modais
+$servicos = $pdo->query("SELECT * FROM servicos WHERE user_id=$userId ORDER BY nome ASC")->fetchAll();
+$clientes = $pdo->query("SELECT nome, telefone FROM clientes WHERE user_id=$userId ORDER BY nome ASC")->fetchAll();
+
+// Processamento dos dados (Correção de Preço 0 e Organização)
+foreach ($raw as &$r) {
+    // Se o valor for 0, tenta pegar o preço padrão do serviço
+    if ((float)$r['valor'] <= 0) {
+        foreach ($servicos as $s) {
+            if ($s['nome'] === $r['servico']) {
+                $r['valor'] = $s['preco']; 
+                break;
+            }
+        }
+    }
+}
+unset($r); // Limpa referência
+
+// Organiza array final baseado na View
+if ($viewType === 'day') {
+    $agendamentos = $raw;
+    foreach ($raw as $ag) if(($ag['status']??'')!=='Cancelado') $faturamento += $ag['valor'];
+
+} elseif ($viewType === 'week') {
+    for($i=0; $i<=6; $i++) {
+        $d = date('Y-m-d', strtotime("+$i days", strtotime($start)));
+        $agendamentos[$d] = [];
+    }
+    foreach ($raw as $ag) {
+        $agendamentos[$ag['data_agendamento']][] = $ag;
+        if(($ag['status']??'')!=='Cancelado') $faturamento += $ag['valor'];
+    }
+
+} elseif ($viewType === 'month') {
+    foreach ($raw as $ag) {
+        $diasComAgendamento[$ag['data_agendamento']] = true;
+        if(($ag['status']??'')!=='Cancelado') $faturamento += $ag['valor'];
     }
 }
 
-// --- BUSCAR DADOS ---
-// Navegação de datas
-$dataAnt = date('Y-m-d', strtotime($dataExibida . ' -1 day'));
-$dataPro = date('Y-m-d', strtotime($dataExibida . ' +1 day'));
+// Datas para navegação (setas < >)
+$mod = ($viewType==='month') ? 'month' : (($viewType==='week') ? 'week' : 'day');
+$dataAnt = date('Y-m-d', strtotime($dataExibida . " -1 $mod"));
+$dataPro = date('Y-m-d', strtotime($dataExibida . " +1 $mod"));
 
-// Agendamentos do dia
-$stmt = $pdo->prepare("SELECT * FROM agendamentos WHERE user_id = ? AND data_agendamento = ? ORDER BY horario ASC");
-$stmt->execute([$userId, $dataExibida]);
-$agendamentos = $stmt->fetchAll();
-
-// Faturamento do dia (usando valor salvo ou preço atual do serviço)
-$faturamentoDia = 0;
-foreach ($agendamentos as $ag) {
-    $valorServico = $ag['valor'] ?? 0;
-
-    // tenta pegar preço atual do serviço pelo nome
-    $stmtValor = $pdo->prepare("SELECT preco FROM servicos WHERE nome = ? AND user_id = ? LIMIT 1");
-    $stmtValor->execute([$ag['servico'], $userId]);
-    $precoAtual = $stmtValor->fetchColumn();
-    if ($precoAtual !== false) {
-        $valorServico = $precoAtual;
-    }
-    $faturamentoDia += $valorServico;
-}
-
-// Listas p/ modal
-$listaServicos = $pdo->query("SELECT * FROM servicos WHERE user_id = {$userId} ORDER BY nome ASC")->fetchAll();
-$listaClientes = $pdo->query("SELECT nome FROM clientes WHERE user_id = {$userId} ORDER BY nome ASC")->fetchAll();
+// =========================================================
+// 4. ESTRUTURA HTML E CSS
+// =========================================================
+$pageTitle = 'Minha Agenda';
+include '../../includes/header.php';
+include '../../includes/menu.php';
 ?>
 
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
 <style>
-    .agenda-header {
-        background: linear-gradient(135deg, #6366f1, #4f46e5);
-        color: white;
-        padding: 20px;
-        border-radius: 16px;
-        margin-bottom: 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: 0 4px 15px rgba(99,102,241,0.3);
+    /* --- ESTILOS GERAIS --- */
+    :root {
+        --primary: #6366f1;
+        --bg-body: #f8fafc;
+        --text-main: #0f172a;
+        --text-light: #64748b;
+        --white: #ffffff;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+        --radius: 16px;
     }
-    .agenda-header h2 { margin:0; }
-    .agenda-header small { opacity:.9; }
+    body { background-color: var(--bg-body); font-family: 'Inter', sans-serif; padding-bottom: 100px; margin: 0; }
 
-    .total-val { font-size: 1.8rem; font-weight: 700; }
-
-    .nav-box {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 15px;
-        margin-bottom: 20px;
-        background: white;
-        padding: 8px 14px;
-        border-radius: 999px;
-        width: fit-content;
-        margin-inline: auto;
-        box-shadow: 0 2px 10px rgba(15,23,42,0.06);
-    }
-    .btn-nav {
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        background: #f1f5f9;
-        border:none;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        color:#111827;
-        text-decoration:none;
-        font-size: 1.1rem;
-    }
-    .nav-date-label {
-        font-weight:600;
-        font-size:0.95rem;
-    }
-    .nav-today {
-        border-radius:999px;
-        padding:4px 10px;
-        font-size:0.8rem;
-        background:#e0f2fe;
-        color:#0369a1;
-        text-decoration:none;
+    /* --- HEADER FLUTUANTE (GLASSMORPHISM) --- */
+    .app-header {
+        position: sticky; top: 60px; z-index: 50;
+        background: rgba(248, 250, 252, 0.95); backdrop-filter: blur(10px);
+        padding: 10px 16px; border-bottom: 1px solid #e2e8f0;
     }
 
-    .timeline { display:flex; flex-direction:column; gap:10px; }
+    /* Botões de Visualização (Dia/Semana/Mês) */
+    .view-control {
+        display: flex; background: #e2e8f0; padding: 4px; border-radius: 12px; margin-bottom: 16px;
+    }
+    .view-opt {
+        flex: 1; text-align: center; padding: 8px; border-radius: 9px;
+        font-size: 0.85rem; font-weight: 600; color: var(--text-light);
+        text-decoration: none; transition: 0.2s;
+    }
+    .view-opt.active { background: var(--white); color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 
-    .event-card {
-        background:white;
-        border-radius:12px;
-        display:flex;
-        border:1px solid #f1f5f9;
-        overflow:hidden;
-        box-shadow:0 2px 6px rgba(15,23,42,0.04);
-        position:relative;
+    /* Navegador de Datas */
+    .date-nav-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .btn-circle {
+        width: 40px; height: 40px; border-radius: 50%; background: var(--white);
+        border: 1px solid #e2e8f0; color: var(--text-main); display: flex;
+        align-items: center; justify-content: center; cursor: pointer; text-decoration: none;
     }
-    .event-card.st-Confirmado { border-left:4px solid #22c55e; }
-    .event-card.st-Pendente   { border-left:4px solid #facc15; }
-    .event-card.st-Cancelado  { border-left:4px solid #ef4444; }
+    .date-picker-trigger { position: relative; text-align: center; }
+    .current-date-label { font-size: 1.1rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 6px; }
+    .hidden-date-input { position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor: pointer; }
 
-    .time-col {
-        background:#f8fafc;
-        width:72px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        font-weight:700;
-        font-size:1.05rem;
-        border-right:1px solid #e2e8f0;
+    /* Card Faturamento */
+    .finance-card {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        color: white; padding: 12px 20px; border-radius: var(--radius);
+        display: flex; justify-content: space-between; align-items: center;
+        box-shadow: 0 8px 20px -5px rgba(99, 102, 241, 0.4);
     }
-    .info-col { flex:1; padding:12px 14px; }
-    .action-col {
-        padding:10px 10px 10px 0;
-        display:flex;
-        flex-direction:column;
-        align-items:flex-end;
-        justify-content:space-between;
-        min-width:140px;
-        gap:6px;
-    }
-    .cliente-nome { font-weight:700; font-size:1rem; }
-    .servico-txt { color:#6366f1; font-size:0.86rem; margin-top:2px; }
-    .obs-txt {
-        font-size:0.78rem;
-        color:#94a3b8;
-        margin-top:4px;
-        max-width:260px;
-    }
-    .valor-txt { color:#16a34a; font-weight:700; font-size:1.05rem; }
+    .fin-value { font-size: 1.1rem; font-weight: 700; }
 
-    .badge-status {
-        font-size:0.7rem;
-        padding:3px 9px;
-        border-radius:999px;
-        font-weight:600;
-        white-space:nowrap;
-    }
-    .badge-Confirmado { background:#dcfce7; color:#166534; }
-    .badge-Pendente   { background:#fef9c3; color:#854d0e; }
-    .badge-Cancelado  { background:#fee2e2; color:#b91c1c; }
+    /* --- CONTEÚDO E CARDS --- */
+    .content-area { padding: 16px; }
 
-    .mini-actions {
-        display:flex;
-        gap:4px;
-        flex-wrap:wrap;
-        justify-content:flex-end;
+    .appt-card {
+        background: var(--white); border-radius: var(--radius); padding: 16px;
+        margin-bottom: 12px; position: relative; display: flex; gap: 14px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #f1f5f9;
     }
-    .mini-btn {
-        border-radius:999px;
-        padding:3px 8px;
-        font-size:0.72rem;
-        border:none;
-        text-decoration:none;
-        cursor:pointer;
-        display:inline-flex;
-        align-items:center;
-        gap:3px;
-    }
-    .mini-btn.green { background:#dcfce7; color:#166534; }
-    .mini-btn.amber { background:#fef3c7; color:#92400e; }
-    .mini-btn.red   { background:#fee2e2; color:#b91c1c; }
-    .mini-btn.gray  { background:#f1f5f9; color:#4b5563; }
-    .mini-btn.purple{ background:#ede9fe; color:#6d28d9; } /* Nota PDF */
+    .time-col { display: flex; flex-direction: column; align-items: center; min-width: 50px; border-right: 1px solid #f1f5f9; padding-right: 14px; justify-content: center; }
+    .time-val { font-size: 1.1rem; font-weight: 800; color: var(--text-main); line-height: 1; }
+    .time-min { font-size: 0.8rem; color: var(--text-light); font-weight: 500; }
+    
+    .info-col { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    .client-name { font-weight: 700; color: var(--text-main); font-size: 1rem; margin-bottom: 4px; }
+    .service-row { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text-light); }
+    .price-tag { background: #eef2ff; color: var(--primary); font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
 
-    .fab {
-        position: fixed;
-        bottom: 28px;
-        right: 28px;
-        width: 58px;
-        height: 58px;
-        background:#6366f1;
-        color:white;
-        border-radius:50%;
-        border:none;
-        font-size:2rem;
-        box-shadow:0 10px 25px rgba(79,70,229,0.5);
-        cursor:pointer;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        z-index: 950;
-    }
+    /* Status (Bolinhas) */
+    .status-badge { position: absolute; top: 12px; right: 12px; width: 10px; height: 10px; border-radius: 50%; }
+    .st-Confirmado { background: #10b981; box-shadow: 0 0 0 3px #d1fae5; }
+    .st-Pendente { background: #f59e0b; box-shadow: 0 0 0 3px #fef3c7; }
+    .st-Cancelado { background: #ef4444; box-shadow: 0 0 0 3px #fee2e2; }
 
-    .modal-overlay {
-        display:none;
-        position:fixed;
-        inset:0;
-        background:rgba(15,23,42,0.45);
-        z-index:999;
-        justify-content:center;
-        align-items:center;
-        padding:16px;
-    }
-    .modal-overlay.active { display:flex; }
-    .modal-box {
-        background:white;
-        padding:22px;
-        border-radius:18px;
-        width:100%;
-        max-width:420px;
-    }
+    /* --- CALENDÁRIO MENSAL --- */
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 10px; }
+    .week-day-name { text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--text-light); text-transform: uppercase; margin-bottom: 5px; }
+    .day-cell { aspect-ratio: 1; background: var(--white); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.95rem; font-weight: 600; color: var(--text-main); text-decoration: none; border: 1px solid transparent; position: relative; }
+    .day-cell.today { border-color: var(--primary); color: var(--primary); background: #eef2ff; }
+    .day-cell.empty { background: transparent; }
+    .has-event-dot { width: 5px; height: 5px; background: var(--primary); border-radius: 50%; position: absolute; bottom: 6px; }
 
-    .modal-box h3 {
-        margin-top:0;
-        margin-bottom:8px;
-    }
-    .modal-sub { font-size:0.8rem; color:#6b7280; margin-bottom:14px; }
+    /* --- SEMANAL --- */
+    .week-header { font-size: 0.9rem; font-weight: 700; color: var(--text-light); margin: 20px 0 8px 0; display: flex; align-items: center; gap: 8px; }
+    .week-header::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
 
-    .form-control-modal {
-        width:100%;
-        padding:10px;
-        border-radius:10px;
-        border:1px solid #e2e8f0;
-        font-size:0.9rem;
-        margin-bottom:10px;
-    }
-    .form-control-modal:focus {
-        outline:none;
-        border-color:#6366f1;
-        box-shadow:0 0 0 1px rgba(99,102,241,0.35);
-    }
-    .label-modal {
-        font-size:0.8rem;
-        font-weight:600;
-        color:#475569;
-        margin-bottom:3px;
-        display:block;
-    }
-    .row-inline {
-        display:flex;
-        gap:8px;
-    }
-    @media (max-width:500px){
-        .row-inline { flex-direction:column; }
-    }
+    /* --- BOTÃO FLUTUANTE (FAB) --- */
+    .fab-add { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; background: var(--text-main); color: white; border-radius: 18px; border: none; font-size: 1.8rem; box-shadow: 0 10px 20px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; z-index: 100; cursor: pointer; transition: 0.2s; }
+    .fab-add:active { transform: scale(0.9); }
 
-    .btn-primary-modal {
-        width:100%;
-        padding:11px;
-        border-radius:999px;
-        border:none;
-        background:#6366f1;
-        color:white;
-        font-weight:600;
-        cursor:pointer;
-        margin-top:5px;
-    }
-    .btn-secondary-modal {
-        width:100%;
-        padding:10px;
-        border-radius:999px;
-        border:none;
-        background:transparent;
-        color:#6b7280;
-        cursor:pointer;
-        margin-top:2px;
-        font-size:0.9rem;
-    }
+    /* --- MODAIS E FORMULÁRIOS --- */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: flex-end; justify-content: center; backdrop-filter: blur(2px); }
+    .modal-overlay.active { display: flex; animation: fadeIn 0.2s; }
+    .sheet-modal { background: white; width: 100%; max-width: 500px; border-radius: 24px 24px 0 0; padding: 24px; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); max-height: 90vh; overflow-y: auto; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .form-group { margin-bottom: 16px; }
+    .form-label { font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin-bottom: 6px; display: block; }
+    .form-input { width: 100%; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; background: #f8fafc; outline: none; box-sizing: border-box; }
+    .form-input:focus { border-color: var(--primary); background: white; }
+    .btn-main { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 14px; font-weight: 700; font-size: 1rem; margin-top: 10px; cursor: pointer; }
+    
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
+    .action-list { list-style: none; padding: 0; }
+    .action-item { display: flex; align-items: center; gap: 14px; padding: 16px 0; border-bottom: 1px solid #f1f5f9; color: var(--text-main); text-decoration: none; font-size: 1rem; cursor: pointer; }
+    .action-item.danger { color: #ef4444; }
 </style>
 
-<main class="main-content">
+<div class="app-header">
+    <div class="view-control">
+        <a href="?data=<?php echo $dataExibida; ?>&view=day" class="view-opt <?php echo $viewType==='day'?'active':''; ?>">Dia</a>
+        <a href="?data=<?php echo $dataExibida; ?>&view=week" class="view-opt <?php echo $viewType==='week'?'active':''; ?>">Semana</a>
+        <a href="?data=<?php echo $dataExibida; ?>&view=month" class="view-opt <?php echo $viewType==='month'?'active':''; ?>">Mês</a>
+    </div>
 
-    <div class="agenda-header">
-        <div>
-            <h2>Agenda</h2>
-            <small>Visão diária de atendimentos</small>
-        </div>
-        <div style="text-align:right;">
-            <small>Faturamento do dia</small>
-            <div class="total-val">
-                R$ <?php echo number_format($faturamentoDia, 2, ',', '.'); ?>
+    <div class="date-nav-row">
+        <a href="?data=<?php echo $dataAnt; ?>&view=<?php echo $viewType; ?>" class="btn-circle"><i class="bi bi-chevron-left"></i></a>
+        <div class="date-picker-trigger">
+            <div class="current-date-label">
+                <?php echo $tituloData; ?> <i class="bi bi-caret-down-fill" style="font-size:0.7rem; color:var(--primary);"></i>
             </div>
+            <input type="date" class="hidden-date-input" value="<?php echo $dataExibida; ?>" onchange="window.location.href='?view=<?php echo $viewType; ?>&data='+this.value">
         </div>
+        <a href="?data=<?php echo $dataPro; ?>&view=<?php echo $viewType; ?>" class="btn-circle"><i class="bi bi-chevron-right"></i></a>
     </div>
 
-    <div class="nav-box">
-        <a href="?data=<?php echo $dataAnt; ?>" class="btn-nav"><i class="bi bi-chevron-left"></i></a>
-        <div style="text-align:center;">
-            <div class="nav-date-label"><?php echo date('d/m/Y', strtotime($dataExibida)); ?></div>
-        </div>
-        <a href="?data=<?php echo $dataPro; ?>" class="btn-nav"><i class="bi bi-chevron-right"></i></a>
-        <a href="agenda.php?data=<?php echo date('Y-m-d'); ?>" class="nav-today">Hoje</a>
+    <div class="finance-card">
+        <span class="fin-label">Faturamento</span>
+        <span class="fin-value">R$ <?php echo number_format($faturamento, 2, ',', '.'); ?></span>
     </div>
+</div>
 
-    <div class="timeline">
+<div class="content-area">
+
+    <?php if ($viewType === 'month'): ?>
+        <div class="calendar-grid">
+            <div class="week-day-name">D</div><div class="week-day-name">S</div><div class="week-day-name">T</div>
+            <div class="week-day-name">Q</div><div class="week-day-name">Q</div><div class="week-day-name">S</div><div class="week-day-name">S</div>
+            
+            <?php
+            // Lógica de Renderização do Calendário
+            $firstDayMonth = date('Y-m-01', strtotime($dataExibida));
+            $daysInMonth   = date('t', strtotime($dataExibida));
+            $startPadding  = date('w', strtotime($firstDayMonth));
+
+            // Espaços vazios antes do dia 1
+            for($k=0; $k<$startPadding; $k++) { echo '<div class="day-cell empty"></div>'; }
+
+            // Dias
+            for($day=1; $day<=$daysInMonth; $day++) {
+                $currentDate = date('Y-m-', strtotime($dataExibida)) . str_pad($day, 2, '0', STR_PAD_LEFT);
+                $isToday = ($currentDate === $hoje) ? 'today' : '';
+                $hasEvent = isset($diasComAgendamento[$currentDate]) ? '<div class="has-event-dot"></div>' : '';
+
+                echo "<a href='?view=day&data={$currentDate}' class='day-cell {$isToday}'>
+                        {$day}
+                        {$hasEvent}
+                      </a>";
+            }
+            ?>
+        </div>
+    
+    <?php elseif ($viewType === 'week'): ?>
+        <?php foreach ($agendamentos as $dia => $lista): ?>
+            <div class="week-header">
+                <?php echo date('d/m', strtotime($dia)) . ' • ' . ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][date('w', strtotime($dia))]; ?>
+            </div>
+            <?php if(count($lista) > 0): ?>
+                <?php foreach($lista as $ag) renderCard($ag, $clientes); ?>
+            <?php else: ?>
+                <div style="font-size:0.85rem; color:#cbd5e1; font-style:italic; padding-left:10px;">Livre</div>
+            <?php endif; ?>
+        <?php endforeach; ?>
+
+    <?php else: ?>
         <?php if (count($agendamentos) > 0): ?>
-            <?php foreach ($agendamentos as $ag): ?>
-                <?php
-                    $valorServico = $ag['valor'] ?? 0;
-                    $stmtValor = $pdo->prepare("SELECT preco FROM servicos WHERE nome = ? AND user_id = ? LIMIT 1");
-                    $stmtValor->execute([$ag['servico'], $userId]);
-                    $precoAtual = $stmtValor->fetchColumn();
-                    if ($precoAtual !== false) $valorServico = $precoAtual;
-
-                    $status = $ag['status'] ?? 'Pendente';
-                    $statusClass = 'badge-' . $status;
-                    $cardClass   = 'st-' . $status;
-                ?>
-                <div class="event-card <?php echo $cardClass; ?> agendamento-card"
-                     data-id="<?php echo $ag['id']; ?>"
-                     data-status="<?php echo htmlspecialchars($status); ?>">
-                    <div class="time-col">
-                        <?php echo date('H:i', strtotime($ag['horario'])); ?>
-                    </div>
-                    <div class="info-col">
-                        <div class="cliente-nome"><?php echo htmlspecialchars($ag['cliente_nome']); ?></div>
-                        <div class="servico-txt"><?php echo htmlspecialchars($ag['servico']); ?></div>
-                        <?php if (!empty($ag['observacoes'])): ?>
-                            <div class="obs-txt"><i><?php echo htmlspecialchars($ag['observacoes']); ?></i></div>
-                        <?php endif; ?>
-                    </div>
-                    <div class="action-col">
-                        <div>
-                            <span class="valor-txt">
-                                R$ <?php echo number_format($valorServico, 2, ',', '.'); ?>
-                            </span>
-                        </div>
-                        <div class="mini-actions">
-                            <span class="badge-status <?php echo $statusClass; ?>"><?php echo htmlspecialchars($status); ?></span>
-                        </div>
-                        <div class="mini-actions">
-                            <a class="mini-btn green"
-                               href="agenda.php?data=<?php echo $dataExibida; ?>&update_status=Confirmado&id=<?php echo $ag['id']; ?>">
-                                <i class="bi bi-check2"></i> Conf.
-                            </a>
-                            <a class="mini-btn amber"
-                               href="agenda.php?data=<?php echo $dataExibida; ?>&update_status=Pendente&id=<?php echo $ag['id']; ?>">
-                                <i class="bi bi-clock"></i> Pend.
-                            </a>
-                            <a class="mini-btn red"
-                               href="agenda.php?data=<?php echo $dataExibida; ?>&update_status=Cancelado&id=<?php echo $ag['id']; ?>">
-                                <i class="bi bi-x-circle"></i> Canc.
-                            </a>
-                            <a class="mini-btn gray"
-                               href="agenda.php?data=<?php echo $dataExibida; ?>&delete=<?php echo $ag['id']; ?>"
-                               onclick="return confirm('Excluir este agendamento?');">
-                                <i class="bi bi-trash"></i>
-                            </a>
-                            <a class="mini-btn purple"
-                               href="nota.php?id=<?php echo $ag['id']; ?>"
-                               target="_blank">
-                                <i class="bi bi-file-earmark-pdf"></i> Nota
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            <?php endforeach; ?>
+            <?php foreach($agendamentos as $ag) renderCard($ag, $clientes); ?>
         <?php else: ?>
-            <p style="text-align:center; color:#9ca3af; margin-top:30px;">
-                Nenhum agendamento para esta data.
-            </p>
+            <div class="empty-state">
+                <i class="bi bi-calendar4-week" style="font-size:3rem; opacity:0.2;"></i>
+                <p>Agenda livre neste dia.</p>
+                <button onclick="openModal()" style="color:var(--primary); background:none; border:none; font-weight:700;">+ Adicionar Agendamento</button>
+            </div>
         <?php endif; ?>
-    </div>
+    <?php endif; ?>
 
-</main>
+</div>
 
-<!-- Botão Flutuante Novo -->
-<button class="fab" onclick="openModalAdd()">
-    <i class="bi bi-plus"></i>
-</button>
+<button class="fab-add" onclick="openModal()"><i class="bi bi-plus"></i></button>
 
-<!-- MODAL NOVO AGENDAMENTO -->
 <div class="modal-overlay" id="modalAdd">
-    <div class="modal-box">
-        <h3>Novo agendamento</h3>
-        <p class="modal-sub">Data selecionada: <?php echo date('d/m/Y', strtotime($dataExibida)); ?></p>
+    <div class="sheet-modal">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="margin:0; font-size:1.2rem;">Novo Agendamento</h3>
+            <button onclick="closeModal()" style="background:none; border:none; font-size:1.5rem;"><i class="bi bi-x"></i></button>
+        </div>
+        
         <form method="POST">
             <input type="hidden" name="novo_agendamento" value="1">
+            
+            <div class="form-group">
+                <label class="form-label">Data</label>
+                <input type="date" name="data_agendamento" value="<?php echo ($viewType==='day'?$dataExibida:$hoje); ?>" min="<?php echo $hoje; ?>" class="form-input" required>
+            </div>
 
-            <label class="label-modal">Cliente</label>
-            <input type="text" name="cliente" list="dlClientes" class="form-control-modal"
-                   placeholder="Nome do cliente" required>
-            <datalist id="dlClientes">
-                <?php foreach ($listaClientes as $c): ?>
-                    <option value="<?php echo htmlspecialchars($c['nome']); ?>">
-                <?php endforeach; ?>
-            </datalist>
+            <div class="form-group">
+                <label class="form-label">Cliente</label>
+                <input type="text" name="cliente" list="dlClientes" class="form-input" placeholder="Buscar..." required>
+                <datalist id="dlClientes">
+                    <?php foreach($clientes as $c) echo "<option value='".htmlspecialchars($c['nome'])."'>"; ?>
+                </datalist>
+            </div>
 
-            <label class="label-modal">Serviço</label>
-            <select name="servico_id" id="selServico" class="form-control-modal" onchange="atualizaPreco()" required>
-                <option value="">Selecione...</option>
-                <?php foreach ($listaServicos as $s): ?>
-                    <option value="<?php echo $s['id']; ?>"
-                            data-preco="<?php echo htmlspecialchars($s['preco']); ?>">
-                        <?php echo htmlspecialchars($s['nome']); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
+            <div class="form-group">
+                <label class="form-label">Serviço</label>
+                <select name="servico_id" id="selServico" class="form-input" onchange="atualizaPreco()" required>
+                    <option value="">Selecione...</option>
+                    <?php foreach($servicos as $s) echo "<option value='{$s['id']}' data-preco='{$s['preco']}'>".htmlspecialchars($s['nome'])."</option>"; ?>
+                </select>
+            </div>
 
-            <div class="row-inline">
-                <div style="flex:1;">
-                    <label class="label-modal">Valor</label>
-                    <input type="number" name="valor" id="inputValor" step="0.01"
-                           class="form-control-modal" required>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                <div class="form-group">
+                    <label class="form-label">Horário</label>
+                    <input type="time" name="horario" class="form-input" required>
                 </div>
-                <div style="flex:1;">
-                    <label class="label-modal">Horário</label>
-                    <input type="time" name="horario" class="form-control-modal" required>
+                <div class="form-group">
+                    <label class="form-label">Valor (R$)</label>
+                    <input type="number" name="valor" id="inputValor" step="0.01" class="form-input" required>
                 </div>
             </div>
 
-            <label class="label-modal">Observação</label>
-            <textarea name="obs" rows="2" class="form-control-modal"
-                      placeholder="Opcional"></textarea>
+            <div class="form-group">
+                <label class="form-label">Observação</label>
+                <textarea name="obs" rows="2" class="form-input"></textarea>
+            </div>
 
-            <button type="submit" class="btn-primary-modal">
-                Confirmar agendamento
-            </button>
-            <button type="button" class="btn-secondary-modal" onclick="closeModalAdd()">
-                Cancelar
-            </button>
+            <button type="submit" class="btn-main">Salvar</button>
         </form>
     </div>
 </div>
 
+<div class="modal-overlay" id="actionSheet" style="align-items:flex-end;">
+    <div class="sheet-modal" style="border-radius:24px 24px 0 0; padding-bottom:40px;">
+        <h3 id="sheetClientName" style="margin-bottom:20px;">Opções</h3>
+        <div class="action-list">
+            <a href="#" id="actConfirm" class="action-item"><i class="bi bi-check-circle" style="color:#10b981;"></i> Confirmar</a>
+            <a href="#" id="actWhatsapp" target="_blank" class="action-item"><i class="bi bi-whatsapp" style="color:#25D366;"></i> WhatsApp</a>
+            <a href="#" id="actNota" class="action-item"><i class="bi bi-receipt" style="color:#6366f1;"></i> Emitir Nota</a>
+            <a href="#" id="actCancel" class="action-item"><i class="bi bi-x-circle" style="color:#f59e0b;"></i> Cancelar</a>
+            <a href="#" id="actDelete" class="action-item danger"><i class="bi bi-trash"></i> Excluir</a>
+        </div>
+        <button onclick="document.getElementById('actionSheet').classList.remove('active')" class="btn-main" style="background:#f1f5f9; color:#0f172a; margin-top:20px;">Fechar</button>
+    </div>
+</div>
+
+<?php
+// Função para renderizar o Card HTML
+function renderCard($ag, $clientes) {
+    $stClass = 'st-' . ($ag['status'] ?? 'Pendente');
+    $tel = '';
+    // Encontra telefone do cliente
+    foreach($clientes as $c) if($c['nome']===$ag['cliente_nome']) { $tel=$c['telefone']; break; }
+    
+    // Valor formatado
+    $valStr = number_format($ag['valor'], 2, ',', '.');
+    
+    // Dados para o JavaScript
+    $jsonData = htmlspecialchars(json_encode([
+        'id'=>$ag['id'], 
+        'cliente'=>$ag['cliente_nome'], 
+        'status'=>$ag['status'],
+        'tel'=>$tel, 
+        'serv'=>$ag['servico'], 
+        'val'=>$valStr,
+        'data'=>date('d/m', strtotime($ag['data_agendamento'])), 
+        'hora'=>date('H:i', strtotime($ag['horario']))
+    ]));
+
+    echo "
+    <div class='appt-card'>
+        <div class='status-badge {$stClass}'></div>
+        <div class='time-col'>
+            <span class='time-val'>".date('H', strtotime($ag['horario']))."</span>
+            <span class='time-min'>".date('i', strtotime($ag['horario']))."</span>
+        </div>
+        <div class='info-col'>
+            <div class='client-name'>{$ag['cliente_nome']}</div>
+            <div class='service-row'>
+                {$ag['servico']}
+                <span class='price-tag'>R$ {$valStr}</span>
+            </div>
+        </div>
+        <button onclick='openActions($jsonData)' style='background:none; border:none; font-size:1.2rem; color:var(--text-light); padding:0 0 0 10px;'><i class='bi bi-three-dots-vertical'></i></button>
+    </div>";
+}
+?>
+
 <script>
-    function openModalAdd() {
-        document.getElementById('modalAdd').classList.add('active');
-        setTimeout(atualizaPreco, 50);
-    }
-    function closeModalAdd() {
-        document.getElementById('modalAdd').classList.remove('active');
-    }
-
-    // Fecha modal clicando fora
-    document.getElementById('modalAdd').addEventListener('click', function (e) {
-        if (e.target.id === 'modalAdd') {
-            closeModalAdd();
-        }
-    });
-    // ESC fecha modal
-    document.addEventListener('keydown', function(e){
-        if (e.key === 'Escape') closeModalAdd();
-    });
-
+    // --- LÓGICA DE ABERTURA DE MODAIS ---
+    function openModal() { document.getElementById('modalAdd').classList.add('active'); }
+    function closeModal() { document.getElementById('modalAdd').classList.remove('active'); }
+    
+    // Atualiza preço automático ao escolher serviço
     function atualizaPreco() {
-        var sel = document.getElementById('selServico');
-        if (!sel) return;
-        var opt = sel.options[sel.selectedIndex];
-        if (!opt) return;
-        var preco = opt.getAttribute('data-preco');
-        document.getElementById('inputValor').value = preco ? preco : '';
+        const sel = document.getElementById('selServico');
+        const opt = sel.options[sel.selectedIndex];
+        if(opt && opt.dataset.preco) document.getElementById('inputValor').value = opt.dataset.preco;
+    }
+
+    // --- LÓGICA DO MENU DE AÇÕES ---
+    function openActions(data) {
+        document.getElementById('sheetClientName').innerText = data.cliente;
+        const base = `agenda.php?data=<?php echo $dataExibida; ?>&view=<?php echo $viewType; ?>&id=${data.id}`;
+        
+        // Ação: Confirmar
+        document.getElementById('actConfirm').onclick = () => {
+            if(data.tel) {
+                const msg = `Olá ${data.cliente.split(' ')[0]}, confirmando seu horário de ${data.serv} dia ${data.data} às ${data.hora}. Valor: R$ ${data.val}. Tudo certo?`;
+                window.open(`https://wa.me/55${data.tel.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`, '_blank');
+            }
+            window.location.href = base + '&status=Confirmado';
+        };
+        
+        // Ação: Links simples
+        document.getElementById('actCancel').href = base + '&status=Cancelado';
+        document.getElementById('actDelete').onclick = () => { if(confirm('Tem certeza que deseja excluir?')) window.location.href = base + '&delete=1'; };
+        document.getElementById('actNota').href = `nota.php?id=${data.id}`;
+        
+        // Ação: WhatsApp avulso
+        if(data.tel) {
+            document.getElementById('actWhatsapp').href = `https://wa.me/55${data.tel.replace(/\D/g,'')}?text=Olá ${data.cliente.split(' ')[0]}`;
+            document.getElementById('actWhatsapp').style.display = 'flex';
+        } else {
+            document.getElementById('actWhatsapp').style.display = 'none';
+        }
+
+        document.getElementById('actionSheet').classList.add('active');
     }
 </script>

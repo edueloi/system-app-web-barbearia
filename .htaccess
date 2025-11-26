@@ -1,0 +1,5 @@
+# Não listar arquivos de pasta
+Options -Indexes
+
+# Quando acessar o domínio, abrir o login.php
+DirectoryIndex login.php

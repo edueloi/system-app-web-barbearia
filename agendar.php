@@ -1,202 +1,213 @@
 <?php
-// agendar.php (NA RAIZ DO PROJETO)
-include 'includes/db.php';
+// =========================================================
+// 1. CONFIGURAÇÃO E BACKEND
+// =========================================================
 
-// ID do Profissional dinâmico via GET
+// Ajuste o caminho do include conforme sua estrutura de pastas
+$dbPath = 'includes/db.php';
+if (!file_exists($dbPath)) $dbPath = '../../includes/db.php';
+require_once $dbPath;
+
+// ID do Profissional (Pega da URL)
 $profissionalId = isset($_GET['user']) ? (int)$_GET['user'] : 0;
+
+// Se não tiver ID, tenta pegar o primeiro usuário (Fallback)
 if ($profissionalId <= 0) {
-    die('<h2>Profissional não encontrado.</h2>');
+    $stmtFirst = $pdo->query("SELECT id FROM usuarios LIMIT 1");
+    $profissionalId = $stmtFirst->fetchColumn();
+    if (!$profissionalId) {
+        die('<div style="font-family:sans-serif;text-align:center;padding:50px;">Sistema indisponível.</div>');
+    }
 }
 
-// Busca dados do profissional
-$stmtProf = $pdo->prepare("
-    SELECT id, nome, email, telefone,
-           cep, endereco, numero, bairro, cidade, estado
-      FROM usuarios
-     WHERE id = ?
-     LIMIT 1
-");
+// Busca dados COMPLETOS do profissional/estabelecimento
+$stmtProf = $pdo->prepare("SELECT * FROM usuarios WHERE id = ? LIMIT 1");
 $stmtProf->execute([$profissionalId]);
 $profissional = $stmtProf->fetch();
 
-if (!$profissional) {
-    die('<h2>Profissional não encontrado.</h2>');
+if (!$profissional) die('Profissional não encontrado.');
+
+// --- LÓGICA DE EXIBIÇÃO (Negócio vs Profissional) ---
+$nomeEstabelecimento = !empty($profissional['estabelecimento']) ? $profissional['estabelecimento'] : $profissional['nome'];
+$nomeProfissional    = $profissional['nome'];
+$telefone            = !empty($profissional['telefone']) ? $profissional['telefone'] : '';
+$biografia           = !empty($profissional['biografia']) ? $profissional['biografia'] : 'Agende seu horário com a gente!';
+
+// Endereço Formatado
+$enderecoCompleto = $profissional['endereco'] ?? '';
+if (!empty($profissional['numero'])) $enderecoCompleto .= ', ' . $profissional['numero'];
+if (!empty($profissional['bairro'])) $enderecoCompleto .= ' - ' . $profissional['bairro'];
+
+// Foto / Logo
+$fotoPerfil = 'assets/default-avatar.png'; // Fallback padrão se você tiver
+$iniciais   = strtoupper(mb_substr($nomeEstabelecimento, 0, 1));
+$temFoto    = false;
+
+if (!empty($profissional['foto']) && file_exists($profissional['foto'])) {
+    $fotoPerfil = $profissional['foto'];
+    $temFoto = true;
+} elseif (!empty($profissional['foto']) && file_exists('../../' . $profissional['foto'])) {
+    $fotoPerfil = '../../' . $profissional['foto'];
+    $temFoto = true;
 }
 
-// Monta dados do profissional
-$profNome      = !empty($profissional['nome'])     ? $profissional['nome']     : 'Profissional de Beleza';
-$profEmail     = !empty($profissional['email'])    ? $profissional['email']    : '';
-$profTelefone  = !empty($profissional['telefone']) ? $profissional['telefone'] : '';
+// --- CONFIGURAÇÃO DE CORES (AGORA VEM DO BANCO) ---
+$corPersonalizada = '#4f46e5'; // padrão
 
-$enderecoPartes = [];
+if (!empty($profissional['cor_tema'])) {
+    $cor = trim($profissional['cor_tema']);
 
-if (!empty($profissional['endereco'])) {
-    $linha = $profissional['endereco'];
-    if (!empty($profissional['numero'])) {
-        $linha .= ', ' . $profissional['numero'];
+    // garante que começa com #
+    if ($cor[0] !== '#') {
+        $cor = '#' . $cor;
     }
-    $enderecoPartes[] = $linha;
-}
-if (!empty($profissional['bairro'])) {
-    $enderecoPartes[] = $profissional['bairro'];
-}
-$cidadeEstado = trim(
-    (string)($profissional['cidade'] ?? '') .
-    (!empty($profissional['estado']) ? ' - ' . $profissional['estado'] : '')
-);
-if (!empty($cidadeEstado)) {
-    $enderecoPartes[] = $cidadeEstado;
-}
-if (!empty($profissional['cep'])) {
-    $enderecoPartes[] = 'CEP: ' . $profissional['cep'];
+
+    // valida formato #RRGGBB
+    if (preg_match('/^#[0-9a-fA-F]{6}$/', $cor)) {
+        $corPersonalizada = $cor;
+    }
 }
 
-$profEndereco = implode(' • ', array_filter($enderecoPartes));
-
-// flag de sucesso (após redirect)
 $sucesso = isset($_GET['ok']) && $_GET['ok'] == 1;
 
 // =========================================================
-// API INTERNA (AJAX)
+// 2. API AJAX (JSON)
 // =========================================================
+if (isset($_GET['action'])) {
+    header('Content-Type: application/json');
 
-// 1. Buscar Horários
-if (isset($_GET['action']) && $_GET['action'] === 'buscar_horarios') {
-    $data           = $_GET['data'];
-    $duracaoServico = (int)$_GET['duracao'];
-    $diaSemana      = date('w', strtotime($data));
+    // Buscar Horários
+    if ($_GET['action'] === 'buscar_horarios') {
+        $data           = $_GET['data'];
+        $duracaoServico = (int)$_GET['duracao'];
+        $diaSemana      = date('w', strtotime($data));
 
-    // Turnos de trabalho
-    $stmt = $pdo->prepare("SELECT inicio, fim FROM horarios_atendimento WHERE user_id = ? AND dia_semana = ?");
-    $stmt->execute([$profissionalId, $diaSemana]);
-    $turnos = $stmt->fetchAll();
+        $stmt = $pdo->prepare("SELECT inicio, fim FROM horarios_atendimento WHERE user_id = ? AND dia_semana = ?");
+        $stmt->execute([$profissionalId, $diaSemana]);
+        $turnos = $stmt->fetchAll();
 
-    // Horários ocupados
-    $stmt = $pdo->prepare("SELECT horario, servico FROM agendamentos WHERE user_id = ? AND data_agendamento = ? AND status != 'Cancelado'");
-    $stmt->execute([$profissionalId, $data]);
-    $ocupados = $stmt->fetchAll();
+        $stmt = $pdo->prepare("SELECT horario FROM agendamentos WHERE user_id = ? AND data_agendamento = ? AND status != 'Cancelado'");
+        $stmt->execute([$profissionalId, $data]);
+        $ocupados = $stmt->fetchAll();
 
-    $minutosOcupados = [];
-    foreach ($ocupados as $ag) {
-        $horaMin   = explode(':', $ag['horario']);
-        $inicioMin = ((int)$horaMin[0] * 60) + (int)$horaMin[1];
-        $fimMin    = $inicioMin + $duracaoServico; // bloqueia pelo tempo do serviço
-
-        for ($m = $inicioMin; $m < $fimMin; $m++) {
-            $minutosOcupados[$m] = true;
+        $minutosOcupados = [];
+        foreach ($ocupados as $ag) {
+            $hm = explode(':', $ag['horario']);
+            $inicioMin = ((int)$hm[0] * 60) + (int)$hm[1];
+            for ($m = $inicioMin; $m < ($inicioMin + $duracaoServico); $m++) {
+                $minutosOcupados[$m] = true;
+            }
         }
-    }
 
-    $slotsDisponiveis = [];
-    foreach ($turnos as $turno) {
-        $inicioParts = explode(':', $turno['inicio']);
-        $fimParts    = explode(':', $turno['fim']);
-        $inicioMin   = ((int)$inicioParts[0] * 60) + (int)$inicioParts[1];
-        $fimMin      = ((int)$fimParts[0] * 60) + (int)$fimParts[1];
+        $slots = [];
+        if ($turnos) {
+            foreach ($turnos as $turno) {
+                $ini   = explode(':', $turno['inicio']);
+                $fim   = explode(':', $turno['fim']);
+                $start = ($ini[0] * 60) + $ini[1];
+                $end   = ($fim[0] * 60) + $fim[1];
 
-        for ($time = $inicioMin; $time <= ($fimMin - $duracaoServico); $time += 30) {
-            $livre = true;
-            for ($check = $time; $check < ($time + $duracaoServico); $check++) {
-                if (isset($minutosOcupados[$check])) {
-                    $livre = false;
-                    break;
+                for ($time = $start; $time <= ($end - $duracaoServico); $time += 30) {
+                    $livre = true;
+                    for ($check = $time; $check < ($time + $duracaoServico); $check++) {
+                        if (isset($minutosOcupados[$check])) {
+                            $livre = false;
+                            break;
+                        }
+                    }
+                    if ($livre) {
+                        $slots[] = str_pad(floor($time / 60), 2, '0', STR_PAD_LEFT)
+                                 . ':' .
+                                   str_pad($time % 60, 2, '0', STR_PAD_LEFT);
+                    }
                 }
             }
-            if ($livre) {
-                $horaFormatada =
-                    str_pad(floor($time / 60), 2, '0', STR_PAD_LEFT) . ':' .
-                    str_pad($time % 60, 2, '0', STR_PAD_LEFT);
-                $slotsDisponiveis[] = $horaFormatada;
-            }
         }
+        echo json_encode($slots);
+        exit;
     }
 
-    header('Content-Type: application/json');
-    echo json_encode($slotsDisponiveis);
-    exit;
-}
+    // Buscar Cliente
+    if ($_GET['action'] === 'buscar_cliente') {
+        $cpf = preg_replace('/[^0-9]/', '', $_GET['cpf']);
+        $stmt = $pdo->prepare("SELECT * FROM clientes WHERE cpf = ? AND user_id = ? LIMIT 1");
+        $stmt->execute([$cpf, $profissionalId]);
+        $cliente = $stmt->fetch();
 
-// 2. Buscar Cliente por CPF (AJAX)
-if (isset($_GET['action']) && $_GET['action'] === 'buscar_cliente') {
-    $cpf = preg_replace('/[^0-9]/', '', $_GET['cpf']);
-
-    $stmt = $pdo->prepare("SELECT * FROM clientes WHERE cpf = ? AND user_id = ? LIMIT 1");
-    $stmt->execute([$cpf, $profissionalId]);
-    $cliente = $stmt->fetch();
-
-    header('Content-Type: application/json');
-    if ($cliente) {
-        echo json_encode([
-            'found'    => true,
-            'nome'     => $cliente['nome'],
-            'telefone' => $cliente['telefone']
-        ]);
-    } else {
-        echo json_encode(['found' => false]);
+        if ($cliente) {
+            echo json_encode([
+                'found'           => true,
+                'nome'            => $cliente['nome'],
+                'telefone'        => $cliente['telefone'],
+                'data_nascimento' => $cliente['data_nascimento']
+            ]);
+        } else {
+            echo json_encode(['found' => false]);
+        }
+        exit;
     }
     exit;
 }
 
 // =========================================================
-// PROCESSAR O AGENDAMENTO (POST)
+// 3. PROCESSAR POST (AGENDAMENTO)
 // =========================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome       = $_POST['cliente_nome']      ?? '';
-    $telefone   = $_POST['cliente_telefone']  ?? '';
+    $nome       = $_POST['cliente_nome'] ?? '';
+    $telefone   = $_POST['cliente_telefone'] ?? '';
     $cpf        = preg_replace('/[^0-9]/', '', $_POST['cliente_cpf'] ?? '');
-    $obsCliente = $_POST['cliente_obs']       ?? '';
-
-    $servicoId  = $_POST['servico_id']        ?? null;
-    $data       = $_POST['data_escolhida']    ?? '';
+    $nascimento = !empty($_POST['cliente_nascimento']) ? $_POST['cliente_nascimento'] : null;
+    $obs        = $_POST['cliente_obs'] ?? '';
+    $servicoId  = $_POST['servico_id'] ?? null;
+    $data       = $_POST['data_escolhida'] ?? '';
     $horario    = $_POST['horario_escolhido'] ?? '';
 
-    // Recupera nome do serviço
-    $stmt = $pdo->prepare("SELECT nome FROM servicos WHERE id = ? AND user_id = ?");
-    $stmt->execute([$servicoId, $profissionalId]);
-    $servicoNome = $stmt->fetchColumn();
+    $stmt = $pdo->prepare("SELECT nome, preco FROM servicos WHERE id = ?");
+    $stmt->execute([$servicoId]);
+    $servicoDados = $stmt->fetch();
+    $servicoNome  = $servicoDados['nome']  ?? 'Serviço';
+    $servicoValor = $servicoDados['preco'] ?? 0;
 
-    if ($nome && $horario && $servicoNome && $cpf && $data) {
-        // 1. Verifica/Salva o Cliente na tabela de CLIENTES
+    if ($nome && $cpf && $data && $horario) {
+        // Cliente
         $stmt = $pdo->prepare("SELECT id FROM clientes WHERE cpf = ? AND user_id = ?");
         $stmt->execute([$cpf, $profissionalId]);
-        $clienteExistente = $stmt->fetch();
+        $existing = $stmt->fetch();
 
-        if ($clienteExistente) {
-            $clienteId = $clienteExistente['id'];
-            $pdo->prepare("UPDATE clientes SET nome = ?, telefone = ? WHERE id = ?")
-                ->execute([$nome, $telefone, $clienteId]);
+        if ($existing) {
+            $clienteId = $existing['id'];
+            $pdo->prepare("UPDATE clientes SET nome=?, telefone=?, data_nascimento=? WHERE id=?")
+                ->execute([$nome, $telefone, $nascimento, $clienteId]);
         } else {
-            $pdo->prepare("INSERT INTO clientes (user_id, nome, telefone, cpf) VALUES (?, ?, ?, ?)")
-                ->execute([$profissionalId, $nome, $telefone, $cpf]);
+            $pdo->prepare("INSERT INTO clientes (user_id, nome, telefone, cpf, data_nascimento)
+                           VALUES (?, ?, ?, ?, ?)")
+                ->execute([$profissionalId, $nome, $telefone, $cpf, $nascimento]);
             $clienteId = $pdo->lastInsertId();
         }
 
-        // 2. Cria o Agendamento vinculado
-        $sql = "INSERT INTO agendamentos 
-                (user_id, cliente_id, cliente_nome, cliente_cpf, servico, data_agendamento, horario, status, observacoes) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendente', ?)";
-
-        $obsFinal = $obsCliente;
-
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
+        // Agendamento
+        $sql = "INSERT INTO agendamentos
+                (user_id, cliente_id, cliente_nome, cliente_cpf, servico, valor, data_agendamento, horario, status, observacoes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pendente', ?)";
+        $pdo->prepare($sql)->execute([
             $profissionalId,
             $clienteId,
             $nome,
             $cpf,
             $servicoNome,
+            $servicoValor,
             $data,
             $horario,
-            $obsFinal
+            $obs
         ]);
 
-        // Redireciona para evitar re-envio de formulário e mostrar tela de sucesso
-        header("Location: agendar.php?user={$profissionalId}&ok=1");
+        $page = basename($_SERVER['PHP_SELF']);
+        header("Location: $page?user={$profissionalId}&ok=1");
         exit;
     }
 }
 
-// Buscar Serviços para exibir
+// Serviços
 $stmt = $pdo->prepare("SELECT * FROM servicos WHERE user_id = ? ORDER BY nome ASC");
 $stmt->execute([$profissionalId]);
 $servicos = $stmt->fetchAll();
@@ -205,747 +216,565 @@ $servicos = $stmt->fetchAll();
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agendar com <?php echo htmlspecialchars($profNome); ?></title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title><?php echo htmlspecialchars($nomeEstabelecimento); ?> | Agendamento</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
     <style>
+        /* --- SISTEMA DE CORES DINÂMICO --- */
         :root {
-            --primary: #6366f1;
-            --primary-soft: #eef2ff;
-            --accent: #f97316;
-            --bg-body: #f3f4f6;
+            /* PHP injeta a cor escolhida no painel de Configurações */
+            --brand-color: <?php echo $corPersonalizada; ?>;
+
+            /* Variações simuladas a partir da cor principal */
+            --brand-dark: color-mix(in srgb, var(--brand-color), black 20%);
+            --brand-light: color-mix(in srgb, var(--brand-color), white 90%);
+
+            --bg-body: #f8fafc;
             --bg-card: #ffffff;
-            --border-soft: #e5e7eb;
-            --text-main: #0f172a;
-            --text-muted: #6b7280;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --shadow-card: 0 4px 6px -1px rgba(0,0,0,0.05),
+                           0 2px 4px -1px rgba(0,0,0,0.03);
         }
 
-        * { box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background:
-                radial-gradient(circle at top left, #e0f2fe 0, transparent 50%),
-                radial-gradient(circle at bottom right, #e0e7ff 0, transparent 55%),
-                #f9fafb;
+            background-color: var(--bg-body);
             color: var(--text-main);
-            margin: 0;
-            padding: 24px 16px;
-            display: flex;
-            justify-content: center;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 520px;
-            background: var(--bg-card);
-            border-radius: 24px;
-            box-shadow: 0 22px 60px rgba(148,163,184,0.35);
-            overflow: hidden;
-            border: 1px solid rgba(226,232,240,0.9);
-        }
-
-        /* HEADER NOVO: card mais clean, sem degradê forte */
-        .header {
-            padding: 16px 18px 14px;
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            background: #f9fafb;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .avatar {
-            width: 52px;
-            height: 52px;
-            border-radius: 16px;
-            background: #e0e7ff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: #4338ca;
-            border: 1px solid #c7d2fe;
-        }
-
-        .header-info {
-            flex: 1;
-        }
-
-        .header-info h1 {
-            margin: 0;
-            font-size: 1rem;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            align-items: baseline;
-        }
-
-        .header-info h1 span:first-child {
-            font-weight: 600;
-        }
-
-        .header-info h1 span:last-child {
-            font-size: 0.78rem;
-            font-weight: 500;
-            color: #6366f1;
-            background: #eef2ff;
-            padding: 2px 8px;
-            border-radius: 999px;
-        }
-
-        .header-info p {
-            margin: 3px 0 0;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-
-        .header-meta {
-            margin-top: 6px;
-            font-size: 0.75rem;
-            color: #64748b;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px 12px;
-        }
-
-        .header-meta div {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .header-meta i {
-            font-size: 0.82rem;
-            color: #6366f1;
-        }
-
-        /* STEPS – estilo “etapas” com bolinha numerada */
-        .steps-bar {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 18px 8px;
-            background: #ffffff;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .step-pill {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.78rem;
-            color: var(--text-muted);
-        }
-
-        .step-dot {
-            width: 22px;
-            height: 22px;
-            border-radius: 999px;
-            border: 1px solid #d1d5db;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            background: #f9fafb;
-            color: #6b7280;
-            transition: 0.2s;
-        }
-
-        .step-dot.active {
-            border-color: #6366f1;
-            background: #6366f1;
-            color: #ffffff;
-            box-shadow: 0 6px 16px rgba(99,102,241,0.45);
-        }
-
-        .step-pill span.label {
-            white-space: nowrap;
-        }
-
-        .step-container {
-            padding: 18px 18px 20px;
-            display: none;
-            animation: fadeIn 0.25s;
-        }
-        .step-container.active { display: block; }
-
-        .step-title {
-            font-size: 0.98rem;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        .step-desc {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-bottom: 18px;
-        }
-
-        /* CARDS DE SERVIÇO – novo formato com “radio” visual */
-        .service-card {
-            border-radius: 999px;
-            padding: 10px 14px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #ffffff;
-            border: 1px solid var(--border-soft);
-            transition: 0.16s;
-        }
-
-        .service-card:hover {
-            border-color: #a5b4fc;
-            box-shadow: 0 8px 20px rgba(148,163,184,0.28);
-            transform: translateY(-1px);
-        }
-
-        .service-main {
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            gap: 3px;
         }
 
-        .service-name {
-            font-weight: 600;
-            font-size: 0.92rem;
-        }
+        .app-container { display: grid; grid-template-columns: 1fr; min-height: 100vh; }
 
-        .service-meta {
-            font-size: 0.75rem;
-            color: #9ca3af;
-        }
-
-        .service-right {
+        .sidebar {
+            background: white;
+            padding: 40px 30px;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 10px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
         }
 
-        .service-price {
-            font-weight: 600;
-            font-size: 0.88rem;
+        .sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 150px;
+            background: linear-gradient(to bottom, var(--brand-light), transparent);
+            z-index: 0;
         }
 
-        .service-radio {
-            width: 18px;
-            height: 18px;
-            border-radius: 999px;
-            border: 2px solid #cbd5f5;
+        .business-logo {
+            width: 120px;
+            height: 120px;
+            border-radius: 35px;
+            background: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+            z-index: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
+            overflow: hidden;
+            border: 4px solid white;
         }
 
-        .service-card.selected {
-            background: #f5f3ff;
-            border-color: #6366f1;
-        }
+        .logo-img { width: 100%; height: 100%; object-fit: cover; }
+        .logo-initial { font-size: 3rem; font-weight: 800; color: var(--brand-color); }
 
-        .service-card.selected .service-name {
-            color: #4f46e5;
-        }
-
-        .service-card.selected .service-radio {
-            border-color: #4f46e5;
-        }
-
-        .service-card.selected .service-radio::after {
-            content: "";
-            width: 8px;
-            height: 8px;
-            border-radius: 999px;
-            background: #4f46e5;
-        }
-
-        .form-group { margin-bottom: 14px; }
-        label {
-            display: block;
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: #4b5563;
-            margin-bottom: 4px;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 11px 12px;
-            border-radius: 12px;
-            border: 1px solid var(--border-soft);
-            font-size: 0.9rem;
-            background: #f9fafb;
+        .business-name {
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin-bottom: 5px;
             color: var(--text-main);
-        }
-        .form-control::placeholder {
-            color: #9ca3af;
-        }
-        .form-control:focus {
-            border-color: #6366f1;
-            outline: none;
-            box-shadow: 0 0 0 1px rgba(99,102,241,0.2);
-            background: #ffffff;
+            z-index: 1;
+            line-height: 1.2;
         }
 
-        textarea.form-control {
-            resize: vertical;
+        .business-bio {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            max-width: 350px;
+            z-index: 1;
         }
 
-        .slots-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin-top: 6px;
-            margin-bottom: 6px;
-        }
-        @media (max-width: 420px) {
-            .slots-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-
-        .time-slot {
-            background: #f9fafb;
-            padding: 8px 4px;
-            text-align: center;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 0.78rem;
-            border: 1px solid #e5e7eb;
-            transition: 0.16s;
-            color: #111827;
-        }
-        .time-slot:hover {
-            background: #e0f2fe;
-            border-color: #93c5fd;
-        }
-        .time-slot.selected {
-            background: #0ea5e9;
-            border-color: #0284c7;
-            color: #f9fafb;
+        .info-pill {
+            background: var(--bg-body);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 0.85rem;
             font-weight: 600;
-            box-shadow: 0 8px 18px rgba(14,165,233,0.4);
+            color: var(--text-main);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            z-index: 1;
         }
+
+        .info-pill i { color: var(--brand-color); }
+
+        .main-content {
+            padding: 20px;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            z-index: 2;
+        }
+
+        @media (min-width: 900px) {
+            .app-container { grid-template-columns: 420px 1fr; }
+            .sidebar {
+                border-right: 1px solid var(--border);
+                border-bottom: none;
+                height: 100vh;
+                position: sticky;
+                top: 0;
+                justify-content: center;
+            }
+            .main-content {
+                padding: 60px;
+                max-width: 800px;
+                margin: 0;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+        }
+
+        .step-progress { display:flex; justify-content:space-between; margin-bottom:40px; position:relative; padding:0 10px; }
+        .progress-line { position:absolute; top:15px; left:20px; right:20px; height:3px; background:#e2e8f0; z-index:0; }
+        .step-dot {
+            width:34px; height:34px; border-radius:50%;
+            background:white; border:2px solid #e2e8f0;
+            z-index:1; display:flex; align-items:center; justify-content:center;
+            font-weight:700; color:#94a3b8; transition:0.3s;
+        }
+        .step-label {
+            position:absolute; top:40px; font-size:0.75rem; font-weight:600;
+            color:#94a3b8; transform:translateX(-50%); left:50%; white-space:nowrap;
+        }
+        .step-wrapper { position:relative; display:flex; flex-direction:column; align-items:center; }
+        .step-wrapper.active .step-dot {
+            border-color:var(--brand-color); background:var(--brand-color); color:white;
+            transform:scale(1.1); box-shadow:0 0 0 4px var(--brand-light);
+        }
+        .step-wrapper.active .step-label { color:var(--brand-color); }
+        .step-wrapper.done .step-dot { border-color:var(--brand-color); background:var(--brand-color); color:white; }
+
+        .card-title { font-size:1.5rem; font-weight:700; margin-bottom:10px; color:var(--text-main); }
+        .card-subtitle { color:var(--text-muted); margin-bottom:30px; }
+
+        .service-card {
+            background:white; padding:20px; border-radius:var(--radius-md);
+            border:2px solid transparent; box-shadow:var(--shadow-card);
+            cursor:pointer; transition:0.2s; display:flex; justify-content:space-between;
+            align-items:center; margin-bottom:12px;
+        }
+        .service-card:hover { transform:translateY(-3px); border-color:var(--brand-light); }
+        .service-card.selected { border-color:var(--brand-color); background:var(--brand-light); }
+        .service-price { font-weight:700; color:var(--brand-color); font-size:1.1rem; }
+
+        .form-label { display:block; font-size:0.9rem; font-weight:600; margin-bottom:8px; }
+        .form-control {
+            width:100%; padding:14px; border:2px solid var(--border);
+            border-radius:var(--radius-md); font-size:1rem; outline:none;
+            transition:0.3s; background:white;
+        }
+        .form-control:focus { border-color:var(--brand-color); }
 
         .btn-action {
-            width: 100%;
-            padding: 13px;
-            background: linear-gradient(135deg,#6366f1,#22c55e);
-            color: white;
-            border: none;
-            border-radius: 999px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 10px;
-            box-shadow: 0 14px 34px rgba(34,197,94,0.35);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
+            width:100%; padding:18px; background:var(--brand-color);
+            color:white; border:none; border-radius:50px; font-size:1rem;
+            font-weight:700; cursor:pointer; transition:0.3s;
+            display:flex; align-items:center; justify-content:center; gap:10px;
+            margin-top:30px; box-shadow:0 4px 15px rgba(0,0,0,0.1);
         }
-        .btn-action:disabled {
-            background: #e5e7eb;
-            color: #9ca3af;
-            cursor: not-allowed;
-            box-shadow: none;
+        .btn-action:hover { background:var(--brand-dark); transform:translateY(-2px); }
+        .btn-action:disabled { background:#cbd5e1; cursor:not-allowed; transform:none; }
+
+        .step-screen { display:none; animation:fadeIn 0.4s ease-out forwards; }
+        .step-screen.active { display:block; }
+        @keyframes fadeIn {
+            from { opacity:0; transform:translateY(10px); }
+            to   { opacity:1; transform:translateY(0); }
         }
+
+        .time-slots-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(80px,1fr)); gap:10px; }
+        .time-slot {
+            padding:12px; text-align:center; background:white;
+            border:1px solid var(--border); border-radius:10px;
+            font-weight:600; cursor:pointer; transition:0.2s;
+        }
+        .time-slot:hover { border-color:var(--brand-color); color:var(--brand-color); }
+        .time-slot.selected { background:var(--brand-color); color:white; border-color:var(--brand-color); }
 
         .btn-back {
-            background: none;
-            border: none;
-            color: #6b7280;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 10px;
-            font-size: 0.8rem;
-            padding: 0;
+            background:none; border:none; color:var(--text-muted); font-weight:600;
+            cursor:pointer; margin-bottom:20px; display:inline-flex; align-items:center; gap:8px;
         }
 
-        .btn-back i {
-            font-size: 0.85rem;
+        .loading-spinner {
+            display:inline-block; width:20px; height:20px;
+            border:3px solid rgba(255,255,255,0.3); border-radius:50%;
+            border-top-color:white; animation:spin 1s infinite;
         }
-
-        .feedback-msg { font-size: 0.78rem; margin-top: 4px; display: none; }
-        .text-success { color: #16a34a; }
-        .text-error { color: #dc2626; }
-
-        .summary-card {
-            background: #f9fafb;
-            border-radius: 16px;
-            padding: 14px;
-            margin-top: 8px;
-            border: 1px dashed #e2e8f0;
-            font-size: 0.85rem;
-        }
-
-        .summary-line {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 4px;
-            gap: 8px;
-        }
-
-        .summary-label { color: #6b7280; }
-        .summary-value { font-weight: 600; text-align: right; }
-
-        .success-screen {
-            text-align: center;
-            padding: 32px 22px 26px;
-        }
-        .success-icon {
-            font-size: 3.2rem;
-            color: #16a34a;
-            margin-bottom: 10px;
-        }
-        .success-screen h2 {
-            margin: 4px 0 6px;
-            font-size: 1.2rem;
-            color: #111827;
-        }
-        .success-screen p {
-            margin: 0;
-            font-size: 0.9rem;
-            color: #4b5563;
-        }
-        .success-meta {
-            margin-top: 14px;
-            font-size: 0.8rem;
-            color: #6b7280;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes spin { to { transform:rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <?php if ($sucesso): ?>
-        <div class="header">
-            <div class="avatar">
-                <?php echo strtoupper(mb_substr($profNome, 0, 1, 'UTF-8')); ?>
-            </div>
-            <div class="header-info">
-                <h1>
-                    <span><?php echo htmlspecialchars($profNome); ?></span>
-                    <span>Agendamento concluído</span>
-                </h1>
-                <p>Seu horário foi reservado com sucesso.</p>
-                <div class="header-meta">
-                    <?php if (!empty($profTelefone)): ?>
-                        <div><i class="bi bi-telephone"></i><?php echo htmlspecialchars($profTelefone); ?></div>
-                    <?php endif; ?>
-                    <?php if (!empty($profEndereco)): ?>
-                        <div><i class="bi bi-geo-alt"></i><?php echo htmlspecialchars($profEndereco); ?></div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-        <div class="success-screen">
-            <div class="success-icon"><i class="bi bi-check-circle-fill"></i></div>
-            <h2>Agendamento Confirmado</h2>
-            <p>Você receberá as orientações diretamente com o profissional.</p>
-
-            <div class="success-meta">
-                Em caso de dúvidas ou necessidade de remarcar,<br>
-                entre em contato com <?php echo htmlspecialchars($profNome); ?>.
-            </div>
-
-            <a href="agendar.php?user=<?php echo $profissionalId; ?>" class="btn-action" style="margin-top:18px; text-decoration:none;">
-                <i class="bi bi-plus-circle"></i> Novo Agendamento
-            </a>
-        </div>
-    <?php else: ?>
-
-    <div class="header">
-        <div class="avatar">
-            <?php echo strtoupper(mb_substr($profNome, 0, 1, 'UTF-8')); ?>
-        </div>
-        <div class="header-info">
-            <h1>
-                <span><?php echo htmlspecialchars($profNome); ?></span>
-                <span>Agenda Online</span>
-            </h1>
-            <p>Escolha o serviço, dia e horário em poucos passos.</p>
-            <div class="header-meta">
-                <?php if (!empty($profTelefone)): ?>
-                    <div><i class="bi bi-telephone"></i><?php echo htmlspecialchars($profTelefone); ?></div>
-                <?php endif; ?>
-                <?php if (!empty($profEndereco)): ?>
-                    <div><i class="bi bi-geo-alt"></i><?php echo htmlspecialchars($profEndereco); ?></div>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
-
-    <div class="steps-bar">
-        <div class="step-pill">
-            <div class="step-dot active" id="dot1">1</div>
-            <span class="label">Serviço</span>
-        </div>
-        <div class="step-pill">
-            <div class="step-dot" id="dot2">2</div>
-            <span class="label">Data &amp; hora</span>
-        </div>
-        <div class="step-pill">
-            <div class="step-dot" id="dot3">3</div>
-            <span class="label">Seus dados</span>
-        </div>
-    </div>
-
-    <form method="POST" id="bookingForm" onsubmit="return validarForm()">
-        <input type="hidden" name="servico_id" id="inputServicoId">
-        <input type="hidden" name="data_escolhida" id="inputData">
-        <input type="hidden" name="horario_escolhido" id="inputHorario">
-
-        <!-- STEP 1 -->
-        <div class="step-container active" id="step1">
-            <div class="step-title">1. Escolha o serviço</div>
-            <div class="step-desc">Selecione o procedimento desejado para ver os horários disponíveis.</div>
-
-            <?php if (empty($servicos)): ?>
-                <p style="font-size:0.85rem; color:#dc2626;">
-                    Nenhum serviço cadastrado para este profissional.
-                </p>
+<div class="app-container">
+    <div class="sidebar">
+        <div class="business-logo">
+            <?php if ($temFoto): ?>
+                <img src="<?php echo htmlspecialchars($fotoPerfil); ?>" alt="Logo" class="logo-img">
             <?php else: ?>
-                <?php foreach ($servicos as $s): ?>
-                    <?php
-                        $precoFormatado = 'R$ ' . number_format($s['preco'], 2, ',', '.');
-                    ?>
-                    <div class="service-card"
-                         data-id="<?php echo (int)$s['id']; ?>"
-                         data-duration="<?php echo (int)$s['duracao']; ?>"
-                         data-nome="<?php echo htmlspecialchars($s['nome']); ?>"
-                         data-preco-text="<?php echo htmlspecialchars($precoFormatado); ?>"
-                         onclick="selectService(this)">
-                        <div class="service-main">
-                            <div class="service-name"><?php echo htmlspecialchars($s['nome']); ?></div>
-                            <div class="service-meta"><?php echo (int)$s['duracao']; ?> min</div>
-                        </div>
-                        <div class="service-right">
-                            <div class="service-price"><?php echo $precoFormatado; ?></div>
-                            <div class="service-radio"></div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
+                <div class="logo-initial"><?php echo $iniciais; ?></div>
             <?php endif; ?>
         </div>
 
-        <!-- STEP 2 -->
-        <div class="step-container" id="step2">
-            <button type="button" class="btn-back" onclick="goToStep(1)">
-                <i class="bi bi-arrow-left"></i> Voltar
-            </button>
-            <div class="step-title">2. Escolha data e horário</div>
-            <div class="step-desc">Selecione a melhor data e, em seguida, um dos horários disponíveis.</div>
+        <h1 class="business-name"><?php echo htmlspecialchars($nomeEstabelecimento); ?></h1>
 
-            <div class="form-group">
-                <label>Data do atendimento</label>
-                <input type="date" class="form-control" id="datePicker" name="data_picker" onchange="loadTimes()">
-            </div>
+        <?php if ($nomeEstabelecimento !== $nomeProfissional): ?>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;">
+                Responsável: <?php echo htmlspecialchars($nomeProfissional); ?>
+            </p>
+        <?php endif; ?>
 
-            <label style="font-size:0.75rem;">Horários disponíveis</label>
-            <div id="loadingTimes" style="display:none; color:#6b7280; font-size:0.8rem; margin-bottom:10px;">
-                Buscando horários...
-            </div>
-            <div class="slots-grid" id="slotsContainer">
-                <div style="grid-column: 1/-1; text-align:center; color:#9ca3af; font-size:0.8rem;">
-                    Selecione a data acima para ver os horários.
-                </div>
-            </div>
+        <p class="business-bio"><?php echo htmlspecialchars($biografia); ?></p>
 
-            <button type="button" class="btn-action" id="btnNextTo3" disabled onclick="goToStep(3)">
-                Continuar
-            </button>
+        <?php if ($telefone): ?>
+            <div class="info-pill">
+                <i class="bi bi-telephone-fill"></i> <?php echo htmlspecialchars($telefone); ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($enderecoCompleto): ?>
+            <div class="info-pill">
+                <i class="bi bi-geo-alt-fill"></i> <?php echo htmlspecialchars($enderecoCompleto); ?>
+            </div>
+        <?php endif; ?>
+
+        <div id="bookingSummary"
+             style="margin-top:auto; width:100%; background:white; padding:20px; border-radius:20px; border:1px solid #e2e8f0; text-align:left; display:none; box-shadow:var(--shadow-card);"
+             class="step-screen">
+            <div style="font-size:0.7rem; text-transform:uppercase; color:#94a3b8; font-weight:800; margin-bottom:10px; letter-spacing:1px;">
+                Seu Agendamento
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-weight:700; font-size:1rem;">
+                <span id="sumServico">...</span>
+                <span id="sumPreco" style="color:var(--brand-color);">...</span>
+            </div>
+            <div style="font-size:0.9rem; color:#64748b;" id="sumDataHora"></div>
         </div>
+    </div>
 
-        <!-- STEP 3 -->
-        <div class="step-container" id="step3">
-            <button type="button" class="btn-back" onclick="goToStep(2)">
-                <i class="bi bi-arrow-left"></i> Voltar
-            </button>
-            <div class="step-title">3. Seus dados</div>
-            <div class="step-desc">
-                Informe seu CPF para identificação. Se já tiver atendimentos anteriores, seus dados serão preenchidos automaticamente.
+    <div class="main-content">
+        <?php if ($sucesso): ?>
+            <div style="text-align:center; padding:40px;">
+                <i class="bi bi-check-circle-fill"
+                   style="font-size:5rem; color:#10b981; margin-bottom:20px; display:block;"></i>
+                <h2 class="card-title">Agendamento Confirmado!</h2>
+                <p class="card-subtitle">Obrigado pela preferência. Te esperamos lá!</p>
+                <a href="?user=<?php echo $profissionalId; ?>" class="btn-action" style="text-decoration:none;">
+                    Agendar Novamente
+                </a>
             </div>
+        <?php else: ?>
 
-            <div class="form-group">
-                <label>CPF (apenas números)</label>
-                <input type="tel" name="cliente_cpf" id="cpfInput" class="form-control"
-                       placeholder="000.000.000-00" maxlength="14"
-                       oninput="mascaraCPF(this)" onblur="buscarCliente()">
-                <div id="cpfFeedback" class="feedback-msg"></div>
-            </div>
-
-            <div class="form-group">
-                <label>Nome completo</label>
-                <input type="text" name="cliente_nome" id="nomeInput" class="form-control"
-                       placeholder="Seu nome completo" required>
-            </div>
-
-            <div class="form-group">
-                <label>Telefone / WhatsApp</label>
-                <input type="tel" name="cliente_telefone" id="telInput" class="form-control"
-                       placeholder="(00) 00000-0000" onkeyup="mascaraTelefone(this)" required>
-            </div>
-
-            <div class="form-group">
-                <label>Observação (opcional)</label>
-                <textarea name="cliente_obs" class="form-control" rows="2"
-                          placeholder="Ex: Tenho alergia a tal produto..."></textarea>
-            </div>
-
-            <div class="summary-card">
-                <div style="font-size:0.78rem; color:#6b7280; margin-bottom:6px;">Resumo do agendamento</div>
-                <div class="summary-line">
-                    <span class="summary-label">Serviço</span>
-                    <span class="summary-value" id="resumeServico">-</span>
+            <div class="step-progress">
+                <div class="progress-line"></div>
+                <div class="step-wrapper active" id="dot1">
+                    <div class="step-dot">1</div>
+                    <div class="step-label">Serviço</div>
                 </div>
-                <div class="summary-line">
-                    <span class="summary-label">Data &amp; horário</span>
-                    <span class="summary-value" id="resumeDataHora">-</span>
+                <div class="step-wrapper" id="dot2">
+                    <div class="step-dot">2</div>
+                    <div class="step-label">Data</div>
                 </div>
-                <div class="summary-line">
-                    <span class="summary-label">Profissional</span>
-                    <span class="summary-value"><?php echo htmlspecialchars($profNome); ?></span>
+                <div class="step-wrapper" id="dot3">
+                    <div class="step-dot">3</div>
+                    <div class="step-label">Finalizar</div>
                 </div>
-                <?php if (!empty($profTelefone)): ?>
-                    <div class="summary-line">
-                        <span class="summary-label">Contato</span>
-                        <span class="summary-value"><?php echo htmlspecialchars($profTelefone); ?></span>
+            </div>
+
+            <form method="POST" id="agendaForm" onsubmit="return startSubmit()">
+                <input type="hidden" name="servico_id" id="inServicoId">
+                <input type="hidden" name="data_escolhida" id="inData">
+                <input type="hidden" name="horario_escolhido" id="inHorario">
+
+                <div class="step-screen active" id="step1">
+                    <h2 class="card-title">Selecione o serviço</h2>
+                    <p class="card-subtitle">O que vamos fazer hoje?</p>
+
+                    <div>
+                        <?php foreach ($servicos as $s): ?>
+                            <div class="service-card"
+                                 onclick="selectService(this, '<?php echo $s['id']; ?>', '<?php echo $s['nome']; ?>', '<?php echo $s['preco']; ?>', '<?php echo $s['duracao']; ?>')">
+                                <div>
+                                    <h3 style="font-size:1rem; font-weight:700;"><?php echo htmlspecialchars($s['nome']); ?></h3>
+                                    <div style="font-size:0.85rem; color:var(--text-muted);">
+                                        <?php echo $s['duracao']; ?> min
+                                    </div>
+                                </div>
+                                <div class="service-price">
+                                    R$ <?php echo number_format($s['preco'], 2, ',', '.'); ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+
+                        <?php if (empty($servicos)): ?>
+                            <div style="text-align:center; padding:30px; color:#999;">
+                                Nenhum serviço disponível.
+                            </div>
+                        <?php endif; ?>
                     </div>
-                <?php endif; ?>
-            </div>
+                </div>
 
-            <button type="submit" id="btnConfirmar" class="btn-action">
-                <i class="bi bi-calendar-check"></i> Confirmar Agendamento
-            </button>
-        </div>
+                <div class="step-screen" id="step2">
+                    <button type="button" class="btn-back" onclick="goToStep(1)">
+                        <i class="bi bi-arrow-left"></i> Escolher outro serviço
+                    </button>
+                    <h2 class="card-title">Escolha o horário</h2>
+                    <p class="card-subtitle">Toque na data e veja os horários livres.</p>
 
-    </form>
-    <?php endif; ?>
+                    <div style="margin-bottom:20px;">
+                        <input type="date" id="dateInput" class="form-control"
+                               onchange="fetchTimes()" style="padding:16px;">
+                    </div>
+
+                    <div id="loadingTimes" style="display:none; text-align:center; padding:20px; color:var(--brand-color);">
+                        <i class="bi bi-arrow-repeat"
+                           style="animation:spin 1s infinite; display:inline-block; font-size:1.5rem;"></i>
+                    </div>
+
+                    <div id="timesContainer" class="time-slots-grid"></div>
+                    <div id="noTimesMsg"
+                         style="display:none; text-align:center; color:#ef4444; margin-top:20px;">
+                        Sem horários livres nesta data.
+                    </div>
+                </div>
+
+                <div class="step-screen" id="step3">
+                    <button type="button" class="btn-back" onclick="goToStep(2)">
+                        <i class="bi bi-arrow-left"></i> Trocar horário
+                    </button>
+                    <h2 class="card-title">Seus dados</h2>
+                    <p class="card-subtitle">Para confirmarmos sua reserva.</p>
+
+                    <div class="form-group">
+                        <label class="form-label">CPF (Somente números)</label>
+                        <input type="tel" name="cliente_cpf" id="cpfInput" class="form-control"
+                               placeholder="000.000.000-00" maxlength="14"
+                               oninput="maskCPF(this)" onblur="checkClient()">
+                        <div id="cpfLoading"
+                             style="display:none; font-size:0.85rem; color:var(--text-muted); margin-top:5px;">
+                            Verificando...
+                        </div>
+                    </div>
+
+                    <div id="welcomeCard"
+                         style="display:none; background:var(--brand-light); padding:15px; border-radius:12px; color:var(--brand-color); align-items:center; gap:10px; margin-bottom:20px; border:1px solid var(--brand-color);">
+                        <i class="bi bi-person-check-fill" style="font-size:1.5rem;"></i>
+                        <div>
+                            <strong>Olá, <span id="clientNameDisplay"></span>!</strong><br>
+                            <small>Seus dados foram carregados.</small>
+                        </div>
+                    </div>
+
+                    <div id="newClientFields" style="display:none;">
+                        <div class="form-group">
+                            <label class="form-label">Nome Completo</label>
+                            <input type="text" name="cliente_nome" id="nomeInput" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Celular / WhatsApp</label>
+                            <input type="tel" name="cliente_telefone" id="telInput"
+                                   class="form-control" oninput="maskPhone(this)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Nascimento</label>
+                            <input type="date" name="cliente_nascimento" id="nascInput"
+                                   class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top:20px;">
+                        <label class="form-label">Observação (Opcional)</label>
+                        <textarea name="cliente_obs" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <button type="submit" id="btnConfirmar" class="btn-action" disabled>
+                        Confirmar Agendamento
+                    </button>
+                </div>
+            </form>
+        <?php endif; ?>
+    </div>
 </div>
 
 <script>
-    const PROF_ID  = <?php echo $profissionalId; ?>;
-    const BASE_URL = 'agendar.php?user=' + PROF_ID;
-
-    let selectedDuration     = 0;
-    let selectedServiceName  = '';
-    let selectedServicePrice = '';
+    const PROF_ID      = <?php echo $profissionalId; ?>;
+    const CURRENT_PAGE = "<?php echo basename($_SERVER['PHP_SELF']); ?>";
+    let currentServiceDuration = 0;
 
     function goToStep(step) {
-        document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.step-screen').forEach(el => el.classList.remove('active'));
         document.getElementById('step' + step).classList.add('active');
 
-        document.querySelectorAll('.step-dot').forEach((el, idx) => {
-            el.classList.toggle('active', idx < step);
+        document.querySelectorAll('.step-wrapper').forEach((el, index) => {
+            el.classList.remove('active', 'done');
+            if (index + 1 === step) el.classList.add('active');
+            if (index + 1 < step) el.classList.add('done');
         });
     }
 
-    function setMinDateLocal() {
-        const dp = document.getElementById('datePicker');
-        if (!dp) return;
-        const hoje = new Date();
-        const y = hoje.getFullYear();
-        const m = String(hoje.getMonth() + 1).padStart(2, '0');
-        const d = String(hoje.getDate()).padStart(2, '0');
-        dp.min = `${y}-${m}-${d}`;
+    function selectService(el, id, nome, preco, duracao) {
+        document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+
+        document.getElementById('inServicoId').value = id;
+        currentServiceDuration = parseInt(duracao);
+
+        document.getElementById('bookingSummary').style.display = 'block';
+        document.getElementById('sumServico').innerText = nome;
+        document.getElementById('sumPreco').innerText =
+            'R$ ' + parseFloat(preco).toFixed(2).replace('.', ',');
+
+        document.getElementById('inData').value = '';
+        document.getElementById('inHorario').value = '';
+        document.getElementById('sumDataHora').innerText = '';
+
+        setTimeout(() => goToStep(2), 200);
     }
 
-    function selectService(card) {
-        document.querySelectorAll('.service-card').forEach(el => el.classList.remove('selected'));
-        card.classList.add('selected');
+    function fetchTimes() {
+        const dateVal = document.getElementById('dateInput').value;
+        if (!dateVal) return;
 
-        const id       = card.dataset.id;
-        const duration = parseInt(card.dataset.duration, 10) || 0;
-        const nome     = card.dataset.nome || '';
-        const precoTxt = card.dataset.precoText || '';
-
-        selectedDuration     = duration;
-        selectedServiceName  = nome;
-        selectedServicePrice = precoTxt;
-
-        document.getElementById('inputServicoId').value = id;
-
-        setMinDateLocal();
-        document.getElementById('datePicker').value = '';
-        document.getElementById('inputData').value  = '';
-        document.getElementById('inputHorario').value = '';
-
-        document.getElementById('btnNextTo3').disabled = true;
-
-        document.getElementById('slotsContainer').innerHTML =
-            '<div style="grid-column: 1/-1; text-align:center; color:#9ca3af; font-size:0.8rem;">Selecione a data acima para ver os horários.</div>';
-
-        document.getElementById('resumeServico').innerText = `${selectedServiceName} · ${selectedServicePrice}`;
-
-        goToStep(2);
-    }
-
-    function loadTimes() {
-        const date      = document.getElementById('datePicker').value;
-        const container = document.getElementById('slotsContainer');
         const loader    = document.getElementById('loadingTimes');
-        const btnNext   = document.getElementById('btnNextTo3');
+        const container = document.getElementById('timesContainer');
+        const noTimes   = document.getElementById('noTimesMsg');
 
-        if (!date || !selectedDuration) return;
-
-        document.getElementById('inputData').value = date;
         container.innerHTML = '';
+        noTimes.style.display = 'none';
         loader.style.display = 'block';
-        btnNext.disabled = true;
 
-        fetch(`${BASE_URL}&action=buscar_horarios&data=${encodeURIComponent(date)}&duracao=${selectedDuration}`)
-            .then(response => response.json())
-            .then(times => {
+        fetch(`${CURRENT_PAGE}?user=${PROF_ID}&action=buscar_horarios&data=${dateVal}&duracao=${currentServiceDuration}`)
+            .then(res => res.json())
+            .then(slots => {
                 loader.style.display = 'none';
-                if (!Array.isArray(times) || times.length === 0) {
-                    container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#dc2626; font-size:0.8rem;">Sem horários livres para esta data.</div>';
+
+                if (!slots.length) {
+                    noTimes.style.display = 'block';
                 } else {
-                    times.forEach(time => {
+                    slots.forEach(time => {
                         const div = document.createElement('div');
                         div.className = 'time-slot';
                         div.innerText = time;
-                        div.onclick = () => selectTime(div, time);
+                        div.onclick = () => selectTime(div, time, dateVal);
                         container.appendChild(div);
                     });
                 }
-            })
-            .catch(err => {
-                loader.style.display = 'none';
-                console.error('Erro ao buscar horários:', err);
-                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#dc2626; font-size:0.8rem;">Erro ao carregar horários. Tente novamente.</div>';
             });
     }
 
-    function selectTime(div, time) {
-        document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('selected'));
-        div.classList.add('selected');
+    function selectTime(el, time, dateVal) {
+        document.querySelectorAll('.time-slot').forEach(t => t.classList.remove('selected'));
+        el.classList.add('selected');
 
-        document.getElementById('inputHorario').value = time;
-        document.getElementById('btnNextTo3').disabled = false;
+        document.getElementById('inHorario').value = time;
+        document.getElementById('inData').value = dateVal;
 
-        const dataRaw = document.getElementById('datePicker').value;
-        let dataFormatada = dataRaw;
-        if (dataRaw && dataRaw.indexOf('-') > -1) {
-            const [y,m,d] = dataRaw.split('-');
-            dataFormatada = `${d}/${m}/${y}`;
-        }
+        const [y, m, d] = dateVal.split('-');
+        document.getElementById('sumDataHora').innerText = `${d}/${m}/${y} às ${time}`;
 
-        document.getElementById('resumeServico').innerText   = `${selectedServiceName} · ${selectedServicePrice}`;
-        document.getElementById('resumeDataHora').innerText  = `${dataFormatada} às ${time}`;
-
-        goToStep(3);
+        setTimeout(() => goToStep(3), 200);
     }
 
-    function mascaraCPF(i) {
+    function checkClient() {
+        const cpf = document.getElementById('cpfInput').value.replace(/\D/g, '');
+        const btn = document.getElementById('btnConfirmar');
+
+        if (cpf.length < 11) {
+            btn.disabled = true;
+            return;
+        }
+
+        document.getElementById('cpfLoading').style.display = 'block';
+
+        fetch(`${CURRENT_PAGE}?user=${PROF_ID}&action=buscar_cliente&cpf=${cpf}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('cpfLoading').style.display = 'none';
+
+                const newFields = document.getElementById('newClientFields');
+                const welcome   = document.getElementById('welcomeCard');
+                const nomeIn    = document.getElementById('nomeInput');
+                const telIn     = document.getElementById('telInput');
+
+                if (data.found) {
+                    newFields.style.display = 'none';
+                    welcome.style.display   = 'flex';
+
+                    document.getElementById('clientNameDisplay').innerText = data.nome.split(' ')[0];
+                    nomeIn.value = data.nome;
+                    telIn.value  = data.telefone;
+                    document.getElementById('nascInput').value = data.data_nascimento;
+
+                    nomeIn.removeAttribute('required');
+                    telIn.removeAttribute('required');
+                } else {
+                    welcome.style.display   = 'none';
+                    newFields.style.display = 'block';
+
+                    nomeIn.value = '';
+                    telIn.value  = '';
+
+                    nomeIn.setAttribute('required', 'true');
+                    telIn.setAttribute('required', 'true');
+                }
+
+                btn.disabled = false;
+            })
+            .catch(() => {
+                btn.disabled = false;
+            });
+    }
+
+    function startSubmit() {
+        const btn = document.getElementById('btnConfirmar');
+        if (btn.disabled) return false;
+
+        btn.innerHTML = '<span class="loading-spinner"></span> Processando...';
+        btn.disabled = true;
+        return true;
+    }
+
+    function maskCPF(i) {
         let v = i.value.replace(/\D/g, "");
         v = v.replace(/(\d{3})(\d)/, "$1.$2");
         v = v.replace(/(\d{3})(\d)/, "$1.$2");
@@ -953,67 +782,15 @@ $servicos = $stmt->fetchAll();
         i.value = v;
     }
 
-    function mascaraTelefone(i) {
-        let v = i.value.replace(/\D/g,"");
-        v = v.replace(/^(\d{2})(\d)/g,"($1) $2");
-        v = v.replace(/(\d)(\d{4})$/,"$1-$2");
+    function maskPhone(i) {
+        let v = i.value.replace(/\D/g, "");
+        v = v.replace(/^(\d{2})(\d)/g, "($1) $2");
+        v = v.replace(/(\d)(\d{4})$/, "$1-$2");
         i.value = v;
     }
 
-    function buscarCliente() {
-        const cpf       = document.getElementById('cpfInput').value;
-        const feedback  = document.getElementById('cpfFeedback');
-        const nomeInput = document.getElementById('nomeInput');
-        const telInput  = document.getElementById('telInput');
-
-        if (cpf.replace(/\D/g, "").length < 11) return;
-
-        feedback.style.display = 'block';
-        feedback.innerText     = 'Buscando cadastro...';
-        feedback.className     = 'feedback-msg';
-
-        fetch(`${BASE_URL}&action=buscar_cliente&cpf=${encodeURIComponent(cpf)}`)
-            .then(r => r.json())
-            .then(data => {
-                if (data.found) {
-                    feedback.innerText = 'Cliente encontrado! Dados preenchidos.';
-                    feedback.classList.add('text-success');
-                    nomeInput.value = data.nome || '';
-                    telInput.value  = data.telefone || '';
-                } else {
-                    feedback.innerText = 'CPF não cadastrado. Preencha seus dados.';
-                    feedback.classList.add('text-error');
-                    nomeInput.value = '';
-                    telInput.value  = '';
-                    nomeInput.focus();
-                }
-            })
-            .catch(err => {
-                console.error('Erro ao buscar cliente:', err);
-                feedback.innerText = 'Erro ao buscar CPF.';
-                feedback.classList.add('text-error');
-            });
-    }
-
-    function validarForm() {
-        const servico = document.getElementById('inputServicoId').value;
-        const data    = document.getElementById('inputData').value;
-        const horario = document.getElementById('inputHorario').value;
-
-        if (!servico || !data || !horario) {
-            alert('Escolha o serviço, a data e o horário antes de confirmar.');
-            return false;
-        }
-
-        const btn = document.getElementById('btnConfirmar');
-        if (btn) {
-            btn.innerHTML = 'Enviando...';
-            btn.disabled = true;
-        }
-        return true;
-    }
-
-    setMinDateLocal();
+    // Data mínima = hoje
+    document.getElementById('dateInput').min = new Date().toISOString().split("T")[0];
 </script>
 </body>
 </html>
