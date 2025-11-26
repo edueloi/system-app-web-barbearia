@@ -22,30 +22,32 @@ if (isset($_GET['delete'])) {
 
 // 2. SALVAR (CRIAR OU EDITAR)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $acao   = $_POST['acao'];
+    $acao   = $_POST['acao'] ?? 'create';
     $idEdit = $_POST['id_cliente'] ?? null;
     
-    $nome       = $_POST['nome'];
-    $telefone   = $_POST['telefone'];
-    $email      = $_POST['email'];
-    $nascimento = $_POST['nascimento'];
-    $obs        = $_POST['obs'];
+    $nome       = trim($_POST['nome'] ?? '');
+    $telefone   = trim($_POST['telefone'] ?? '');
+    $email      = trim($_POST['email'] ?? '');
+    $nascimento = $_POST['nascimento'] ?? null;
+    $obs        = trim($_POST['obs'] ?? '');
 
     if (!empty($nome)) {
-        if ($acao === 'update' && $idEdit) {
+        if ($acao === 'update' && !empty($idEdit)) {
             $sql  = "UPDATE clientes 
-                        SET nome=?, telefone=?, email=?, data_nascimento=?, observacoes=? 
-                      WHERE id=? AND user_id=?";
+                        SET nome = ?, telefone = ?, email = ?, data_nascimento = ?, observacoes = ? 
+                      WHERE id = ? AND user_id = ?";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$nome, $telefone, $email, $nascimento, $obs, $idEdit, $userId]);
+            $status = 'updated';
         } else {
             $sql  = "INSERT INTO clientes (user_id, nome, telefone, email, data_nascimento, observacoes) 
                      VALUES (?, ?, ?, ?, ?, ?)";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$userId, $nome, $telefone, $email, $nascimento, $obs]);
+            $status = 'created';
         }
 
-        header("Location: clientes.php?status=saved");
+        header("Location: clientes.php?status={$status}");
         exit;
     }
 }
@@ -150,6 +152,7 @@ function getInitials($name) {
         display: flex; 
         gap: 8px; 
         align-items: center; 
+        flex-wrap: wrap;
     }
     
     .btn-whatsapp {
@@ -294,7 +297,7 @@ function getInitials($name) {
             <?php foreach ($clientes as $c): ?>
                 <div class="client-card" 
                      data-nome="<?php echo strtolower($c['nome']); ?>" 
-                     data-tel="<?php echo str_replace(['(',')','-',' '], '', $c['telefone']); ?>">
+                     data-tel="<?php echo str_replace(['(',')','-',' '], '', $c['telefone'] ?? ''); ?>">
                     
                     <div class="client-avatar">
                         <?php echo getInitials($c['nome']); ?>
@@ -303,15 +306,29 @@ function getInitials($name) {
                     <div class="client-info">
                         <div class="client-name"><?php echo htmlspecialchars($c['nome']); ?></div>
                         <div class="client-details">
-                            <?php if($c['telefone']): ?>
+                            <?php if(!empty($c['telefone'])): ?>
                                 <span><i class="bi bi-telephone"></i> <?php echo htmlspecialchars($c['telefone']); ?></span>
                             <?php else: ?>
                                 <span>Sem telefone</span>
                             <?php endif; ?>
+
+                            <?php
+                                if (!empty($c['data_nascimento'])) {
+                                    try {
+                                        $nasc = new DateTime($c['data_nascimento']);
+                                        $diaMes = $nasc->format('d/m');
+                                        $hoje   = new DateTime('today');
+                                        $idade  = $hoje->diff($nasc)->y;
+                                        echo '<span>🎂 ' . $diaMes . ' • ' . $idade . ' anos</span>';
+                                    } catch (Exception $e) {
+                                        // Se der erro na data, não mostra nada
+                                    }
+                                }
+                            ?>
                         </div>
                     </div>
 
-                    <?php if($c['telefone']): 
+                    <?php if(!empty($c['telefone'])): 
                         $numClean = preg_replace('/[^0-9]/', '', $c['telefone']);
                     ?>
                         <a href="https://wa.me/55<?php echo $numClean; ?>" target="_blank" class="btn-whatsapp">
@@ -417,11 +434,11 @@ include '../../includes/footer.php';
     function editar(cliente) {
         document.getElementById('inputAcao').value = 'update';
         document.getElementById('inputId').value = cliente.id;
-        document.getElementById('inputNome').value = cliente.nome;
-        document.getElementById('inputTelefone').value = cliente.telefone;
-        document.getElementById('inputEmail').value = cliente.email;
-        document.getElementById('inputNascimento').value = cliente.data_nascimento;
-        document.getElementById('inputObs').value = cliente.observacoes;
+        document.getElementById('inputNome').value = cliente.nome || '';
+        document.getElementById('inputTelefone').value = cliente.telefone || '';
+        document.getElementById('inputEmail').value = cliente.email || '';
+        document.getElementById('inputNascimento').value = cliente.data_nascimento || '';
+        document.getElementById('inputObs').value = cliente.observacoes || '';
         document.getElementById('modalTitle').innerText = 'Editar Cliente';
         document.getElementById('btnSalvar').innerText = 'Atualizar Dados';
         
@@ -437,8 +454,8 @@ include '../../includes/footer.php';
         let cards = document.querySelectorAll('.client-card');
 
         cards.forEach(card => {
-            let nome = card.getAttribute('data-nome');
-            let tel  = card.getAttribute('data-tel');
+            let nome = card.getAttribute('data-nome') || '';
+            let tel  = card.getAttribute('data-tel') || '';
             if (nome.includes(termo) || tel.includes(termo)) {
                 card.style.display = 'flex';
             } else {

@@ -1,6 +1,10 @@
 <?php
 // includes/db.php
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $dbPath = __DIR__ . '/../banco_salao.sqlite';
 
 try {
@@ -8,7 +12,9 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
-    // --- CRIAÇÃO DAS TABELAS ---
+    // =========================================================
+    // CRIAÇÃO DAS TABELAS PRINCIPAIS
+    // =========================================================
 
     // 1. Agendamentos
     $pdo->exec("CREATE TABLE IF NOT EXISTS agendamentos (
@@ -49,11 +55,11 @@ try {
         cpf TEXT,
         email TEXT,
         data_nascimento DATE,
-        observacoes TEXT, 
+        observacoes TEXT,
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // 4. Horários
+    // 4. Horários de atendimento
     $pdo->exec("CREATE TABLE IF NOT EXISTS horarios_atendimento (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
@@ -63,73 +69,110 @@ try {
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // 5. Usuários (COM SENHA)
+    // 5. Usuários (profissionais)
     $pdo->exec("CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT, email TEXT, telefone TEXT, 
-        senha TEXT, -- Campo Essencial para Login
-        foto TEXT, biografia TEXT,
-        cep TEXT, endereco TEXT, numero TEXT, bairro TEXT, cidade TEXT, estado TEXT,
+        nome TEXT,
+        email TEXT,
+        telefone TEXT,
+        senha TEXT,
+        foto TEXT,
+        biografia TEXT,
+        cep TEXT,
+        endereco TEXT,
+        numero TEXT,
+        bairro TEXT,
+        cidade TEXT,
+        estado TEXT,
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // 6. NOVA TABELA: Produtos e Estoque
+    // 6. Produtos / Estoque
     $pdo->exec("CREATE TABLE IF NOT EXISTS produtos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         nome TEXT NOT NULL,
         marca TEXT,
         quantidade INTEGER DEFAULT 0,
-        unidade TEXT DEFAULT 'unidade', -- Ex: ml, kg, unidade
-        custo_unitario REAL,           -- Valor pago ao fornecedor
-        preco_venda REAL,              -- Valor sugerido para venda (se aplicável)
+        unidade TEXT DEFAULT 'unidade', -- ml, kg, unidade, etc
+        custo_unitario REAL,
+        preco_venda REAL,
         data_compra DATE,
         data_validade DATE,
         observacoes TEXT,
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // 7. Tabela de Notificações/Alertas
+    // 7. Notificações / Alertas
     $pdo->exec("CREATE TABLE IF NOT EXISTS notifications (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         type TEXT NOT NULL, -- agendamento, produto, etc
         message TEXT NOT NULL,
-        link TEXT, -- link para ação
+        link TEXT,
         is_read INTEGER DEFAULT 0, -- 0=não lido, 1=lido
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // --- MIGRATIONS (Atualiza bancos antigos) ---
-    
+    // =========================================================
+    // MIGRAÇÕES (para bancos antigos já existentes)
+    // =========================================================
+
+    // Clientes
     try { $pdo->exec("ALTER TABLE clientes ADD COLUMN cpf TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE clientes ADD COLUMN telefone TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE clientes ADD COLUMN email TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE clientes ADD COLUMN data_nascimento DATE"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE clientes ADD COLUMN observacoes TEXT"); } catch (Exception $e) {}
+
+    // Agendamentos
     try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN cliente_cpf TEXT"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN cliente_id INTEGER"); } catch (Exception $e) {}
-    try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN valor REAL DEFAULT 0"); } catch (Exception $e) { }
-    // Importante: Adiciona a coluna senha se não existir
-    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN senha TEXT"); } catch (Exception $e) { }
+    try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN valor REAL DEFAULT 0"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN observacoes TEXT"); } catch (Exception $e) {}
 
-    // --- SEEDS (Dados Iniciais) ---
-    
-    // Verifica se usuário existe
-    $check = $pdo->query("SELECT count(*) FROM usuarios WHERE id = 1")->fetchColumn();
-    
-    // Senha padrão hash: 123456
+    // Usuários
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN senha TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN foto TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN biografia TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN cep TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN endereco TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN numero TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN bairro TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN cidade TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN estado TEXT"); } catch (Exception $e) {}
+
+    // Produtos
+    try { $pdo->exec("ALTER TABLE produtos ADD COLUMN marca TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE produtos ADD COLUMN quantidade INTEGER DEFAULT 0"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE produtos ADD COLUMN unidade TEXT DEFAULT 'unidade'"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE produtos ADD COLUMN custo_unitario REAL"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE produtos ADD COLUMN preco_venda REAL"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE produtos ADD COLUMN data_compra DATE"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE produtos ADD COLUMN data_validade DATE"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE produtos ADD COLUMN observacoes TEXT"); } catch (Exception $e) {}
+
+    // =========================================================
+    // SEED BÁSICO (Usuário padrão id=1)
+    // =========================================================
+
+    $check = $pdo->query("SELECT COUNT(*) FROM usuarios WHERE id = 1")->fetchColumn();
     $senhaPadrao = password_hash('123456', PASSWORD_DEFAULT);
 
     if ($check == 0) {
-        // Cria usuário novo com senha
-        $pdo->prepare("INSERT INTO usuarios (id, nome, email, senha) VALUES (1, 'Profissional', 'admin@salao.com', ?)")
-            ->execute([$senhaPadrao]);
+        $stmtSeed = $pdo->prepare("
+            INSERT INTO usuarios (id, nome, email, senha, cidade, estado)
+            VALUES (1, 'Profissional', 'admin@salao.com', ?, 'Tatuí', 'SP')
+        ");
+        $stmtSeed->execute([$senhaPadrao]);
     } else {
-        // Se usuário já existe mas não tem senha (migração), define a padrão
         $user = $pdo->query("SELECT senha FROM usuarios WHERE id = 1")->fetch();
         if (empty($user['senha'])) {
-            $pdo->prepare("UPDATE usuarios SET senha = ? WHERE id = 1")->execute([$senhaPadrao]);
+            $stmtUpd = $pdo->prepare("UPDATE usuarios SET senha = ? WHERE id = 1");
+            $stmtUpd->execute([$senhaPadrao]);
         }
     }
 
 } catch (PDOException $e) {
     die("Erro na base de dados: " . $e->getMessage());
 }
-?>

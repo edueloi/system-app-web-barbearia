@@ -1,8 +1,9 @@
-
 <?php
-// --- PROCESSAR SALVAMENTO ---
+// --- PROCESSAR SALVAMENTO (Lógica Mantida) ---
 include '../../includes/db.php';
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 if (!isset($_SESSION['user_id'])) $_SESSION['user_id'] = 1;
 $userId = $_SESSION['user_id'];
 
@@ -42,377 +43,440 @@ foreach ($registros as $reg) {
 }
 
 $diasSemana = [
-    0 => 'Domingo',
     1 => 'Segunda-feira',
     2 => 'Terça-feira',
     3 => 'Quarta-feira',
     4 => 'Quinta-feira',
     5 => 'Sexta-feira',
-    6 => 'Sábado'
+    6 => 'Sábado',
+    0 => 'Domingo'
 ];
 
 $toastStatus = $_GET['status'] ?? null;
+$pageTitle = 'Configurar Horários';
 
- $pageTitle = 'Meus Horários';
 include '../../includes/header.php';
 include '../../includes/menu.php';
 ?>
 
 <style>
-    .main-content {
-        max-width: 480px;
-        margin: 0 auto;
-        padding: 16px 12px 100px 12px;
+    :root {
+        --primary-color: #4f46e5; /* Indigo */
+        --bg-page: #f8fafc;
+        --bg-card: #ffffff;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border-color: #e2e8f0;
+        --input-bg: #f1f5f9;
     }
 
-    .actions-bar {
+    body { background-color: var(--bg-page); }
+
+    .main-wrapper {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px 16px 100px 16px;
+    }
+
+    /* Cabeçalho da Página */
+    .page-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        margin-bottom: 18px;
+        align-items: flex-start;
+        margin-bottom: 24px;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 12px;
     }
-    .actions-bar h2 {
+    .page-header h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-main);
         margin: 0;
-        font-size: 1.2rem;
     }
-    .actions-bar p {
-        margin: 3px 0 0 0;
-        font-size: 0.85rem;
-        color: var(--text-gray);
+    .page-header p {
+        margin: 4px 0 0;
+        color: var(--text-muted);
+        font-size: 0.9rem;
     }
-    .btn-commercial {
-        background: #e0e7ff;
-        color: var(--primary);
-        border: none;
+
+    .btn-auto-fill {
+        background: #eef2ff;
+        color: var(--primary-color);
+        border: 1px solid transparent;
         padding: 8px 16px;
-        border-radius: 999px;
+        border-radius: 99px;
         font-weight: 600;
+        font-size: 0.85rem;
         cursor: pointer;
-        display: flex;
+        transition: 0.2s;
+        display: inline-flex;
         align-items: center;
         gap: 6px;
-        font-size: 0.85rem;
     }
-    .btn-commercial i { font-size: 1rem; }
+    .btn-auto-fill:hover { background: #e0e7ff; border-color: #c7d2fe; }
 
-    /* switch */
-    .switch { position: relative; display: inline-block; width: 42px; height: 22px; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 22px; }
-    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 2px; background-color: white; transition: .3s; border-radius: 50%; }
-    input:checked + .slider { background-color: var(--primary); }
-    input:checked + .slider:before { transform: translateX(18px); }
-
-    /* cards */
+    /* Cards dos Dias */
     .day-card {
-        background: white;
+        background: var(--bg-card);
         border-radius: 16px;
-        padding: 12px 12px 14px 12px;
-        margin-bottom: 10px;
-        border: 1px solid #f1f5f9;
-        box-shadow: 0 8px 18px rgba(15,23,42,0.05);
-        transition: .2s;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
     }
+
+    /* Estado Fechado */
     .day-card.closed {
-        opacity: 0.6;
         background: #f8fafc;
+        border-color: transparent;
+        box-shadow: none;
+        opacity: 0.8;
     }
+    .day-card.closed .day-title { color: #94a3b8; font-weight: 500; }
+    
     .day-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 10px;
+        cursor: pointer; /* Permite clicar no header para ativar */
     }
+
+    .day-info { display: flex; align-items: center; gap: 10px; }
     .day-title {
-        font-weight: 700;
-        font-size: 0.98rem;
-        color: var(--text-dark);
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-main);
     }
-    .day-status {
+    .status-badge {
         font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 6px;
         font-weight: 600;
-        color: var(--text-gray);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .status-open { color: #16a34a; background: #dcfce7; }
+    .status-closed { color: #94a3b8; background: #f1f5f9; }
+
+    /* IOS Switch */
+    .switch {
+        position: relative; display: inline-block; width: 44px; height: 24px;
+        flex-shrink: 0;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+        position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+        background-color: #cbd5e1; transition: .3s; border-radius: 24px;
+    }
+    .slider:before {
+        position: absolute; content: ""; height: 20px; width: 20px; left: 2px; bottom: 2px;
+        background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    input:checked + .slider { background-color: var(--primary-color); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    /* Área dos Slots (Horários) */
+    .day-body {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px dashed var(--border-color);
+        animation: slideDown 0.3s ease-out;
     }
 
-    .slots-container {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-    .time-slot {
+    .slots-list { display: flex; flex-direction: column; gap: 10px; }
+
+    /* O Visual "Cápsula" do Horário */
+    .time-slot-row {
         display: flex;
         align-items: center;
-        gap: 6px;
-        animation: fadeIn .25s;
+        gap: 8px;
+        animation: fadeIn 0.3s;
     }
-    .time-input {
-        padding: 7px 8px;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        font-family: inherit;
-        font-size: 0.85rem;
-        color: var(--text-dark);
-        background: #fff;
+
+    .time-capsule {
         flex: 1;
-        min-width: 0;
-    }
-    .separator {
-        color: var(--text-gray);
-        font-weight: 600;
-        font-size: 0.8rem;
-    }
-    .btn-remove-slot {
-        color: #ef4444;
-        background: #fee2e2;
-        border: none;
-        width: 28px;
-        height: 28px;
-        border-radius: 8px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: .2s;
-        font-size: 0.9rem;
-    }
-    .btn-remove-slot:hover {
-        background: #ef4444;
-        color: white;
-    }
-    .btn-add-slot {
-        background: none;
-        border: 1px dashed #cbd5e1;
-        color: var(--primary);
-        padding: 8px;
-        width: 100%;
+        background: var(--input-bg);
         border-radius: 10px;
-        cursor: pointer;
-        margin-top: 8px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        transition: .2s;
+        padding: 8px 12px;
         display: flex;
         align-items: center;
-        justify-content: center;
-        gap: 6px;
+        justify-content: space-between;
+        border: 1px solid transparent;
+        transition: 0.2s;
     }
-    .btn-add-slot i { font-size: 1rem; }
-    .btn-add-slot:hover {
-        background: #e0e7ff;
-        border-color: var(--primary);
+    .time-capsule:focus-within {
+        background: #fff;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
     }
 
-    /* barra de salvar fixa */
-    .save-bar {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        padding: 10px 12px 16px 12px;
-        background: linear-gradient(to top, rgba(248,250,252,0.98), rgba(248,250,252,0.9));
-        z-index: 900;
-        display: flex;
-        justify-content: center;
-    }
-    .fab-save {
-        width: 100%;
-        max-width: 480px;
-        background: var(--success);
-        color: #fff;
-        padding: 12px 16px;
-        border-radius: 999px;
+    .time-input {
+        background: transparent;
         border: none;
+        font-family: inherit;
         font-size: 0.95rem;
-        font-weight: 700;
-        box-shadow: 0 6px 16px rgba(34,197,94,0.45);
+        color: var(--text-main);
+        width: 100%;
+        text-align: center;
+        outline: none;
         cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        transition: transform .15s;
     }
-    .fab-save:hover { transform: translateY(-1px); background: #16a34a; }
-    .fab-save i { font-size: 1.1rem; }
+    
+    /* Separador visual (seta ou traço) */
+    .time-separator { color: var(--text-muted); font-size: 0.8rem; padding: 0 6px; }
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-4px); }
-        to   { opacity: 1; transform: translateY(0); }
+    .btn-remove {
+        width: 36px; height: 36px;
+        border-radius: 10px;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .btn-remove:hover { background: #fee2e2; color: #ef4444; }
+
+    .btn-add {
+        width: 100%;
+        margin-top: 12px;
+        padding: 10px;
+        background: transparent;
+        border: 2px dashed #cbd5e1;
+        border-radius: 10px;
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: 0.2s;
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-add:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        background: #eef2ff;
+    }
+
+    /* Barra Flutuante de Salvar */
+    .sticky-save-bar {
+        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+        width: 80%; max-width: 500px;
+        background: #1e293b;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 99px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+        display: flex; justify-content: space-between; align-items: center;
+        z-index: 1000;
+        animation: floatUp 0.5s ease-out;
+    }
+    .save-text { font-size: 0.9rem; font-weight: 500; opacity: 0.9; }
+    .btn-save-action {
+        background: #4f46e5; color: white; border: none;
+        padding: 8px 20px; border-radius: 99px; font-weight: 700;
+        cursor: pointer; transition: 0.2s;
+    }
+    .btn-save-action:hover { background: #4338ca; transform: scale(1.05); }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideDown { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 500px; } }
+    @keyframes floatUp { from { transform: translate(-50%, 100%); } to { transform: translate(-50%, 0); } }
+
+    /* Ajuste Mobile para Inputs de Hora */
+    @media(max-width: 400px) {
+        .time-input { font-size: 0.85rem; }
+        .time-capsule { padding: 8px; }
     }
 </style>
 
-<main class="main-content">
-    <form method="POST" id="formHorarios">
-        <div class="actions-bar">
-            <div>
-                <h2>Meus Horários</h2>
-                <p>Defina os dias e intervalos em que você atende.</p>
-            </div>
-            <button type="button" class="btn-commercial" onclick="confirmarHorarioComercial()">
-                <i class="bi bi-briefcase"></i>
-                Comercial (seg–sex)
-            </button>
+<div class="main-wrapper">
+    
+    <div class="page-header">
+        <div>
+            <h2>Configurar Horários</h2>
+            <p>Defina sua disponibilidade semanal.</p>
         </div>
+        <button type="button" class="btn-auto-fill" onclick="confirmarHorarioComercial()">
+            <i class="bi bi-magic"></i> Padrão Comercial
+        </button>
+    </div>
 
+    <form method="POST" id="formHorarios">
         <?php foreach ($diasSemana as $diaIndex => $diaNome): ?>
             <?php 
                 $temHorarios = count($agenda[$diaIndex]) > 0;
                 $isChecked   = $temHorarios ? 'checked' : '';
                 $cardClass   = $temHorarios ? '' : 'closed';
-                $statusText  = $temHorarios ? 'Aberto' : 'Fechado';
             ?>
+            
             <div class="day-card <?php echo $cardClass; ?>" id="card-<?php echo $diaIndex; ?>">
+                
                 <div class="day-header">
-                    <div class="day-title"><?php echo $diaNome; ?></div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <span class="day-status" id="status-<?php echo $diaIndex; ?>"><?php echo $statusText; ?></span>
-                        <label class="switch">
-                            <input type="checkbox"
-                                   name="dia_ativo[<?php echo $diaIndex; ?>]"
-                                   id="toggle-<?php echo $diaIndex; ?>"
-                                   onchange="toggleDia(<?php echo $diaIndex; ?>)"
-                                   <?php echo $isChecked; ?>>
-                            <span class="slider"></span>
-                        </label>
+                    <div class="day-info" onclick="triggerToggle(<?php echo $diaIndex; ?>)">
+                        <div class="day-title"><?php echo $diaNome; ?></div>
+                        <span id="badge-<?php echo $diaIndex; ?>" class="status-badge <?php echo $temHorarios ? 'status-open' : 'status-closed'; ?>">
+                            <?php echo $temHorarios ? 'Aberto' : 'Fechado'; ?>
+                        </span>
                     </div>
+
+                    <label class="switch">
+                        <input type="checkbox" 
+                               name="dia_ativo[<?php echo $diaIndex; ?>]" 
+                               id="toggle-<?php echo $diaIndex; ?>"
+                               onchange="toggleDia(<?php echo $diaIndex; ?>)"
+                               <?php echo $isChecked; ?>>
+                        <span class="slider"></span>
+                    </label>
                 </div>
 
                 <div class="day-body" id="body-<?php echo $diaIndex; ?>" style="<?php echo $temHorarios ? '' : 'display:none;'; ?>">
-                    <div class="slots-container" id="slots-<?php echo $diaIndex; ?>">
+                    
+                    <div class="slots-list" id="slots-<?php echo $diaIndex; ?>">
                         <?php foreach ($agenda[$diaIndex] as $i => $horario): ?>
-                            <div class="time-slot">
-                                <input type="time" name="horarios[<?php echo $diaIndex; ?>][<?php echo $i; ?>][inicio]" class="time-input" value="<?php echo $horario['inicio']; ?>" required>
-                                <span class="separator">até</span>
-                                <input type="time" name="horarios[<?php echo $diaIndex; ?>][<?php echo $i; ?>][fim]" class="time-input" value="<?php echo $horario['fim']; ?>" required>
-                                <button type="button" class="btn-remove-slot" onclick="removerSlot(this)"><i class="bi bi-trash"></i></button>
+                            <div class="time-slot-row">
+                                <div class="time-capsule">
+                                    <input type="time" name="horarios[<?php echo $diaIndex; ?>][<?php echo $i; ?>][inicio]" 
+                                           class="time-input" value="<?php echo $horario['inicio']; ?>" required>
+                                    <i class="bi bi-arrow-right-short time-separator"></i>
+                                    <input type="time" name="horarios[<?php echo $diaIndex; ?>][<?php echo $i; ?>][fim]" 
+                                           class="time-input" value="<?php echo $horario['fim']; ?>" required>
+                                </div>
+                                <button type="button" class="btn-remove" onclick="removerSlot(this)" title="Remover intervalo">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
                             </div>
                         <?php endforeach; ?>
                     </div>
 
-                    <button type="button" class="btn-add-slot" onclick="adicionarSlot(<?php echo $diaIndex; ?>)">
-                        <i class="bi bi-plus-circle"></i> Adicionar intervalo
+                    <button type="button" class="btn-add" onclick="adicionarSlot(<?php echo $diaIndex; ?>)">
+                        <i class="bi bi-plus-lg"></i> Adicionar Intervalo
                     </button>
                 </div>
+
             </div>
         <?php endforeach; ?>
     </form>
-</main>
+</div>
 
-<div class="save-bar">
-    <button type="submit" form="formHorarios" class="fab-save">
-        <i class="bi bi-check-lg"></i>
-        Salvar horários
+<div class="sticky-save-bar">
+    <span class="save-text">Alterações pendentes?</span>
+    <button type="submit" form="formHorarios" class="btn-save-action">
+        Salvar Tudo
     </button>
 </div>
 
 <?php
-// componentes reutilizáveis
 include '../../includes/ui-confirm.php';
 include '../../includes/ui-toast.php';
 include '../../includes/footer.php';
 ?>
 
 <script>
+    // Permite clicar no texto "Segunda-feira" para ativar o switch
+    function triggerToggle(idx) {
+        const toggle = document.getElementById(`toggle-${idx}`);
+        toggle.click(); 
+    }
+
     function toggleDia(diaIndex) {
         const checkbox = document.getElementById(`toggle-${diaIndex}`);
         const card     = document.getElementById(`card-${diaIndex}`);
         const body     = document.getElementById(`body-${diaIndex}`);
-        const status   = document.getElementById(`status-${diaIndex}`);
+        const badge    = document.getElementById(`badge-${diaIndex}`);
         const slots    = document.getElementById(`slots-${diaIndex}`);
 
         if (checkbox.checked) {
             card.classList.remove('closed');
             body.style.display = 'block';
-            status.innerText = 'Aberto';
+            badge.innerText = 'Aberto';
+            badge.className = 'status-badge status-open';
 
+            // Se não houver slots ao abrir, cria um padrão
             if (slots.children.length === 0) {
                 adicionarSlot(diaIndex, '09:00', '18:00');
             }
         } else {
             card.classList.add('closed');
             body.style.display = 'none';
-            status.innerText = 'Fechado';
+            badge.innerText = 'Fechado';
+            badge.className = 'status-badge status-closed';
         }
     }
 
     function adicionarSlot(diaIndex, inicio = '', fim = '') {
         const container = document.getElementById(`slots-${diaIndex}`);
-        const randId = Math.floor(Math.random() * 10000);
+        const randId = Math.floor(Math.random() * 100000);
 
+        // HTML do Slot com visual "Cápsula"
         const html = `
-            <div class="time-slot">
-                <input type="time" name="horarios[${diaIndex}][${randId}][inicio]" class="time-input" value="${inicio}" required>
-                <span class="separator">até</span>
-                <input type="time" name="horarios[${diaIndex}][${randId}][fim]" class="time-input" value="${fim}" required>
-                <button type="button" class="btn-remove-slot" onclick="removerSlot(this)"><i class="bi bi-trash"></i></button>
+            <div class="time-slot-row">
+                <div class="time-capsule">
+                    <input type="time" name="horarios[${diaIndex}][${randId}][inicio]" 
+                           class="time-input" value="${inicio}" required>
+                    <i class="bi bi-arrow-right-short time-separator"></i>
+                    <input type="time" name="horarios[${diaIndex}][${randId}][fim]" 
+                           class="time-input" value="${fim}" required>
+                </div>
+                <button type="button" class="btn-remove" onclick="removerSlot(this)">
+                    <i class="bi bi-trash3"></i>
+                </button>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', html);
+        
+        // Foca no primeiro input recém criado para agilizar
+        const newInputs = container.lastElementChild.querySelectorAll('input');
+        if(newInputs[0] && !inicio) newInputs[0].focus(); 
     }
 
     function removerSlot(btn) {
-        btn.closest('.time-slot').remove();
+        const row = btn.closest('.time-slot-row');
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(10px)';
+        setTimeout(() => row.remove(), 200);
     }
 
-    // abre modal de confirmação usando componente genérico
+    // Modal Comercial (igual anterior)
     function confirmarHorarioComercial() {
         AppConfirm.open({
-            title: 'Aplicar horário comercial',
-            message: 'Isso vai substituir seus horários atuais por:<br><strong>Segunda a sexta</strong> 08:00–12:00 e 13:00–18:00.<br><br>Sábado e domingo ficarão <strong>fechados</strong>.<br><br>Deseja continuar?',
-            confirmText: 'Sim, aplicar',
-            cancelText: 'Cancelar',
-            type: 'success',
+            title: 'Aplicar Padrão Comercial',
+            message: 'Isso definirá Seg-Sex das 08:00 às 18:00 (com almoço) e fechará o fim de semana. Continuar?',
+            confirmText: 'Aplicar',
+            type: 'info',
             onConfirm: aplicarHorarioComercial
         });
     }
 
-    // aplica padrão comercial (somente depois do OK no modal)
     function aplicarHorarioComercial() {
+        // Seg a Sex (1 a 5)
         for (let i = 1; i <= 5; i++) {
             const checkbox = document.getElementById(`toggle-${i}`);
-            if (!checkbox.checked) {
-                checkbox.checked = true;
-            }
+            if (!checkbox.checked) checkbox.checked = true;
             toggleDia(i);
 
             const container = document.getElementById(`slots-${i}`);
-            container.innerHTML = '';
+            container.innerHTML = ''; // Limpa
             adicionarSlot(i, '08:00', '12:00');
             adicionarSlot(i, '13:00', '18:00');
         }
 
+        // Sab e Dom (6 e 0)
         [0, 6].forEach(i => {
             const checkbox = document.getElementById(`toggle-${i}`);
-            if (checkbox.checked) {
-                checkbox.checked = false;
-            }
+            if (checkbox.checked) checkbox.checked = false;
             toggleDia(i);
         });
 
-        AppToast.show('Padrão comercial aplicado. Não esqueça de salvar.', 'info');
+        AppToast.show('Horário comercial aplicado!', 'success');
     }
 
-    // TOAST pós-salvamento
-    <?php
-    if ($toastStatus) {
-        $msg  = '';
-        $type = 'success';
-        switch ($toastStatus) {
-            case 'success':
-                $msg  = 'Horários atualizados com sucesso.';
-                $type = 'success';
-                break;
-            case 'error':
-                $msg  = 'Erro ao salvar horários. Tente novamente.';
-                $type = 'danger';
-                break;
-        }
-        if ($msg):
-    ?>
-    window.addEventListener('DOMContentLoaded', function () {
-        AppToast.show(<?php echo json_encode($msg); ?>, <?php echo json_encode($type); ?>);
-    });
-    <?php endif; } ?>
+    // Mensagens de Sucesso/Erro PHP
+    <?php if ($toastStatus): ?>
+        window.addEventListener('DOMContentLoaded', () => {
+            const msg = "<?php echo ($toastStatus === 'success') ? 'Horários salvos com sucesso!' : 'Erro ao salvar.'; ?>";
+            const type = "<?php echo ($toastStatus === 'success') ? 'success' : 'danger'; ?>";
+            AppToast.show(msg, type);
+        });
+    <?php endif; ?>
 </script>
