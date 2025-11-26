@@ -13,9 +13,9 @@ $msgType = '';
 
 // --- 1. ALTERAR SENHA ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao']) && $_POST['acao'] === 'nova_senha') {
-    $senhaAtual = $_POST['senha_atual'];
-    $novaSenha = $_POST['nova_senha'];
-    $confirmarSenha = $_POST['confirmar_senha'];
+    $senhaAtual     = $_POST['senha_atual'] ?? '';
+    $novaSenha      = $_POST['nova_senha'] ?? '';
+    $confirmarSenha = $_POST['confirmar_senha'] ?? '';
 
     // Buscar senha atual no banco
     $stmt = $pdo->prepare("SELECT senha FROM usuarios WHERE id = ?");
@@ -23,36 +23,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao']) && $_POST['ac
     $user = $stmt->fetch();
 
     if ($user) {
-        // Verifica se a senha atual bate (ou se é a primeira vez e está vazia/padrão)
+        // Verifica se a senha atual bate
         if (password_verify($senhaAtual, $user['senha'])) {
             if ($novaSenha === $confirmarSenha) {
                 if (strlen($novaSenha) >= 6) {
                     $hash = password_hash($novaSenha, PASSWORD_DEFAULT);
-                    $pdo->prepare("UPDATE usuarios SET senha = ? WHERE id = ?")->execute([$hash, $userId]);
-                    $_SESSION['config_msg'] = 'Senha atualizada com sucesso!';
+                    $pdo->prepare("UPDATE usuarios SET senha = ? WHERE id = ?")
+                        ->execute([$hash, $userId]);
+                    $_SESSION['config_msg']     = 'Senha atualizada com sucesso!';
                     $_SESSION['config_msgType'] = 'success';
                 } else {
-                    $_SESSION['config_msg'] = 'A nova senha deve ter pelo menos 6 caracteres.';
+                    $_SESSION['config_msg']     = 'A nova senha deve ter pelo menos 6 caracteres.';
                     $_SESSION['config_msgType'] = 'error';
                 }
             } else {
-                $_SESSION['config_msg'] = 'A confirmação de senha não coincide.';
+                $_SESSION['config_msg']     = 'A confirmação de senha não coincide.';
                 $_SESSION['config_msgType'] = 'error';
             }
         } else {
-            $_SESSION['config_msg'] = 'Senha atual incorreta.';
+            $_SESSION['config_msg']     = 'Senha atual incorreta.';
             $_SESSION['config_msgType'] = 'error';
         }
     }
+
     header('Location: configuracoes.php');
     exit;
 }
 
 if (isset($_SESSION['config_msg'])) {
-    $msg = $_SESSION['config_msg'];
-    unset($_SESSION['config_msg']);
+    $msg     = $_SESSION['config_msg'];
     $msgType = $_SESSION['config_msgType'] ?? '';
-    unset($_SESSION['config_msgType']);
+    unset($_SESSION['config_msg'], $_SESSION['config_msgType']);
 }
 
 // --- 2. BACKUP DO BANCO ---
@@ -71,20 +72,21 @@ if (isset($_GET['download_backup'])) {
     }
 }
 
-// Detectar URL base para o Link de Agendamento
-$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
-$host = $_SERVER['HTTP_HOST'];
-// Remove 'pages/configuracoes' e aponta para 'agendar.php' na raiz
-$path = str_replace('/pages/configuracoes', '', dirname($_SERVER['PHP_SELF'])); 
-$linkAgendamento = $protocol . "://" . $host . $path . "/../../agendar.php";
-// Limpeza da URL para ficar bonita
-$linkAgendamento = str_replace('/controls/../../', '/', $linkAgendamento); // Ajuste fino dependendo da pasta
-// Método simples para garantir link da raiz:
-$baseUrl = $protocol . "://" . $host . str_replace('pages/configuracoes/configuracoes.php', '', $_SERVER['SCRIPT_NAME']);
-$linkFinal = $baseUrl . "agendar.php";
+// --- 3. LINK PÚBLICO PARA AGENDAMENTO ---
+// Ex.: http://localhost/karen_site/controle-salao/agendar.php?user=2
 
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+$host     = $_SERVER['HTTP_HOST'];
+
+// Diretório deste arquivo: /karen_site/controle-salao/pages/configuracoes
+$scriptDir = dirname($_SERVER['PHP_SELF']);
+
+// Sobe 2 níveis: /karen_site/controle-salao
+$appRoot = dirname(dirname($scriptDir));
+
+$appRoot  = rtrim($appRoot, '/');               // garante sem barra no final
+$linkFinal = $protocol . '://' . $host . $appRoot . '/agendar.php?user=' . $userId;
 ?>
-
 <style>
     .config-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
     @media(min-width: 768px) { .config-grid { grid-template-columns: 1fr 1fr; } }
@@ -96,7 +98,7 @@ $linkFinal = $baseUrl . "agendar.php";
     .form-group { margin-bottom: 15px; }
     .form-label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; }
     .form-control { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; }
-    
+
     .btn-primary { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: 600; width: 100%; }
     .btn-primary:hover { background: var(--primary-hover); }
 
@@ -113,7 +115,7 @@ $linkFinal = $baseUrl . "agendar.php";
 </style>
 
 <main class="main-content">
-    
+
     <div style="margin-bottom: 30px;">
         <h2 style="margin:0;">Configurações</h2>
         <p style="color:var(--text-gray); margin-top:5px;">Gerencie a segurança e ferramentas do sistema.</p>
@@ -126,15 +128,18 @@ $linkFinal = $baseUrl . "agendar.php";
     <?php endif; ?>
 
     <div class="config-grid">
-        
+
         <div class="card">
-            <h3 class="card-title"><i class="bi bi-share-fill" style="color:#6366f1;"></i> Link para Clientes</h3>
+            <h3 class="card-title">
+                <i class="bi bi-share-fill" style="color:#6366f1;"></i> 
+                Link para Clientes
+            </h3>
             <p class="card-desc">Envie este link para os seus clientes agendarem sozinhos.</p>
-            
+
             <label class="form-label">Link Público</label>
             <div class="copy-box">
-                <input type="text" class="form-control" value="<?php echo $linkFinal; ?>" id="linkInput" readonly>
-                <button class="btn-copy" onclick="copiarLink()">Copiar</button>
+                <input type="text" class="form-control" value="<?php echo htmlspecialchars($linkFinal); ?>" id="linkInput" readonly>
+                <button class="btn-copy" type="button" onclick="copiarLink()">Copiar</button>
             </div>
             <p style="font-size:0.8rem; color:#94a3b8; margin-top:10px;">
                 <i class="bi bi-whatsapp"></i> Dica: Cole este link na bio do Instagram ou envie no WhatsApp.
@@ -142,17 +147,20 @@ $linkFinal = $baseUrl . "agendar.php";
         </div>
 
         <div class="card">
-            <h3 class="card-title"><i class="bi bi-shield-lock-fill" style="color:#10b981;"></i> Alterar Senha</h3>
+            <h3 class="card-title">
+                <i class="bi bi-shield-lock-fill" style="color:#10b981;"></i> 
+                Alterar Senha
+            </h3>
             <p class="card-desc">Atualize a sua senha de acesso ao painel.</p>
 
             <form method="POST">
                 <input type="hidden" name="acao" value="nova_senha">
-                
+
                 <div class="form-group">
                     <label class="form-label">Senha Atual</label>
                     <input type="password" name="senha_atual" class="form-control" required placeholder="Digite sua senha atual">
                 </div>
-                
+
                 <div class="form-group">
                     <label class="form-label">Nova Senha</label>
                     <input type="password" name="nova_senha" class="form-control" required placeholder="Mínimo 6 caracteres">
@@ -168,9 +176,12 @@ $linkFinal = $baseUrl . "agendar.php";
         </div>
 
         <div class="card">
-            <h3 class="card-title"><i class="bi bi-database-down" style="color:#f59e0b;"></i> Backup de Dados</h3>
+            <h3 class="card-title">
+                <i class="bi bi-database-down" style="color:#f59e0b;"></i> 
+                Backup de Dados
+            </h3>
             <p class="card-desc">Baixe uma cópia de segurança de todos os seus dados (clientes, agenda, financeiro).</p>
-            
+
             <div style="background:#fff7ed; padding:15px; border-radius:10px; margin-bottom:20px; border:1px solid #ffedd5; font-size:0.9rem; color:#9a3412;">
                 Recomendamos fazer o download semanalmente para garantir que nunca perde as suas informações.
             </div>
@@ -190,15 +201,20 @@ $linkFinal = $baseUrl . "agendar.php";
         var copyText = document.getElementById("linkInput");
         copyText.select();
         copyText.setSelectionRange(0, 99999); // Para mobile
-        navigator.clipboard.writeText(copyText.value);
-        
-        // Feedback visual simples
+
+        try {
+            navigator.clipboard.writeText(copyText.value);
+        } catch (e) {
+            // fallback
+            document.execCommand("copy");
+        }
+
         const btn = document.querySelector('.btn-copy');
         const originalText = btn.innerText;
         btn.innerText = 'Copiado!';
         btn.style.background = '#dcfce7';
         btn.style.color = '#166534';
-        
+
         setTimeout(() => {
             btn.innerText = originalText;
             btn.style.background = '#e0e7ff';

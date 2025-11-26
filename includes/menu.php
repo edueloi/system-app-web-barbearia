@@ -1,4 +1,3 @@
-
 <?php
 // 1. Iniciar Sessão e Proteção de Login
 if (session_status() === PHP_SESSION_NONE) {

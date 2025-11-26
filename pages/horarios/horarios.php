@@ -1,21 +1,17 @@
-<?php
-$pageTitle = 'Meus Horários';
-include '../../includes/header.php';
-include '../../includes/menu.php';
-include '../../includes/db.php';
 
-// Simulação de User ID
+<?php
+// --- PROCESSAR SALVAMENTO ---
+include '../../includes/db.php';
+session_start();
 if (!isset($_SESSION['user_id'])) $_SESSION['user_id'] = 1;
 $userId = $_SESSION['user_id'];
 
-// --- PROCESSAR SALVAMENTO ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo->prepare("DELETE FROM horarios_atendimento WHERE user_id = ?")->execute([$userId]);
 
         if (isset($_POST['horarios']) && is_array($_POST['horarios'])) {
             $stmt = $pdo->prepare("INSERT INTO horarios_atendimento (user_id, dia_semana, inicio, fim) VALUES (?, ?, ?, ?)");
-            
             foreach ($_POST['horarios'] as $dia => $slots) {
                 if (isset($_POST['dia_ativo'][$dia])) {
                     foreach ($slots as $slot) {
@@ -40,7 +36,7 @@ $stmt = $pdo->prepare("SELECT * FROM horarios_atendimento WHERE user_id = ? ORDE
 $stmt->execute([$userId]);
 $registros = $stmt->fetchAll();
 
-$agenda = array_fill(0, 7, []); 
+$agenda = array_fill(0, 7, []);
 foreach ($registros as $reg) {
     $agenda[$reg['dia_semana']][] = ['inicio' => $reg['inicio'], 'fim' => $reg['fim']];
 }
@@ -56,6 +52,10 @@ $diasSemana = [
 ];
 
 $toastStatus = $_GET['status'] ?? null;
+
+ $pageTitle = 'Meus Horários';
+include '../../includes/header.php';
+include '../../includes/menu.php';
 ?>
 
 <style>

@@ -2,8 +2,11 @@
 // agendar.php (NA RAIZ DO PROJETO)
 include 'includes/db.php';
 
-// Configuração: ID do Profissional
-$profissionalId = 1;
+// ID do Profissional dinâmico via GET
+$profissionalId = isset($_GET['user']) ? (int)$_GET['user'] : 0;
+if ($profissionalId <= 0) {
+    die('<h2>Profissional não encontrado.</h2>');
+}
 
 // =========================================================
 // API INTERNA (AJAX)
@@ -301,6 +304,8 @@ $servicos = $stmt->fetchAll();
 </div>
 
 <script>
+    // Variável injetada do PHP para ser usada no JavaScript
+    const PROFISSIONAL_ID = <?php echo $profissionalId; ?>;
     let selectedDuration = 0;
     let selectedServiceName = '';
 
@@ -343,7 +348,8 @@ $servicos = $stmt->fetchAll();
         loader.style.display = 'block';
         btnNext.disabled = true;
 
-        fetch(`agendar.php?action=buscar_horarios&data=${date}&duracao=${selectedDuration}`)
+        // Adiciona o parâmetro user (ID do profissional) na requisição
+        fetch(`agendar.php?action=buscar_horarios&data=${date}&duracao=${selectedDuration}&user=${PROFISSIONAL_ID}`)
             .then(response => response.json())
             .then(times => {
                 loader.style.display = 'none';

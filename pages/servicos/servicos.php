@@ -1,17 +1,14 @@
+
 <?php
-$pageTitle = 'Meus Serviços';
-include '../../includes/header.php';
-include '../../includes/menu.php';
+// --- 1. LÓGICA PHP (CRIAR, EDITAR, EXCLUIR) ---
 include '../../includes/db.php';
-
-// Cria pasta uploads se não existir
-if (!is_dir('../../uploads')) { mkdir('../../uploads', 0777, true); }
-
 // Simulação de User ID
+if (session_status() === PHP_SESSION_NONE) session_start();
 if (!isset($_SESSION['user_id'])) $_SESSION['user_id'] = 1;
 $userId = $_SESSION['user_id'];
 
-// --- 1. LÓGICA PHP (CRIAR, EDITAR, EXCLUIR) ---
+// Cria pasta uploads se não existir
+if (!is_dir('../../uploads')) { mkdir('../../uploads', 0777, true); }
 
 // A. EXCLUIR
 if (isset($_GET['delete'])) {
@@ -27,7 +24,6 @@ if (isset($_GET['delete'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $acao = $_POST['acao']; // 'create' ou 'update'
     $idEdit = $_POST['id_servico'] ?? null;
-    
     $nome = $_POST['nome'];
     $preco = str_replace(',', '.', $_POST['preco']); 
     $duracao = $_POST['duracao']; 
@@ -36,30 +32,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $itens = isset($_POST['itens_selecionados']) ? implode(',', $_POST['itens_selecionados']) : '';
     // Caminho FÍSICO da pasta uploads (no servidor)
     $uploadDirFs = __DIR__ . '/../../uploads/';
-
     // Garante que a pasta existe
-    if (!is_dir($uploadDirFs)) {
-        mkdir($uploadDirFs, 0777, true);
-    }
-
+    if (!is_dir($uploadDirFs)) { mkdir($uploadDirFs, 0777, true); }
     // Caminho que vai ficar salvo no banco (RELATIVO ao projeto)
     $uploadDirDb = 'uploads/';
-
     // Upload de Imagem
-    $fotoPath = $_POST['foto_atual'] ?? ''; // Mantém a antiga se não enviar nova
-
+    $fotoPath = $_POST['foto_atual'] ?? '';
     if (!empty($_FILES['foto']['name'])) {
         if ($_FILES['foto']['error'] === UPLOAD_ERR_OK) {
-
             $ext = strtolower(pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION));
             $permitidas = ['jpg','jpeg','png','webp'];
-
             if (in_array($ext, $permitidas)) {
                 $novoNome = uniqid('srv_', true) . '.' . $ext;
-
-                $destinoFs = $uploadDirFs . $novoNome;   // caminho físico
-                $caminhoDb = $uploadDirDb . $novoNome;   // o que vai para o banco
-
+                $destinoFs = $uploadDirFs . $novoNome;
+                $caminhoDb = $uploadDirDb . $novoNome;
                 if (move_uploaded_file($_FILES['foto']['tmp_name'], $destinoFs)) {
                     $fotoPath = $caminhoDb;
                 } else {
@@ -68,12 +54,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 error_log('Extensão de imagem não permitida: ' . $ext);
             }
-
         } else {
             error_log('Erro no upload da foto: código ' . $_FILES['foto']['error']);
         }
     }
-
     if (!empty($nome) && !empty($preco)) {
         if ($acao === 'update' && $idEdit) {
             // ATUALIZAR
@@ -90,6 +74,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }
+
+$pageTitle = 'Meus Serviços';
+include '../../includes/header.php';
+include '../../includes/menu.php';
 
 // --- 2. BUSCAR DADOS ---
 $stmt = $pdo->prepare("SELECT * FROM servicos WHERE user_id = ? ORDER BY id DESC");
