@@ -50,8 +50,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Atualiza nome na sessão
     $_SESSION['user']['name'] = $nome;
+    $_SESSION['perfil_msg'] = 'Perfil atualizado com sucesso!';
+    header('Location: perfil.php');
+    exit;
+}
 
-    echo "<script>alert('Perfil atualizado com sucesso!'); window.location.href='perfil.php';</script>";
+if (isset($_SESSION['perfil_msg'])) {
+    echo "<script>alert('" . $_SESSION['perfil_msg'] . "');</script>";
+    unset($_SESSION['perfil_msg']);
 }
 
 // --- 2. BUSCAR DADOS ATUAIS ---

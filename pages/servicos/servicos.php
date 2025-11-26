@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$userId, $nome, $preco, $duracao, $fotoPath, $obs, $tipo, $itens]);
         }
-        echo "<script>window.location.href='servicos.php';</script>";
+        header("Location: servicos.php?status=saved");
         exit;
     }
 }

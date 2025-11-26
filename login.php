@@ -28,13 +28,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Sucesso no login
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['user_name'] = $user['nome'];
-        
         // Redireciona para o dashboard
         header('Location: pages/dashboard.php');
         exit;
     } else {
-        $mensagem = 'E-mail ou senha incorretos. Tente novamente.';
+        // Salva mensagem em sessão e faz redirect para evitar reenvio
+        $_SESSION['login_erro'] = 'E-mail ou senha incorretos. Tente novamente.';
+        header('Location: login.php');
+        exit;
     }
+}
+
+// Recupera mensagem de erro da sessão (se houver)
+if (isset($_SESSION['login_erro'])) {
+    $mensagem = $_SESSION['login_erro'];
+    unset($_SESSION['login_erro']);
 }
 ?>
 <!DOCTYPE html>

@@ -11,20 +11,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $senha = $_POST['senha'];
 
     if (strlen($senha) < 6) {
-        $mensagem = 'A senha deve ter pelo menos 6 caracteres.';
+        $_SESSION['cadastro_msg'] = 'A senha deve ter pelo menos 6 caracteres.';
     } else {
         // Permitir múltiplos cadastros
         $existe = $pdo->prepare("SELECT COUNT(*) FROM usuarios WHERE email = ?");
         $existe->execute([$email]);
         if ($existe->fetchColumn() > 0) {
-            $mensagem = 'Já existe um usuário com este e-mail.';
+            $_SESSION['cadastro_msg'] = 'Já existe um usuário com este e-mail.';
         } else {
             $hash = password_hash($senha, PASSWORD_DEFAULT);
             $pdo->prepare("INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)")->execute([$nome, $email, $hash]);
-            $mensagem = 'Cadastro realizado com sucesso! Faça login.';
-            $tipoMensagem = 'success';
+            $_SESSION['cadastro_msg'] = 'Cadastro realizado com sucesso! Faça login.';
+            $_SESSION['cadastro_tipo'] = 'success';
         }
     }
+    header('Location: cadastro.php');
+    exit;
+}
+
+// Recupera mensagem de sessão (se houver)
+if (isset($_SESSION['cadastro_msg'])) {
+    $mensagem = $_SESSION['cadastro_msg'];
+    unset($_SESSION['cadastro_msg']);
+    $tipoMensagem = $_SESSION['cadastro_tipo'] ?? '';
+    unset($_SESSION['cadastro_tipo']);
 }
 ?>
 <!DOCTYPE html>

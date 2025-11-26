@@ -5,8 +5,17 @@
 
 $mensagem = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $mensagem = 'Se o e-mail estiver em nosso cadastro, você receberá instruções de recuperação em breve. (Funcionalidade de e-mail desativada na simulação).';
-    $tipoMensagem = 'info';
+    $_SESSION['recuperar_msg'] = 'Se o e-mail estiver em nosso cadastro, você receberá instruções de recuperação em breve. (Funcionalidade de e-mail desativada na simulação).';
+    $_SESSION['recuperar_tipo'] = 'info';
+    header('Location: recuperar_senha.php');
+    exit;
+}
+
+if (isset($_SESSION['recuperar_msg'])) {
+    $mensagem = $_SESSION['recuperar_msg'];
+    unset($_SESSION['recuperar_msg']);
+    $tipoMensagem = $_SESSION['recuperar_tipo'] ?? '';
+    unset($_SESSION['recuperar_tipo']);
 }
 ?>
 <!DOCTYPE html>

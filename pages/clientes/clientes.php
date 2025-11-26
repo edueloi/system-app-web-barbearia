@@ -38,16 +38,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       WHERE id=? AND user_id=?";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$nome, $telefone, $email, $nascimento, $obs, $idEdit, $userId]);
-            $statusRedirect = 'updated';
         } else {
             $sql  = "INSERT INTO clientes (user_id, nome, telefone, email, data_nascimento, observacoes) 
                      VALUES (?, ?, ?, ?, ?, ?)";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$userId, $nome, $telefone, $email, $nascimento, $obs]);
-            $statusRedirect = 'created';
         }
 
-        echo "<script>window.location.href='clientes.php?status={$statusRedirect}';</script>";
+        header("Location: clientes.php?status=saved");
         exit;
     }
 }

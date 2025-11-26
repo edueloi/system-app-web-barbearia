@@ -29,21 +29,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao']) && $_POST['ac
                 if (strlen($novaSenha) >= 6) {
                     $hash = password_hash($novaSenha, PASSWORD_DEFAULT);
                     $pdo->prepare("UPDATE usuarios SET senha = ? WHERE id = ?")->execute([$hash, $userId]);
-                    $msg = 'Senha atualizada com sucesso!';
-                    $msgType = 'success';
+                    $_SESSION['config_msg'] = 'Senha atualizada com sucesso!';
+                    $_SESSION['config_msgType'] = 'success';
                 } else {
-                    $msg = 'A nova senha deve ter pelo menos 6 caracteres.';
-                    $msgType = 'error';
+                    $_SESSION['config_msg'] = 'A nova senha deve ter pelo menos 6 caracteres.';
+                    $_SESSION['config_msgType'] = 'error';
                 }
             } else {
-                $msg = 'A confirmação de senha não coincide.';
-                $msgType = 'error';
+                $_SESSION['config_msg'] = 'A confirmação de senha não coincide.';
+                $_SESSION['config_msgType'] = 'error';
             }
         } else {
-            $msg = 'Senha atual incorreta.';
-            $msgType = 'error';
+            $_SESSION['config_msg'] = 'Senha atual incorreta.';
+            $_SESSION['config_msgType'] = 'error';
         }
     }
+    header('Location: configuracoes.php');
+    exit;
+}
+
+if (isset($_SESSION['config_msg'])) {
+    $msg = $_SESSION['config_msg'];
+    unset($_SESSION['config_msg']);
+    $msgType = $_SESSION['config_msgType'] ?? '';
+    unset($_SESSION['config_msgType']);
 }
 
 // --- 2. BACKUP DO BANCO ---

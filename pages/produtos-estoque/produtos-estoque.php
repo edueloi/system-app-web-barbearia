@@ -39,21 +39,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao']) && $_POST['ac
     $venda = empty($venda) ? 0.00 : (float)$venda;
 
     if ($id > 0) {
-        // EDIÇÃO
+        // Atualizar
         $sql = "UPDATE produtos SET nome=?, marca=?, quantidade=?, unidade=?, custo_unitario=?, preco_venda=?, data_compra=?, data_validade=?, observacoes=? WHERE id=? AND user_id=?";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$nome, $marca, $quantidade, $unidade, $custo, $venda, $dataCompra, $dataValidade, $obs, $id, $userId]);
-        $msg = "Produto atualizado com sucesso!";
     } else {
-        // NOVO
-        $sql = "INSERT INTO produtos (user_id, nome, marca, quantidade, unidade, custo_unitario, preco_venda, data_compra, data_validade, observacoes) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        // Novo
+        $sql = "INSERT INTO produtos (user_id, nome, marca, quantidade, unidade, custo_unitario, preco_venda, data_compra, data_validade, observacoes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$userId, $nome, $marca, $quantidade, $unidade, $custo, $venda, $dataCompra, $dataValidade, $obs]);
-        $msg = "Produto adicionado ao estoque!";
     }
-    // Redireciona com mensagem de sucesso
-    echo "<script>AppToast.show('{$msg}', 'success'); setTimeout(() => window.location.href='produtos-estoque.php', 1000);</script>";
+    header("Location: produtos-estoque.php?status=saved");
     exit;
 }
 
