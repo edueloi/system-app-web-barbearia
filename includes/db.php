@@ -200,4 +200,3 @@ $pdo->exec('PRAGMA journal_mode = WAL;');  // melhor para concorrência
 } catch (PDOException $e) {
     die("Erro na base de dados: " . $e->getMessage());
 }
-?>

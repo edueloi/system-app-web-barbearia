@@ -1,0 +1,4 @@
+<?php
+// Gera favicon a partir do logo azul
+header('Content-Type: image/x-icon');
+readfile(__DIR__ . '/../img/logo-azul.png');
