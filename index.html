@@ -2,1722 +2,641 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Develoi • Soluções Digitais para Negócios</title>
+  <title>Develoi • Sistemas Inteligentes</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Develoi: sistemas profissionais para empresas – agendamento para salões, financeiro sem planilhas e sistema completo para psicólogos.">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="description" content="Sistemas sob medida para negócios reais. Agenda, Financeiro e Gestão.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
+    /* ========= VARIÁVEIS (TEMA CLEAN) ========= */
     :root {
-      --bg-main: #050816;
-      --bg-soft: #0b1020;
-      --bg-card: #111827;
-      --primary: #4f46e5;
-      --primary-soft: rgba(79, 70, 229, 0.2);
-      --secondary: #22d3ee;
-      --accent: #f97316;
-      --text: #f9fafb;
-      --text-soft: #9ca3af;
-      --border-soft: rgba(148, 163, 184, 0.25);
-      --radius-xl: 1.5rem;
-      --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.8);
-      --shadow-glow: 0 0 40px rgba(79, 70, 229, 0.6);
-      --transition-fast: 0.2s ease-out;
-      --transition-med: 0.35s ease-out;
+      /* Paleta de Cores Claras */
+      --bg-body: #ffffff;
+      --bg-surface: #f8fafc; /* Cinza muito suave para seções alternadas */
+      --bg-card: #ffffff;
+      
+      /* Cores de Marca */
+      --primary: #4f46e5;    /* Indigo vibrante, mas profissional */
+      --primary-dark: #3730a3;
+      --secondary: #0ea5e9;  /* Azul céu */
+      --accent: #f59e0b;     /* Laranja suave para detalhes */
+
+      /* Texto */
+      --text-main: #0f172a;  /* Azul marinho quase preto (muito elegante) */
+      --text-body: #475569;  /* Cinza médio para parágrafos */
+      --text-light: #94a3b8; /* Cinza claro para detalhes */
+
+      /* Bordas e Sombras */
+      --border: #e2e8f0;
+      --radius-lg: 1rem;
+      --radius-md: 0.75rem;
+      --radius-full: 9999px;
+      
+      /* Sombra "Top" (Smooth Shadow) */
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+      --transition: 0.3s ease;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
 
     body {
-      font-family: "Poppins", sans-serif;
-      background: radial-gradient(circle at top left, #1e293b 0, #020617 50%, #000 100%);
-      color: var(--text);
+      font-family: 'Inter', sans-serif; /* Fonte mais usada em apps modernos */
+      background-color: var(--bg-body);
+      color: var(--text-body);
       line-height: 1.6;
-      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
-    a {
-      color: inherit;
-      text-decoration: none;
+    a { text-decoration: none; color: inherit; transition: var(--transition); }
+    ul { list-style: none; }
+    img { max-width: 100%; display: block; }
+
+    /* ========= ESTRUTURA ========= */
+    .shell {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
     }
 
-    img {
-      max-width: 100%;
-      display: block;
-    }
-
-    /* ================= NAVBAR ================= */
-
+    /* ========= NAVBAR ========= */
     .navbar {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      z-index: 50;
-      backdrop-filter: blur(18px);
-      background: linear-gradient(to bottom, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.75), transparent);
-      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-    }
-
-    .navbar-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0.9rem 1.5rem;
+      top: 0; left: 0; width: 100%;
+      height: 72px;
+      background: rgba(255, 255, 255, 0.85); /* Vidro fosco claro */
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
       display: flex;
       align-items: center;
+    }
+
+    .nav-inner {
+      display: flex;
       justify-content: space-between;
-      gap: 1rem;
+      align-items: center;
+      width: 100%;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 0.7rem;
+      gap: 0.75rem;
+      font-weight: 700;
+      color: var(--text-main);
+      font-size: 1.25rem;
     }
 
     .brand-logo {
-      width: 40px;
-      height: 40px;
-      border-radius: 1.2rem;
-      background: radial-gradient(circle at 20% 20%, #22d3ee, #4f46e5 40%, #0f172a 70%);
-      box-shadow: var(--shadow-glow);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 1.1rem;
-      letter-spacing: 1px;
-    }
-
-    .brand-text-title {
-      font-weight: 600;
-      font-size: 1.15rem;
-    }
-
-    .brand-text-sub {
-      font-size: 0.75rem;
-      color: var(--text-soft);
-      margin-top: -0.2rem;
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
     }
 
     .nav-links {
       display: flex;
-      align-items: center;
-      gap: 1.5rem;
-      font-size: 0.9rem;
+      gap: 2rem;
     }
 
     .nav-links a {
-      position: relative;
-      color: var(--text-soft);
-      transition: color var(--transition-fast);
-    }
-
-    .nav-links a::after {
-      content: "";
-      position: absolute;
-      left: 0;
-      bottom: -0.25rem;
-      width: 0;
-      height: 2px;
-      background: linear-gradient(to right, var(--primary), var(--secondary));
-      border-radius: 999px;
-      transition: width var(--transition-med);
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-body);
     }
 
     .nav-links a:hover {
-      color: var(--text);
+      color: var(--primary);
     }
 
-    .nav-links a:hover::after {
-      width: 100%;
-    }
-
-    .nav-cta {
+    .nav-actions {
       display: flex;
-      align-items: center;
       gap: 1rem;
+      align-items: center;
     }
 
-    .nav-cta .whatsapp-pill {
+    .btn {
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
-      padding: 0.3rem 0.9rem;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      background: rgba(21, 128, 61, 0.15);
-      border: 1px solid rgba(34, 197, 94, 0.3);
-      color: #bbf7d0;
-    }
-
-    .nav-cta .btn-ghost,
-    .nav-cta .btn-solid {
-      border-radius: 999px;
-      padding: 0.5rem 1.1rem;
-      font-size: 0.85rem;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      background: transparent;
-      cursor: pointer;
-      color: var(--text-soft);
-      transition: all var(--transition-med);
-      white-space: nowrap;
-    }
-
-    .nav-cta .btn-ghost:hover {
-      background: rgba(15, 23, 42, 0.9);
-      color: var(--text);
-      border-color: var(--primary);
-    }
-
-    .nav-cta .btn-solid {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border-color: transparent;
-      color: #e5e7eb;
-      font-weight: 500;
-      box-shadow: 0 12px 25px rgba(37, 99, 235, 0.4);
-    }
-
-    .nav-cta .btn-solid:hover {
-      transform: translateY(-1px) scale(1.02);
-      box-shadow: 0 18px 40px rgba(37, 99, 235, 0.6);
-    }
-
-    .nav-toggle {
-      display: none;
-      border: none;
-      background: none;
-      color: var(--text);
-      cursor: pointer;
-      font-size: 1.2rem;
-    }
-
-    /* ================ HERO ================== */
-
-    .hero {
-      position: relative;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 7rem 1.5rem 5rem;
-      display: grid;
-      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.1fr);
-      gap: 3rem;
-      align-items: center;
-    }
-
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.6rem;
-      padding: 0.3rem 0.7rem 0.3rem 0.3rem;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      background: radial-gradient(circle at left, rgba(34, 211, 238, 0.3), rgba(15, 23, 42, 0.9));
-      margin-bottom: 1.25rem;
-    }
-
-    .hero-badge-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 20% 20%, #22d3ee, #4f46e5);
-      display: grid;
-      place-items: center;
+      justify-content: center;
+      padding: 0.6rem 1.25rem;
+      border-radius: var(--radius-full);
+      font-weight: 600;
       font-size: 0.9rem;
-    }
-
-    .hero-badge-text-main {
-      font-size: 0.8rem;
-      font-weight: 500;
-    }
-
-    .hero-badge-text-sub {
-      font-size: 0.7rem;
-      color: var(--text-soft);
-    }
-
-    .hero-title {
-      font-size: clamp(2.2rem, 4vw, 3.1rem);
-      font-weight: 700;
-      line-height: 1.1;
-      margin-bottom: 1rem;
-    }
-
-    .hero-title span.gradient {
-      background: linear-gradient(135deg, #22d3ee, #4f46e5, #f97316);
-      -webkit-background-clip: text;
-      color: transparent;
-    }
-
-    .hero-subtitle {
-      font-size: 0.95rem;
-      color: var(--text-soft);
-      max-width: 30rem;
-      margin-bottom: 1.8rem;
-    }
-
-    .hero-pill-metrics {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      margin-bottom: 2rem;
-    }
-
-    .metric-pill {
-      padding: 0.45rem 0.85rem;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      font-size: 0.75rem;
-      color: var(--text-soft);
-      background: rgba(15, 23, 42, 0.9);
-    }
-
-    .metric-pill strong {
-      color: #e5e7eb;
-      font-weight: 500;
-    }
-
-    .hero-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.8rem;
-      align-items: center;
-      margin-bottom: 1.8rem;
-    }
-
-    .btn-primary,
-    .btn-outline {
-      border-radius: 999px;
-      padding: 0.75rem 1.5rem;
-      font-size: 0.9rem;
+      transition: var(--transition);
+      cursor: pointer;
       border: 1px solid transparent;
-      cursor: pointer;
-      font-weight: 500;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: all var(--transition-med);
-      background: none;
-      color: var(--text);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-body);
+    }
+    .btn-ghost:hover {
+      background: var(--bg-surface);
+      color: var(--primary);
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      box-shadow: 0 18px 40px rgba(37, 99, 235, 0.5);
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
     }
-
     .btn-primary:hover {
-      transform: translateY(-1px) scale(1.02);
-      box-shadow: 0 22px 55px rgba(37, 99, 235, 0.7);
+      background: var(--primary-dark);
+      transform: translateY(-1px);
     }
 
-    .btn-outline {
-      border-color: rgba(148, 163, 184, 0.5);
-      color: var(--text-soft);
-      background: rgba(15, 23, 42, 0.9);
+    /* Mobile toggle */
+    .nav-toggle { display: none; background: none; border: none; font-size: 1.5rem; color: var(--text-main); cursor: pointer; }
+    
+    @media(max-width: 768px) {
+      .nav-links, .nav-actions { display: none; }
+      .nav-toggle { display: block; }
     }
 
-    .btn-outline:hover {
-      border-color: var(--primary);
-      color: var(--text);
+    /* ========= HERO SECTION ========= */
+    .hero {
+      padding-top: 140px;
+      padding-bottom: 80px;
+      background: radial-gradient(circle at top right, #e0e7ff 0%, #ffffff 40%);
+      overflow: hidden;
     }
 
-    .hero-bottom-note {
-      font-size: 0.8rem;
-      color: var(--text-soft);
-      display: flex;
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 4rem;
       align-items: center;
-      gap: 0.6rem;
     }
 
-    .dot-pulse {
-      width: 9px;
-      height: 9px;
-      border-radius: 999px;
-      background: #22c55e;
-      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-      animation: pulse 1.6s infinite;
+    .tag-hero {
+      display: inline-block;
+      padding: 0.35rem 0.85rem;
+      background: #e0e7ff;
+      color: var(--primary);
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: var(--radius-full);
+      margin-bottom: 1.5rem;
     }
 
-    @keyframes pulse {
-      0% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-      }
-      70% {
-        transform: scale(1.6);
-        box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
-      }
-      100% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
-      }
+    h1.hero-title {
+      font-size: 3.5rem;
+      line-height: 1.1;
+      color: var(--text-main);
+      font-weight: 800;
+      margin-bottom: 1.5rem;
+      letter-spacing: -0.03em;
     }
 
-    /* HERO RIGHT / MOCKUP GRID */
+    h1 span.highlight {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
 
+    .hero-desc {
+      font-size: 1.125rem;
+      color: var(--text-body);
+      margin-bottom: 2rem;
+      max-width: 90%;
+    }
+
+    .hero-btns {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* Hero Visual (O Dashboard Clean) */
     .hero-visual {
       position: relative;
-      min-height: 320px;
-      display: grid;
-      place-items: center;
     }
 
-    .hero-orbit {
-      position: absolute;
-      width: 290px;
-      height: 290px;
-      border-radius: 999px;
-      border: 1px dashed rgba(148, 163, 184, 0.4);
-      animation: orbit-rotate 16s linear infinite;
-      opacity: 0.5;
-    }
-
-    .hero-orbit::before,
-    .hero-orbit::after {
-      content: "";
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      background: #22d3ee;
-      box-shadow: 0 0 20px rgba(34, 211, 238, 0.8);
-    }
-
-    .hero-orbit::before {
-      top: -5px;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-
-    .hero-orbit::after {
-      bottom: -5px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #f97316;
-      box-shadow: 0 0 20px rgba(249, 115, 22, 0.8);
-    }
-
-    @keyframes orbit-rotate {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-
-    .hero-mockups {
+    .dash-mockup {
+      background: white;
+      border-radius: 1.5rem;
+      padding: 1.5rem;
+      box-shadow: var(--shadow-xl);
+      border: 1px solid var(--border);
       position: relative;
-      width: 100%;
-      max-width: 360px;
-      display: grid;
-      gap: 1rem;
+      z-index: 2;
+      transform: perspective(1000px) rotateY(-5deg) rotateX(2deg);
+      transition: transform 0.5s ease;
     }
 
-    .mock-row {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 1rem;
+    .dash-mockup:hover {
+      transform: perspective(1000px) rotateY(0) rotateX(0);
     }
 
-    .mock-card {
-      position: relative;
-      background: radial-gradient(circle at top left, rgba(79, 70, 229, 0.25), rgba(15, 23, 42, 0.95));
-      border-radius: 1.3rem;
-      padding: 0.9rem;
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      box-shadow: var(--shadow-soft);
-      overflow: hidden;
-      transform-origin: center;
-      animation: floatUpDown 6s ease-in-out infinite;
-    }
-
-    .mock-card:nth-child(2) {
-      animation-delay: 0.8s;
-    }
-
-    .mock-card-large {
-      grid-column: span 2;
-      background: radial-gradient(circle at top right, rgba(34, 211, 238, 0.25), rgba(15, 23, 42, 0.95));
-      padding: 1.1rem;
-    }
-
-    .mock-label {
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-soft);
-      margin-bottom: 0.4rem;
-    }
-
-    .mock-title {
-      font-size: 0.85rem;
-      font-weight: 500;
-      margin-bottom: 0.5rem;
-    }
-
-    .mock-mini-ui {
-      border-radius: 0.9rem;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      background: rgba(15, 23, 42, 0.95);
-      padding: 0.4rem 0.5rem;
-      font-size: 0.65rem;
-      display: grid;
-      gap: 0.3rem;
-    }
-
-    .mock-badges-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.3rem;
-    }
-
-    .mock-badge {
-      padding: 0.15rem 0.4rem;
-      border-radius: 999px;
-      background: rgba(79, 70, 229, 0.18);
-      border: 1px solid rgba(79, 70, 229, 0.4);
-      font-size: 0.6rem;
-      color: #c7d2fe;
-    }
-
-    .mock-chart {
-      margin-top: 0.2rem;
-      height: 45px;
-      display: flex;
-      align-items: flex-end;
-      gap: 0.25rem;
-    }
-
-    .mock-bar {
-      flex: 1;
-      border-radius: 999px;
-      background: linear-gradient(to top, rgba(79, 70, 229, 0.1), rgba(79, 70, 229, 0.9));
-    }
-
-    .mock-bar:nth-child(2) {
-      height: 45%;
-    }
-
-    .mock-bar:nth-child(3) {
-      height: 75%;
-    }
-
-    .mock-bar:nth-child(4) {
-      height: 100%;
-      background: linear-gradient(to top, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.95));
-    }
-
-    .mock-calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 0.2rem;
-      margin-top: 0.35rem;
-    }
-
-    .mock-day {
-      height: 14px;
-      border-radius: 4px;
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid rgba(148, 163, 184, 0.35);
-    }
-
-    .mock-day.busy {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.7), rgba(56, 189, 248, 0.8));
-      border-color: transparent;
-    }
-
-    .mock-tag-psych {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      font-size: 0.6rem;
-      border-radius: 999px;
-      padding: 0.15rem 0.4rem;
-      background: rgba(56, 189, 248, 0.2);
-      border: 1px solid rgba(56, 189, 248, 0.5);
-      color: #bae6fd;
-      margin-top: 0.3rem;
-    }
-
-    .mock-highlight {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      mix-blend-mode: screen;
-      background: radial-gradient(circle at 10% -30%, rgba(56, 189, 248, 0.6), transparent 60%),
-                  radial-gradient(circle at 100% 100%, rgba(249, 115, 22, 0.5), transparent 45%);
-      opacity: 0.28;
-    }
-
-    @keyframes floatUpDown {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
-    }
-
-    /* ========= SECTIONS GENERIC ========== */
-
-    section {
-      position: relative;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 3rem 1.5rem;
-    }
-
-    .section-header {
+    .dash-header {
       display: flex;
       justify-content: space-between;
-      align-items: flex-end;
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--bg-surface);
+    }
+    
+    .dash-stat-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
     }
 
-    .section-kicker {
-      font-size: 0.8rem;
+    .stat-card {
+      background: var(--bg-surface);
+      padding: 1rem;
+      border-radius: var(--radius-md);
+    }
+    .stat-num { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
+    .stat-label { font-size: 0.85rem; color: var(--text-light); }
+
+    /* Elemento decorativo atrás do dashboard */
+    .blob {
+      position: absolute;
+      top: -10%; right: -10%;
+      width: 300px; height: 300px;
+      background: linear-gradient(135deg, #c7d2fe, #fecaca);
+      filter: blur(60px);
+      border-radius: 50%;
+      z-index: 1;
+      opacity: 0.6;
+    }
+
+    @media(max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; text-align: center; }
+      .hero-desc { margin: 0 auto 2rem; }
+      .hero-btns { justify-content: center; }
+      .dash-mockup { margin-top: 3rem; transform: none; }
+    }
+
+    /* ========= SEÇÕES GERAIS ========= */
+    section { padding: 5rem 0; }
+    
+    .section-bg { background-color: var(--bg-surface); }
+
+    .center-header {
+      text-align: center;
+      max-width: 700px;
+      margin: 0 auto 4rem;
+    }
+
+    .sub-tag {
+      font-size: 0.85rem;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.15em;
-      color: var(--text-soft);
-      margin-bottom: 0.4rem;
+      letter-spacing: 0.1em;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+      display: block;
     }
 
     .section-title {
-      font-size: 1.5rem;
-      font-weight: 600;
-    }
-
-    .section-title span {
-      background: linear-gradient(135deg, #22d3ee, #4f46e5);
-      -webkit-background-clip: text;
-      color: transparent;
-    }
-
-    .section-subtitle {
-      font-size: 0.9rem;
-      color: var(--text-soft);
-      max-width: 32rem;
-    }
-
-    .section-chip-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      font-size: 0.75rem;
-    }
-
-    .chip {
-      padding: 0.25rem 0.7rem;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      color: var(--text-soft);
-      background: rgba(15, 23, 42, 0.9);
-    }
-
-    /* ========= ABOUT / BENEFÍCIOS ======== */
-
-    .about-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-      gap: 2.5rem;
-      align-items: start;
-    }
-
-    .about-text p {
-      font-size: 0.95rem;
-      color: var(--text-soft);
+      font-size: 2.25rem;
+      color: var(--text-main);
+      font-weight: 700;
       margin-bottom: 1rem;
+      letter-spacing: -0.02em;
     }
 
-    .about-bullets {
+    /* ========= CARDS DE PRODUTOS ========= */
+    .grid-3 {
       display: grid;
-      gap: 0.7rem;
-      margin-top: 0.8rem;
-    }
-
-    .about-bullet {
-      display: flex;
-      gap: 0.7rem;
-      font-size: 0.85rem;
-      color: var(--text-soft);
-    }
-
-    .about-bullet-icon {
-      width: 22px;
-      height: 22px;
-      border-radius: 999px;
-      border: 1px solid rgba(34, 197, 94, 0.6);
-      display: grid;
-      place-items: center;
-      font-size: 0.8rem;
-      color: #bbf7d0;
-    }
-
-    .about-card {
-      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
-      border-radius: var(--radius-xl);
-      border: 1px solid rgba(148, 163, 184, 0.45);
-      padding: 1.5rem;
-      box-shadow: var(--shadow-soft);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .about-card-badge {
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--text-soft);
-      margin-bottom: 0.4rem;
-    }
-
-    .about-card-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 0.75rem;
-    }
-
-    .about-card-metrics {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1.1rem;
-      margin-bottom: 1.1rem;
-      font-size: 0.8rem;
-    }
-
-    .about-card-metric-number {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #e5e7eb;
-    }
-
-    .about-card-strip {
-      margin-top: 0.3rem;
-      padding-top: 0.6rem;
-      border-top: 1px dashed rgba(148, 163, 184, 0.4);
-      font-size: 0.75rem;
-      color: var(--text-soft);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.4rem;
-    }
-
-    .about-card-strip span {
-      padding: 0.22rem 0.55rem;
-      border-radius: 999px;
-      background: rgba(30, 64, 175, 0.4);
-      border: 1px solid rgba(129, 140, 248, 0.7);
-      font-size: 0.7rem;
-    }
-
-    .about-card-glow {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      mix-blend-mode: screen;
-      background: radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.6), transparent 55%),
-                  radial-gradient(circle at 100% 100%, rgba(56, 189, 248, 0.4), transparent 55%);
-      opacity: 0.22;
-    }
-
-    /* ========= SOLUÇÕES / SISTEMAS ======== */
-
-    .solutions-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 1.5rem;
-    }
-
-    .solution-card {
-      position: relative;
-      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), #020617);
-      border-radius: var(--radius-xl);
-      border: 1px solid rgba(148, 163, 184, 0.45);
-      padding: 1.3rem;
-      overflow: hidden;
-      transition: transform var(--transition-med), box-shadow var(--transition-med), border-color var(--transition-med), background 0.5s ease-out;
-      cursor: pointer;
-    }
-
-    .solution-card:hover {
-      transform: translateY(-6px) translateZ(0);
-      border-color: rgba(59, 130, 246, 0.8);
-      box-shadow: 0 22px 55px rgba(15, 23, 42, 0.9);
-      background: radial-gradient(circle at top, rgba(79, 70, 229, 0.3), #020617);
-    }
-
-    .solution-chip {
-      font-size: 0.7rem;
-      padding: 0.22rem 0.6rem;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      color: var(--text-soft);
-      margin-bottom: 0.5rem;
-    }
-
-    .solution-chip span.dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 999px;
-      background: #22c55e;
-    }
-
-    .solution-title {
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 0.4rem;
-    }
-
-    .solution-subtitle {
-      font-size: 0.8rem;
-      color: var(--text-soft);
-      margin-bottom: 0.8rem;
-      min-height: 36px;
-    }
-
-    .solution-mock-slot {
-      border-radius: 1rem;
-      border: 1px dashed rgba(148, 163, 184, 0.6);
-      background: rgba(15, 23, 42, 0.95);
-      padding: 0.7rem;
-      font-size: 0.75rem;
-      color: var(--text-soft);
-      display: grid;
-      gap: 0.4rem;
-      margin-bottom: 0.7rem;
-    }
-
-    .solution-mock-label {
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      font-size: 0.6rem;
-      color: rgba(148, 163, 184, 0.9);
-    }
-
-    .solution-mock-hint {
-      font-size: 0.75rem;
-      color: var(--text-soft);
-    }
-
-    .solution-mock-placeholder {
-      height: 100px;
-      border-radius: 0.9rem;
-      background: linear-gradient(135deg, rgba(79, 70, 229, 0.2), rgba(15, 23, 42, 0.95));
-      display: grid;
-      place-items: center;
-      font-size: 0.8rem;
-      color: rgba(226, 232, 240, 0.85);
-      letter-spacing: 0.02em;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      text-align: center;
-      padding: 0 0.6rem;
-    }
-
-    .solution-features {
-      display: grid;
-      gap: 0.25rem;
-      font-size: 0.78rem;
-      color: var(--text-soft);
-    }
-
-    .solution-features span::before {
-      content: "• ";
-      color: var(--secondary);
-    }
-
-    .solution-footer {
-      margin-top: 0.7rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 0.7rem;
-      font-size: 0.75rem;
-      color: var(--text-soft);
-    }
-
-    .solution-tag {
-      padding: 0.2rem 0.6rem;
-      border-radius: 999px;
-      border: 1px solid rgba(147, 197, 253, 0.6);
-      background: rgba(30, 64, 175, 0.45);
-      color: #bfdbfe;
-    }
-
-    .solution-link {
-      text-decoration: underline;
-      text-underline-offset: 3px;
-      text-decoration-style: dotted;
-      cursor: pointer;
-      color: #93c5fd;
-    }
-
-    /* ======== SEÇÃO MOCKUPS / SLIDER ======= */
-
-    .mockups-section {
-      display: grid;
-      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 2rem;
-      align-items: center;
     }
 
-    .mockups-gallery {
+    .card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      transition: var(--transition);
       position: relative;
-      border-radius: 1.8rem;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      padding: 1rem;
-      background: radial-gradient(circle at top left, rgba(79, 70, 229, 0.28), rgba(15, 23, 42, 0.98));
-      box-shadow: var(--shadow-soft);
       overflow: hidden;
     }
 
-    .mockups-tabs {
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: var(--shadow-lg);
+      border-color: #cbd5e1;
+    }
+
+    .card-icon {
+      width: 48px; height: 48px;
+      background: #e0e7ff;
+      color: var(--primary);
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card h3 {
+      font-size: 1.25rem;
+      color: var(--text-main);
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+
+    .card p {
+      font-size: 0.95rem;
+      color: var(--text-body);
+      margin-bottom: 1.5rem;
+    }
+
+    .card-link {
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 0.9rem;
       display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .card-link:hover { gap: 0.5rem; }
+
+    @media(max-width: 800px) {
+      .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    /* ========= SOBRE (TEXTO + IMAGEM) ========= */
+    .split-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
       margin-bottom: 1rem;
     }
 
-    .mockups-tab {
-      padding: 0.35rem 0.8rem;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      font-size: 0.75rem;
-      color: var(--text-soft);
-      background: rgba(15, 23, 42, 0.9);
-      cursor: pointer;
-      transition: all var(--transition-med);
-    }
-
-    .mockups-tab.active {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: #e5e7eb;
-      border-color: transparent;
-      box-shadow: 0 12px 30px rgba(37, 99, 235, 0.5);
-    }
-
-    .mockups-screen {
-      border-radius: 1.2rem;
-      background: #020617;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      padding: 0.8rem;
-      min-height: 200px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .mockups-screen-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 0.5rem;
-      font-size: 0.75rem;
-      color: var(--text-soft);
-    }
-
-    .mockups-dots {
-      display: flex;
-      gap: 0.25rem;
-    }
-
-    .mockups-dots span {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: rgba(148, 163, 184, 0.6);
-    }
-
-    .mockups-main-placeholder {
-      border-radius: 1rem;
-      background: linear-gradient(135deg, rgba(37, 99, 235, 0.4), rgba(15, 23, 42, 0.99));
-      border: 1px dashed rgba(148, 163, 184, 0.8);
-      height: 180px;
+    .check-icon {
+      color: var(--secondary);
+      background: #e0f2fe;
+      width: 24px; height: 24px;
+      border-radius: 50%;
       display: grid;
       place-items: center;
-      text-align: center;
-      padding: 1rem;
-      font-size: 0.85rem;
-      color: #e5e7eb;
-      animation: shimmer 1.8s linear infinite;
+      flex-shrink: 0;
+      font-size: 0.8rem;
     }
 
-    @keyframes shimmer {
-      0% { background-position: -200px 0; }
-      100% { background-position: 200px 0; }
+    .stats-container {
+      background: white;
+      padding: 2rem;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border);
+    }
+    
+    .big-number {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1;
     }
 
-    .mockups-main-placeholder span {
-      font-size: 0.75rem;
-      color: rgba(226, 232, 240, 0.8);
-      display: block;
-      margin-top: 0.3rem;
+    @media(max-width: 900px) {
+      .split-grid { grid-template-columns: 1fr; }
     }
 
-    .mockups-note {
-      margin-top: 0.6rem;
-      font-size: 0.75rem;
-      color: var(--text-soft);
-    }
-
-    .mockups-note strong {
-      color: #e5e7eb;
-    }
-
-    .mockups-ideas {
-      display: grid;
-      gap: 0.4rem;
-      margin-top: 0.5rem;
-      font-size: 0.78rem;
-      color: var(--text-soft);
-    }
-
-    .mockups-ideas span::before {
-      content: "💡 ";
-    }
-
-    /* ========= CTA FINAL / FOOTER ========= */
-
-    .cta-section {
-      text-align: center;
-      padding-bottom: 3.5rem;
-    }
-
+    /* ========= CTA FINAL ========= */
     .cta-box {
-      display: inline-block;
-      max-width: 720px;
-      background: radial-gradient(circle at top, rgba(79, 70, 229, 0.45), #020617);
-      border-radius: 1.8rem;
-      padding: 2rem 1.8rem;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      box-shadow: var(--shadow-soft);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .cta-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      font-size: 0.75rem;
-      padding: 0.3rem 0.7rem;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      color: var(--text-soft);
-      margin-bottom: 0.7rem;
-      background: rgba(15, 23, 42, 0.85);
-    }
-
-    .cta-title {
-      font-size: 1.4rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-
-    .cta-text {
-      font-size: 0.85rem;
-      color: var(--text-soft);
-      margin-bottom: 1.3rem;
-    }
-
-    .cta-actions {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 0.8rem;
-      margin-bottom: 0.6rem;
-    }
-
-    .cta-footnote {
-      font-size: 0.75rem;
-      color: var(--text-soft);
-    }
-
-    .cta-glow {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      mix-blend-mode: screen;
-      background: radial-gradient(circle at 0% 0%, rgba(96, 165, 250, 0.6), transparent 55%),
-                  radial-gradient(circle at 100% 100%, rgba(45, 212, 191, 0.6), transparent 55%);
-      opacity: 0.25;
-    }
-
-    footer {
-      border-top: 1px solid rgba(148, 163, 184, 0.3);
-      padding: 1.5rem;
-      font-size: 0.75rem;
-      color: var(--text-soft);
+      background: linear-gradient(120deg, var(--primary) 0%, #4338ca 100%);
+      border-radius: 2rem;
+      padding: 4rem 2rem;
       text-align: center;
-      background: rgba(15, 23, 42, 0.96);
+      color: white;
+      box-shadow: var(--shadow-xl);
     }
 
-    footer a {
-      color: #93c5fd;
-      text-decoration: underline;
-      text-underline-offset: 2px;
+    .cta-box h2 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      font-weight: 700;
     }
 
-    /* ========= ANIMAÇÕES DE ENTRADA ========= */
-
-    .reveal {
-      opacity: 0;
-      transform: translateY(24px);
-      transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    .cta-box p {
+      color: #e0e7ff;
+      max-width: 600px;
+      margin: 0 auto 2rem;
     }
 
-    .reveal.visible {
-      opacity: 1;
-      transform: translateY(0);
+    .btn-white {
+      background: white;
+      color: var(--primary);
+      padding: 0.8rem 2rem;
+      border-radius: var(--radius-full);
+      font-weight: 600;
+      font-size: 1rem;
+      transition: var(--transition);
+      border: 2px solid white;
+    }
+    .btn-white:hover {
+      background: transparent;
+      color: white;
     }
 
-    .delay-1 { transition-delay: 0.1s; }
-    .delay-2 { transition-delay: 0.2s; }
-    .delay-3 { transition-delay: 0.27s; }
-    .delay-4 { transition-delay: 0.35s; }
-
-    /* ============= RESPONSIVO ============= */
-
-    @media (max-width: 960px) {
-      .hero {
-        grid-template-columns: minmax(0, 1fr);
-        padding-top: 6.5rem;
-      }
-      .hero-visual {
-        order: -1;
-      }
-
-      .about-grid,
-      .mockups-section {
-        grid-template-columns: minmax(0, 1fr);
-      }
-
-      .solutions-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    @media (max-width: 768px) {
-      .navbar-inner {
-        padding-inline: 1rem;
-      }
-
-      .nav-links,
-      .nav-cta {
-        display: none;
-      }
-
-      .nav-toggle {
-        display: block;
-      }
-
-      .nav-menu-mobile {
-        position: fixed;
-        top: 60px;
-        left: 0;
-        width: 100%;
-        background: rgba(15, 23, 42, 0.98);
-        border-bottom: 1px solid rgba(148, 163, 184, 0.3);
-        padding: 1rem 1.5rem 1.5rem;
-        display: none;
-        flex-direction: column;
-        gap: 1rem;
-        z-index: 40;
-      }
-
-      .nav-menu-mobile.open {
-        display: flex;
-      }
-
-      .nav-menu-mobile .nav-links {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .nav-menu-mobile .nav-cta {
-        display: flex;
-      }
-
-      section {
-        padding-inline: 1.1rem;
-      }
-
-      .solutions-grid {
-        grid-template-columns: minmax(0, 1fr);
-      }
-
-      .cta-box {
-        border-radius: 1.3rem;
-        padding-inline: 1.3rem;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .hero-title {
-        font-size: 1.9rem;
-      }
-
-      .hero-pill-metrics {
-        flex-direction: column;
-      }
+    /* ========= FOOTER ========= */
+    footer {
+      background: #fff;
+      padding: 3rem 1.5rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--text-light);
+      font-size: 0.9rem;
     }
   </style>
 </head>
 <body>
 
-  <!-- =============== NAVBAR ================= -->
-  <header class="navbar">
-    <div class="navbar-inner">
+  <nav class="navbar">
+    <div class="shell nav-inner">
       <div class="brand">
-        <div class="brand-logo">Dv</div>
-        <div>
-          <div class="brand-text-title">Develoi</div>
-          <div class="brand-text-sub">Soluções digitais sob medida</div>
-        </div>
+        <div class="brand-logo">D</div>
+        Develoi
       </div>
-
-      <nav class="nav-links">
-        <a href="#inicio">Início</a>
-        <a href="#sobre">Sobre</a>
-        <a href="#solucoes">Soluções</a>
-        <a href="#mockups">Mockups</a>
-        <a href="#contato">Contato</a>
-      </nav>
-
-      <div class="nav-cta">
-        <div class="whatsapp-pill">
-          <span>📱</span> <span>Atendimento via WhatsApp</span>
-        </div>
-        <button class="btn-ghost" onclick="scrollToSection('mockups')">Ver sistemas</button>
-        <button class="btn-solid" onclick="scrollToSection('contato')">Quero falar com a Develoi</button>
-      </div>
-
-      <button class="nav-toggle" id="navToggle">☰</button>
-    </div>
-
-    <div class="nav-menu-mobile" id="navMenuMobile">
+      
       <div class="nav-links">
-        <a href="#inicio" onclick="toggleMobileMenu()">Início</a>
-        <a href="#sobre" onclick="toggleMobileMenu()">Sobre</a>
-        <a href="#solucoes" onclick="toggleMobileMenu()">Soluções</a>
-        <a href="#mockups" onclick="toggleMobileMenu()">Mockups</a>
-        <a href="#contato" onclick="toggleMobileMenu()">Contato</a>
+        <a href="#inicio">Início</a>
+        <a href="#solucoes">Soluções</a>
+        <a href="#sobre">Como funciona</a>
       </div>
-      <div class="nav-cta">
-        <button class="btn-ghost" onclick="scrollToSection('mockups')">Ver sistemas</button>
-        <button class="btn-solid" onclick="scrollToSection('contato')">Quero falar com a Develoi</button>
-      </div>
-    </div>
-  </header>
 
-  <!-- =============== HERO ================= -->
+      <div class="nav-actions">
+        <button class="btn btn-ghost" onclick="window.open('https://salao.develoi.com/login')">Login</button>
+        <button class="btn btn-primary" onclick="window.open('https://wa.me/55')">Falar no WhatsApp</button>
+      </div>
+      
+      <button class="nav-toggle">☰</button>
+    </div>
+  </nav>
+
   <main id="inicio" class="hero">
-    <div class="hero-left reveal">
-      <div class="hero-badge">
-        <div class="hero-badge-icon">⚙️</div>
-        <div>
-          <div class="hero-badge-text-main">Sistemas que trabalham por você</div>
-          <div class="hero-badge-text-sub">Agendamento • Financeiro • Psicologia</div>
+    <div class="shell hero-grid">
+      <div>
+        <span class="tag-hero">Novo Painel 2.0</span>
+        <h1 class="hero-title">
+          Organize seu negócio com <span class="highlight">inteligência</span>.
+        </h1>
+        <p class="hero-desc">
+          Chega de planilhas complexas. A Develoi cria sistemas simples, bonitos e fáceis de usar para salões, clínicas e pequenas empresas.
+        </p>
+        <div class="hero-btns">
+          <a href="#solucoes" class="btn btn-primary">Ver Soluções</a>
+          <a href="#contato" class="btn btn-ghost">Entenda como funciona &rarr;</a>
         </div>
       </div>
 
-      <h1 class="hero-title">
-        Transforme planilhas confusas em
-        <span class="gradient">sistemas inteligentes</span>.
-      </h1>
-      <p class="hero-subtitle">
-        A Develoi cria soluções digitais para empresas que querem parar de sofrer com Excel
-        e começar a controlar agenda, financeiro e atendimento de forma moderna, segura e bonita.
-      </p>
-
-      <div class="hero-pill-metrics">
-        <div class="metric-pill"><strong>+Produtividade</strong> em atendimento e gestão</div>
-        <div class="metric-pill"><strong>-Erros</strong> em lançamentos e agendamentos</div>
-        <div class="metric-pill"><strong>100%</strong> na nuvem, sem instalar nada</div>
-      </div>
-
-      <div class="hero-actions">
-        <button class="btn-primary" onclick="scrollToSection('solucoes')">
-          Explorar soluções Develoi ⬇
-        </button>
-        <button class="btn-outline" onclick="scrollToSection('contato')">
-          Agendar conversa rápida
-        </button>
-      </div>
-
-      <div class="hero-bottom-note">
-        <span class="dot-pulse"></span>
-        <span>Sistemas pensados para salões, clínicas e profissionais que querem escala.</span>
-      </div>
-    </div>
-
-    <div class="hero-visual reveal delay-2">
-      <div class="hero-orbit"></div>
-      <div class="hero-mockups">
-        <div class="mock-row">
-          <!-- Card Agenda Salões -->
-          <div class="mock-card">
-            <div class="mock-label">Agenda Develoi</div>
-            <div class="mock-title">Salões, barbearias & beleza</div>
-            <div class="mock-mini-ui">
-              <div class="mock-badges-row">
-                <span class="mock-badge">Agenda online</span>
-                <span class="mock-badge">Confirmação automática</span>
-              </div>
-              <div class="mock-calendar-grid">
-                <div class="mock-day busy"></div>
-                <div class="mock-day"></div>
-                <div class="mock-day busy"></div>
-                <div class="mock-day"></div>
-                <div class="mock-day busy"></div>
-                <div class="mock-day"></div>
-                <div class="mock-day"></div>
-              </div>
-            </div>
-            <div class="mock-highlight"></div>
+      <div class="hero-visual">
+        <div class="blob"></div>
+        <div class="dash-mockup">
+          <div class="dash-header">
+            <div style="font-weight:600; color:var(--text-main);">Visão Geral</div>
+            <div style="font-size:0.85rem; color:var(--primary);">Hoje, 28 Nov</div>
           </div>
-
-          <!-- Card Financeiro -->
-          <div class="mock-card">
-            <div class="mock-label">Develoi Finance</div>
-            <div class="mock-title">Adeus planilhas de Excel</div>
-            <div class="mock-mini-ui">
-              <div class="mock-badges-row">
-                <span class="mock-badge">Entradas</span>
-                <span class="mock-badge">Saídas</span>
-                <span class="mock-badge">Resumo</span>
-              </div>
-              <div class="mock-chart">
-                <div class="mock-bar" style="height:30%;"></div>
-                <div class="mock-bar"></div>
-                <div class="mock-bar"></div>
-                <div class="mock-bar"></div>
-              </div>
+          <div class="dash-stat-row">
+            <div class="stat-card">
+              <div class="stat-num">24</div>
+              <div class="stat-label">Agendamentos</div>
             </div>
-            <div class="mock-highlight"></div>
-          </div>
-        </div>
-
-        <!-- Card Psicólogos -->
-        <div class="mock-card mock-card-large">
-          <div class="mock-label">Develoi Psicólogos</div>
-          <div class="mock-title">Receitas, agenda e pacientes em um só lugar</div>
-          <div class="mock-mini-ui">
-            <div style="display:flex;justify-content:space-between;font-size:0.7rem;margin-bottom:0.25rem;">
-              <span>📁 Pacientes ativos: <strong>27</strong></span>
-              <span>📆 Sessões hoje: <strong>09</strong></span>
-            </div>
-            <div style="display:flex;gap:0.3rem;font-size:0.65rem;margin-bottom:0.2rem;">
-              <span class="mock-badge">Prontuários</span>
-              <span class="mock-badge">Anamneses</span>
-              <span class="mock-badge">Relatórios</span>
-            </div>
-            <div class="mock-tag-psych">
-              🧠 Pronto para imprimir laudos e receitas
+            <div class="stat-card">
+              <div class="stat-num" style="color:var(--secondary);">R$ 1.2k</div>
+              <div class="stat-label">Faturamento</div>
             </div>
           </div>
-          <div class="mock-highlight"></div>
+          <div style="margin-top:1.5rem;">
+            <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:0.5rem; color:var(--text-light);">
+              <span>Próximo cliente</span>
+              <span>14:00</span>
+            </div>
+            <div style="padding:0.75rem; background:var(--bg-surface); border-radius:0.5rem; display:flex; gap:0.5rem; align-items:center;">
+              <div style="width:32px; height:32px; background:#e0e7ff; border-radius:50%; display:grid; place-items:center; font-size:0.7rem;">👩</div>
+              <div>
+                <div style="font-weight:600; font-size:0.9rem; color:var(--text-main);">Fernanda Silva</div>
+                <div style="font-size:0.75rem; color:var(--text-light);">Corte + Hidratação</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </main>
 
-  <!-- =============== SOBRE =============== -->
-  <section id="sobre" class="reveal">
-    <div class="section-header">
-      <div>
-        <div class="section-kicker">Sobre a Develoi</div>
-        <h2 class="section-title">
-          Muito além de sites: <span>sistemas que viram rotina</span>.
-        </h2>
-        <p class="section-subtitle">
-          A Develoi nasce para tirar suas ideias do papel e transformar processos manuais
-          em plataformas simples, bonitas e fáceis de usar, focadas em pequenos e médios negócios.
-        </p>
-      </div>
-      <div class="section-chip-row">
-        <span class="chip">Sistemas web sob medida</span>
-        <span class="chip">Foco em usabilidade real</span>
-        <span class="chip">Infraestrutura pensada para crescer</span>
-      </div>
-    </div>
-
-    <div class="about-grid">
-      <div class="about-text">
-        <p>
-          Chega de salvar milhares de arquivos “versão final 02.xlsx”. Com a Develoi,
-          tudo fica num só lugar, com acesso de qualquer dispositivo conectado à internet.
-        </p>
-        <p>
-          Você não precisa entender de tecnologia: a Develoi cuida da parte técnica e entrega
-          um painel pronto para usar, com fluxos pensados na rotina de quem atende cliente o dia todo.
-        </p>
-
-        <div class="about-bullets">
-          <div class="about-bullet">
-            <div class="about-bullet-icon">✅</div>
-            <div>
-              <strong>Do seu jeito</strong><br />
-              A lógica do sistema é construída em cima da sua forma de trabalhar, e não o contrário.
-            </div>
-          </div>
-          <div class="about-bullet">
-            <div class="about-bullet-icon">🚀</div>
-            <div>
-              <strong>Escalável</strong><br />
-              Comece com o essencial e evolua com novos módulos, dashboards e automações.
-            </div>
-          </div>
-          <div class="about-bullet">
-            <div class="about-bullet-icon">🔐</div>
-            <div>
-              <strong>Seguro</strong><br />
-              Dados em ambiente controlado, com acesso por usuário e backups recorrentes.
-            </div>
-          </div>
-        </div>
+  <section id="solucoes" class="section-bg">
+    <div class="shell">
+      <div class="center-header">
+        <span class="sub-tag">Nossos Módulos</span>
+        <h2 class="section-title">Tudo o que você precisa</h2>
+        <p style="color:var(--text-body);">Sistemas modulares. Você só usa e paga pelo que faz sentido para o seu momento.</p>
       </div>
 
-      <aside class="about-card">
-        <div class="about-card-badge">Por que sair do Excel?</div>
-        <div class="about-card-title">Menos planilha, mais tempo com o cliente.</div>
-
-        <div class="about-card-metrics">
-          <div>
-            <div class="about-card-metric-number">-60%</div>
-            <div class="section-subtitle" style="font-size:0.8rem;">
-              de tempo gasto conferindo lançamentos
-            </div>
-          </div>
-          <div>
-            <div class="about-card-metric-number">+40%</div>
-            <div class="section-subtitle" style="font-size:0.8rem;">
-              de clareza sobre o financeiro do negócio
-            </div>
-          </div>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-icon">📅</div>
+          <h3>Agenda Inteligente</h3>
+          <p>Para salões e estéticas. Controle horários, envie lembretes automáticos e elimine os furos na agenda.</p>
+          <a href="#" class="card-link">Ver detalhes &rarr;</a>
         </div>
-
-        <p style="font-size:0.85rem;color:var(--text-soft);margin-bottom:0.8rem;">
-          Em vez de depender de um único computador com licença de Excel, você acessa
-          tudo de qualquer lugar – inclusive do celular – com informações sempre atualizadas.
-        </p>
-
-        <div class="about-card-strip">
-          <span>Visual moderno</span>
-          <span>Sem instalação</span>
-          <span>Atualização contínua</span>
+        <div class="card">
+          <div class="card-icon">💰</div>
+          <h3>Gestão Financeira</h3>
+          <p>Controle de caixa simples. Saiba exatamente quanto entrou, quanto saiu e qual o lucro real do mês.</p>
+          <a href="#" class="card-link">Ver detalhes &rarr;</a>
         </div>
-
-        <div class="about-card-glow"></div>
-      </aside>
+        <div class="card">
+          <div class="card-icon">🧠</div>
+          <h3>Área Psicólogos</h3>
+          <p>Prontuários seguros, anotações de sessões e emissão de documentos. Tudo na nuvem e criptografado.</p>
+          <a href="#" class="card-link">Ver detalhes &rarr;</a>
+        </div>
+      </div>
     </div>
   </section>
 
-  <!-- ============ SOLUÇÕES / SISTEMAS ============ -->
-  <section id="solucoes" class="reveal">
-    <div class="section-header">
+  <section id="sobre">
+    <div class="shell split-grid">
       <div>
-        <div class="section-kicker">Soluções Develoi</div>
-        <h2 class="section-title">
-          Sistemas criados para <span>negócios reais</span>.
-        </h2>
-        <p class="section-subtitle">
-          Três pilares para organizar a rotina da sua empresa:
-          <strong>agenda inteligente</strong>, <strong>financeiro na nuvem</strong> e
-          <strong>gestão completa para psicólogos</strong>.
+        <span class="sub-tag">Por que Develoi?</span>
+        <h2 class="section-title">Tecnologia que não atrapalha</h2>
+        <p style="margin-bottom:1.5rem; font-size:1.05rem;">
+          Muitos sistemas são difíceis e cheios de botões que você nunca usa. Nós fazemos o oposto: focamos no essencial.
         </p>
-      </div>
-      <div class="section-chip-row">
-        <span class="chip">Agendamento online</span>
-        <span class="chip">Gestão financeira</span>
-        <span class="chip">Clínica psicológica</span>
-      </div>
-    </div>
-
-    <div class="solutions-grid">
-      <!-- Solução 1: Agenda Salões -->
-      <article class="solution-card">
-        <div class="solution-chip">
-          <span class="dot"></span> Agenda Develoi
-        </div>
-        <h3 class="solution-title">Agenda para salões & beleza</h3>
-        <p class="solution-subtitle">
-          Organize horários, profissionais e serviços sem caderno, sem confusão e com lembretes automáticos.
-        </p>
-
-        <div class="solution-mock-slot">
-          <div class="solution-mock-label">Espaço para mockup</div>
-          <div class="solution-mock-placeholder">
-            Tela do painel do salão aqui<br />
-            <span>Print do calendário, lista de horários, tela de agendamento rápido...</span>
-          </div>
-          <div class="solution-mock-hint">
-            Depois você pode inserir um print real do sistema de agenda que já criou.
-          </div>
-        </div>
-
-        <div class="solution-features">
-          <span>Agenda por profissional e serviço</span>
-          <span>Confirmação de presença e lembretes</span>
-          <span>Cadastro de clientes com histórico</span>
-          <span>Integração futura com financeiro Develoi</span>
-        </div>
-
-        <div class="solution-footer">
-          <span class="solution-tag">Salões • Barbearias • Estética • Manicure</span>
-          <span class="solution-link" onclick="scrollToSection('mockups')">Ver ideias de tela</span>
-        </div>
-      </article>
-
-      <!-- Solução 2: Financeiro -->
-      <article class="solution-card">
-        <div class="solution-chip">
-          <span class="dot"></span> Develoi Finance
-        </div>
-        <h3 class="solution-title">Financeiro sem planilhas</h3>
-        <p class="solution-subtitle">
-          Entradas, saídas, categorias, relatórios… tudo em uma tela simples, filtrável e acessível.
-        </p>
-
-        <div class="solution-mock-slot">
-          <div class="solution-mock-label">Espaço para mockup</div>
-          <div class="solution-mock-placeholder">
-            Dashboard financeiro aqui<br />
-            <span>Gráfico de fluxo de caixa, cartões de resumo, lista de lançamentos...</span>
-          </div>
-          <div class="solution-mock-hint">
-            Ideal para prints do módulo financeiro que você criou para substituir o Excel.
-          </div>
-        </div>
-
-        <div class="solution-features">
-          <span>Controle de entradas e saídas</span>
-          <span>Separação por meses, categorias e formas de pagamento</span>
-          <span>Visão clara de lucro, despesas fixas e variáveis</span>
-          <span>Pronto para exportar relatórios e notas</span>
-        </div>
-
-        <div class="solution-footer">
-          <span class="solution-tag">Empresas que fogem do Excel</span>
-          <span class="solution-link" onclick="scrollToSection('contato')">Solicitar demonstração</span>
-        </div>
-      </article>
-
-      <!-- Solução 3: Psicólogos -->
-      <article class="solution-card">
-        <div class="solution-chip">
-          <span class="dot"></span> Develoi Psicólogos
-        </div>
-        <h3 class="solution-title">Sistema para psicólogos</h3>
-        <p class="solution-subtitle">
-          Um espaço seguro para organizar pacientes, sessões, receitas, documentos e relatórios clínicos.
-        </p>
-
-        <div class="solution-mock-slot">
-          <div class="solution-mock-label">Espaço para mockup</div>
-          <div class="solution-mock-placeholder">
-            Painel da clínica psicológica aqui<br />
-            <span>Lista de pacientes, agenda de sessões, área de prontuário e receitas...</span>
-          </div>
-          <div class="solution-mock-hint">
-            Perfeito para colocar prints das telas de receitas, anamneses e relatórios.
-          </div>
-        </div>
-
-        <div class="solution-features">
-          <span>Cadastro completo de pacientes e anamneses</span>
-          <span>Receitas e documentos padronizados em PDF</span>
-          <span>Agenda com visão semanal/mensal</span>
-          <span>Organização de anexos (RG, laudos, termos…)</span>
-        </div>
-
-        <div class="solution-footer">
-          <span class="solution-tag">Clínicas • Psicólogos autônomos</span>
-          <span class="solution-link" onclick="scrollToSection('mockups')">Ver mockups sugeridos</span>
-        </div>
-      </article>
-    </div>
-  </section>
-
-  <!-- ============ MOCKUPS / IDEIAS DE TELAS ============ -->
-  <section id="mockups" class="reveal">
-    <div class="section-header">
-      <div>
-        <div class="section-kicker">Mockups & ideias visuais</div>
-        <h2 class="section-title">
-          Espaços pensados para <span>prints reais</span> dos seus sistemas.
-        </h2>
-        <p class="section-subtitle">
-          Aqui você pode ir trocando os placeholders por screenshots reais dos sistemas de agenda,
-          financeiro e psicologia que já está desenvolvendo.
-        </p>
-      </div>
-      <div class="section-chip-row">
-        <span class="chip">Mockup desktop</span>
-        <span class="chip">Versão mobile</span>
-        <span class="chip">Antes e depois do Excel</span>
-      </div>
-    </div>
-
-    <div class="mockups-section">
-      <div class="mockups-gallery">
-        <div class="mockups-tabs">
-          <button class="mockups-tab active" data-tab="agenda">Agenda Salões</button>
-          <button class="mockups-tab" data-tab="financeiro">Financeiro</button>
-          <button class="mockups-tab" data-tab="psicologos">Psicólogos</button>
-        </div>
-
-        <div class="mockups-screen">
-          <div class="mockups-screen-header">
-            <div class="mockups-dots">
-              <span></span><span></span><span></span>
-            </div>
-            <span id="mockupsScreenTitle">Mockup agenda Develoi</span>
-          </div>
-
-          <div id="mockupsScreenContent" class="mockups-main-placeholder">
-            Área ideal para colocar uma imagem JPG/PNG do painel da agenda em desktop.<br />
-            <span>Dica: use uma imagem 16:9 (tipo 1600x900) para ficar bem bonito.</span>
-          </div>
-        </div>
-
-        <p class="mockups-note">
-          <strong>Como usar:</strong> basta trocar o conteúdo do
-          <code>&lt;div id="mockupsScreenContent"&gt;</code>
-          por uma tag <code>&lt;img&gt;</code> apontando para o seu print:
-        </p>
-        <div class="mockups-ideas">
-          <span>&lt;img src="assets/mockups/agenda-salao.png" alt="Agenda para salão" /&gt;</span>
-          <span>&lt;img src="assets/mockups/financeiro-dashboard.png" alt="Dashboard financeiro" /&gt;</span>
-          <span>&lt;img src="assets/mockups/psicologos-painel.png" alt="Painel de psicólogos" /&gt;</span>
-        </div>
-      </div>
-
-      <div>
-        <p style="font-size:0.9rem;color:var(--text-soft);margin-bottom:0.8rem;">
-          Você também pode criar variações desta seção para:
-        </p>
-        <ul style="font-size:0.85rem;color:var(--text-soft);margin-left:1.2rem;display:grid;gap:0.35rem;">
-          <li>Comparar “Antes (Excel)” e “Depois (Develoi)”;</li>
-          <li>Mostrar mockup em tela de notebook + versão mobile do sistema;</li>
-          <li>Destacar apenas um módulo (ex: somente financeiro) com zoom nos detalhes;</li>
-          <li>Criar carrossel de imagens usando uma biblioteca JS ou slider próprio.</li>
+        <ul class="feature-list">
+          <li>
+            <div class="check-icon">✓</div>
+            <div><strong>Visual limpo:</strong> Qualquer pessoa aprende a usar em 10 minutos.</div>
+          </li>
+          <li>
+            <div class="check-icon">✓</div>
+            <div><strong>Acesso mobile:</strong> Funciona perfeito no celular ou tablet.</div>
+          </li>
+          <li>
+            <div class="check-icon">✓</div>
+            <div><strong>Sem instalação:</strong> Tudo online, sem ocupar memória do PC.</div>
+          </li>
         </ul>
-
-        <p style="font-size:0.9rem;color:var(--text-soft);margin-top:1.2rem;">
-          A ideia aqui é você ter um <strong>espaço vivo</strong>, onde as imagens vão sendo
-          atualizadas conforme o projeto evolui. O layout já foi pensado para valorizar prints
-          com muito conteúdo, sem ficar poluído.
-        </p>
+      </div>
+      
+      <div class="stats-container">
+        <div style="margin-bottom:2rem; border-bottom:1px solid var(--border); padding-bottom:1.5rem;">
+          <div class="big-number">60%</div>
+          <div style="color:var(--text-body);">menos tempo gasto com burocracia semanal</div>
+        </div>
+        <div>
+          <div class="big-number" style="color:var(--secondary);">Zero</div>
+          <div style="color:var(--text-body);">custo com servidores ou manutenção técnica</div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- ============ CTA / CONTATO ============ -->
-  <section id="contato" class="cta-section reveal">
-    <div class="cta-box">
-      <div class="cta-glow"></div>
-      <div class="cta-pill">
-        ✉️ Fale com a Develoi
+  <section id="contato">
+    <div class="shell">
+      <div class="cta-box">
+        <h2>Pronto para profissionalizar?</h2>
+        <p>Converse com a gente no WhatsApp e veja como a Develoi se adapta ao seu negócio.</p>
+        <button class="btn btn-white" onclick="window.open('https://wa.me/55')">Agendar demonstração</button>
       </div>
-      <h2 class="cta-title">Vamos tirar o seu sistema do papel?</h2>
-      <p class="cta-text">
-        Conte quantos atendimentos você faz por dia, como você controla o financeiro hoje
-        e quais sistemas já usa. A partir disso, a Develoi desenha a melhor solução
-        para sua realidade.
-      </p>
-
-      <div class="cta-actions">
-        <button class="btn-primary">
-          Chamar no WhatsApp agora
-        </button>
-        <button class="btn-outline">
-          Receber proposta detalhada por e-mail
-        </button>
-      </div>
-
-      <p class="cta-footnote">
-        Integrações, personalizações e novos módulos podem ser incluídos conforme sua empresa cresce.
-      </p>
     </div>
   </section>
 
   <footer>
-    © <span id="year"></span> Develoi • Soluções Digitais para Empresas.
-    Desenvolvido por Develoi. Domínio: <a href="https://develoi.com.br" target="_blank" rel="noopener noreferrer">develoi.com.br</a>
+    <div class="shell">
+      <p>&copy; <span id="year"></span> Develoi • Sistemas Digitais.</p>
+    </div>
   </footer>
 
   <script>
-    // Ano automático no footer
     document.getElementById('year').textContent = new Date().getFullYear();
-
-    // Scroll suave para seções
-    function scrollToSection(id) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      const yOffset = -70;
-      const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: y, behavior: 'smooth' });
-    }
-
-    // Menu mobile
-    const navToggle = document.getElementById('navToggle');
-    const navMenuMobile = document.getElementById('navMenuMobile');
-
-    function toggleMobileMenu() {
-      navMenuMobile.classList.toggle('open');
-    }
-
-    navToggle.addEventListener('click', toggleMobileMenu);
-
-    // Mockups tabs
-    const tabs = document.querySelectorAll('.mockups-tab');
-    const screenTitle = document.getElementById('mockupsScreenTitle');
-    const screenContent = document.getElementById('mockupsScreenContent');
-
-    const mockupTexts = {
-      agenda: {
-        title: 'Mockup agenda Develoi',
-        html: 'Área ideal para colocar uma imagem JPG/PNG do painel da agenda em desktop.<br /><span>Dica: destaque o calendário, os horários ocupados e o botão de “novo agendamento”.</span>'
-      },
-      financeiro: {
-        title: 'Mockup Develoi Finance',
-        html: 'Aqui entra o print do dashboard financeiro: gráfico de barras, cards de “Entradas”, “Saídas” e “Saldo”.<br /><span>Dica: use cores diferentes para cada tipo de categoria.</span>'
-      },
-      psicologos: {
-        title: 'Mockup Develoi Psicólogos',
-        html: 'Perfeito para mostrar a lista de pacientes, próxima sessão, e acesso rápido a prontuários e receitas.<br /><span>Dica: mostre o nome do paciente, status e tipo de sessão (online/presencial).</span>'
-      }
-    };
-
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-
-        const key = tab.dataset.tab;
-        screenTitle.textContent = mockupTexts[key].title;
-        screenContent.innerHTML = mockupTexts[key].html;
-      });
+    // Script simples para menu mobile (pode ser expandido depois)
+    const toggle = document.querySelector('.nav-toggle');
+    const links = document.querySelector('.nav-links');
+    toggle.addEventListener('click', () => {
+      links.style.display = links.style.display === 'flex' ? 'none' : 'flex';
+      links.style.flexDirection = 'column';
+      links.style.position = 'absolute';
+      links.style.top = '72px';
+      links.style.left = '0';
+      links.style.width = '100%';
+      links.style.background = 'white';
+      links.style.padding = '1rem';
+      links.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
     });
-
-    // Animação de revelação na rolagem
-    const reveals = document.querySelectorAll('.reveal');
-    const obs = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          obs.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.2 });
-
-    reveals.forEach(el => obs.observe(el));
   </script>
 </body>
 </html>

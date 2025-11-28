@@ -25,7 +25,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['cadastro_tipo'] = 'success';
         }
     }
-    header('Location: cadastro.php');
+    // 🔹 Descobre se está em produção (salao.develoi.com) ou local
+    $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+    $cadastroUrl = $isProd ? '/cadastro' : '/karen_site/controle-salao/cadastro.php';
+    header("Location: {$cadastroUrl}");
     exit;
 }
 

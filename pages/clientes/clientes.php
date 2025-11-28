@@ -25,7 +25,10 @@ if (isset($_GET['delete'])) {
     $idDelete = (int)$_GET['delete'];
     $stmt = $pdo->prepare("DELETE FROM clientes WHERE id = ? AND user_id = ?");
     $stmt->execute([$idDelete, $userId]);
-    header("Location: clientes.php?status=deleted");
+    // 🔹 Descobre se está em produção (salao.develoi.com) ou local
+    $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+    $clientesUrl = $isProd ? '/clientes' : '/karen_site/controle-salao/pages/clientes/clientes.php';
+    header("Location: {$clientesUrl}?status=deleted");
     exit;
 }
 
@@ -62,7 +65,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$userId, $nome, $telefone, $email, $nascimento, $obs]);
             $status = 'created';
         }
-        header("Location: clientes.php?status={$status}");
+        // 🔹 Descobre se está em produção (salao.develoi.com) ou local
+        $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+        $clientesUrl = $isProd ? '/clientes' : '/karen_site/controle-salao/pages/clientes/clientes.php';
+        header("Location: {$clientesUrl}?status={$status}");
         exit;
     }
 }

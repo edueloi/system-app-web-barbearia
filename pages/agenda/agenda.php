@@ -23,9 +23,16 @@ $dataExibida = $_GET['data'] ?? date('Y-m-d');
 $viewType    = $_GET['view'] ?? 'day'; // 'day', 'week', 'month'
 $hoje        = date('Y-m-d');
 
+// 🔹 Descobre se está em produção (salao.develoi.com) ou local
+$isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+$agendaUrl = $isProd
+    ? '/agenda' // em produção usa rota amigável
+    : '/karen_site/controle-salao/pages/agenda/agenda.php';
+
 // Função Auxiliar de Redirecionamento
 function redirect($data, $view) {
-    header("Location: agenda.php?data=" . urlencode($data) . "&view=" . $view);
+    global $agendaUrl;
+    header("Location: {$agendaUrl}?data=" . urlencode($data) . "&view=" . $view);
     exit;
 }
 
@@ -599,20 +606,20 @@ include '../../includes/menu.php';
 
 <div class="app-header">
     <div class="view-control">
-        <a href="?data=<?php echo $dataExibida; ?>&view=day" class="view-opt <?php echo $viewType==='day'?'active':''; ?>">Dia</a>
-        <a href="?data=<?php echo $dataExibida; ?>&view=week" class="view-opt <?php echo $viewType==='week'?'active':''; ?>">Semana</a>
-        <a href="?data=<?php echo $dataExibida; ?>&view=month" class="view-opt <?php echo $viewType==='month'?'active':''; ?>">Mês</a>
+        <a href="<?php echo $agendaUrl; ?>?data=<?php echo $dataExibida; ?>&view=day" class="view-opt <?php echo $viewType==='day'?'active':''; ?>">Dia</a>
+        <a href="<?php echo $agendaUrl; ?>?data=<?php echo $dataExibida; ?>&view=week" class="view-opt <?php echo $viewType==='week'?'active':''; ?>">Semana</a>
+        <a href="<?php echo $agendaUrl; ?>?data=<?php echo $dataExibida; ?>&view=month" class="view-opt <?php echo $viewType==='month'?'active':''; ?>">Mês</a>
     </div>
 
     <div class="date-nav-row">
-        <a href="?data=<?php echo $dataAnt; ?>&view=<?php echo $viewType; ?>" class="btn-circle"><i class="bi bi-chevron-left"></i></a>
+        <a href="<?php echo $agendaUrl; ?>?data=<?php echo $dataAnt; ?>&view=<?php echo $viewType; ?>" class="btn-circle"><i class="bi bi-chevron-left"></i></a>
         <div class="date-picker-trigger">
             <div class="current-date-label">
                 <?php echo $tituloData; ?> <i class="bi bi-caret-down-fill" style="font-size:0.65rem; color:var(--primary);"></i>
             </div>
-            <input type="date" class="hidden-date-input" value="<?php echo $dataExibida; ?>" onchange="window.location.href='?view=<?php echo $viewType; ?>&data='+this.value">
+            <input type="date" class="hidden-date-input" value="<?php echo $dataExibida; ?>" onchange="window.location.href='<?php echo $agendaUrl; ?>?view=<?php echo $viewType; ?>&data='+this.value">
         </div>
-        <a href="?data=<?php echo $dataPro; ?>&view=<?php echo $viewType; ?>" class="btn-circle"><i class="bi bi-chevron-right"></i></a>
+        <a href="<?php echo $agendaUrl; ?>?data=<?php echo $dataPro; ?>&view=<?php echo $viewType; ?>" class="btn-circle"><i class="bi bi-chevron-right"></i></a>
     </div>
 
     <div class="finance-card">

@@ -117,22 +117,25 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
 
 // EXCLUIR CÁLCULO DE SERVIÇO
 if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
-    $idDel = (int)$_GET['delete'];
+        $idDel = (int)$_GET['delete'];
 
-    // Segurança: só apaga se pertencer ao usuário
-    $stmtCheck = $pdo->prepare("SELECT id FROM calculo_servico WHERE id=? AND user_id=?");
-    $stmtCheck->execute([$idDel, $userId]);
-    if ($stmtCheck->fetch()) {
-        // Remove materiais e taxas vinculados
-        $pdo->prepare("DELETE FROM calculo_servico_materiais WHERE calculo_id=?")->execute([$idDel]);
-        $pdo->prepare("DELETE FROM calculo_servico_taxas WHERE calculo_id=?")->execute([$idDel]);
-        // Remove o cálculo
-        $pdo->prepare("DELETE FROM calculo_servico WHERE id=? AND user_id=?")->execute([$idDel, $userId]);
-        $_SESSION['calcular_servico_sucesso'] = 'Cálculo excluído com sucesso!';
-    }
+        // Segurança: só apaga se pertencer ao usuário
+        $stmtCheck = $pdo->prepare("SELECT id FROM calculo_servico WHERE id=? AND user_id=?");
+        $stmtCheck->execute([$idDel, $userId]);
+        if ($stmtCheck->fetch()) {
+            // Remove materiais e taxas vinculados
+            $pdo->prepare("DELETE FROM calculo_servico_materiais WHERE calculo_id=?")->execute([$idDel]);
+            $pdo->prepare("DELETE FROM calculo_servico_taxas WHERE calculo_id=?")->execute([$idDel]);
+            // Remove o cálculo
+            $pdo->prepare("DELETE FROM calculo_servico WHERE id=? AND user_id=?")->execute([$idDel, $userId]);
+            $_SESSION['calcular_servico_sucesso'] = 'Cálculo excluído com sucesso!';
+        }
 
-    header('Location: calcular-servico.php');
-    exit;
+        // 🔹 Descobre se está em produção (salao.develoi.com) ou local
+        $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+        $calcUrl = $isProd ? '/calcular-servico' : '/karen_site/controle-salao/pages/calcular-servico/calcular-servico.php';
+        header("Location: {$calcUrl}");
+        exit;
 }
 
 /* =========================================================
@@ -349,7 +352,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // PRG – sempre volta para a tela "limpa" (sem ?edit)
-    header('Location: calcular-servico.php');
+    // 🔹 Descobre se está em produção (salao.develoi.com) ou local
+    $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+    $calcUrl = $isProd ? '/calcular-servico' : '/karen_site/controle-salao/pages/calcular-servico/calcular-servico.php';
+    header("Location: {$calcUrl}");
     exit;
 }
 

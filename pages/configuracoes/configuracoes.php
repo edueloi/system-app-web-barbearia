@@ -44,7 +44,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['config_msg']     = 'Senha atual incorreta.';
             $_SESSION['config_msgType'] = 'error';
         }
-        header('Location: configuracoes.php');
+        // 🔹 Descobre se está em produção (salao.develoi.com) ou local
+        $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+        $configUrl = $isProd ? '/configuracoes' : '/karen_site/controle-salao/pages/configuracoes/configuracoes.php';
+        header("Location: {$configUrl}");
         exit;
     }
 
@@ -56,7 +59,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $_SESSION['config_msg']     = 'Cor do agendamento atualizada!';
         $_SESSION['config_msgType'] = 'success';
-        header('Location: configuracoes.php');
+        // 🔹 Descobre se está em produção (salao.develoi.com) ou local
+        $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+        $configUrl = $isProd ? '/configuracoes' : '/karen_site/controle-salao/pages/configuracoes/configuracoes.php';
+        header("Location: {$configUrl}");
         exit;
     }
 }
