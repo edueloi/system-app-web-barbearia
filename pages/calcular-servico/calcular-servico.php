@@ -13,23 +13,10 @@ require_once __DIR__ . '/../../includes/db.php';
 
 $pageTitle = 'Calcular Serviço';
 
-$erro     = null;
-$sucesso  = null;
+$erro      = null;
+$sucesso   = null;
 $resultado = null;
-
-// Recupera resultado de sessão após redirect (PRG)
-if (isset($_SESSION['calcular_servico_resultado'])) {
-    $resultado = $_SESSION['calcular_servico_resultado'];
-    unset($_SESSION['calcular_servico_resultado']);
-}
-if (isset($_SESSION['calcular_servico_sucesso'])) {
-    $sucesso = $_SESSION['calcular_servico_sucesso'];
-    unset($_SESSION['calcular_servico_sucesso']);
-}
-if (isset($_SESSION['calcular_servico_erro'])) {
-    $erro = $_SESSION['calcular_servico_erro'];
-    unset($_SESSION['calcular_servico_erro']);
-}
+$editData  = null;
 
 /**
  * Converte quantidade para uma unidade base e retorna [quantidadeConvertida, unidadeBase]
@@ -94,11 +81,89 @@ function cs_normalizar_medidas(
     return [$qtdUsada, max($qtdEmb, 1), strtolower(trim($unUsada ?: $unEmb)) ?: 'un'];
 }
 
-// --- PROCESSAMENTO DO PHP ---
+/* =========================================================
+ *  EDITAR / EXCLUIR (GET)
+ * =======================================================*/
+
+// EDITAR CÁLCULO DE SERVIÇO
+if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
+    $idEdit = (int)$_GET['edit'];
+    $stmtEdit = $pdo->prepare("SELECT * FROM calculo_servico WHERE id=? AND user_id=? LIMIT 1");
+    $stmtEdit->execute([$idEdit, $userId]);
+    $editData = $stmtEdit->fetch(PDO::FETCH_ASSOC);
+
+    if ($editData) {
+        // Materiais
+        $stmtMat = $pdo->prepare("SELECT * FROM calculo_servico_materiais WHERE calculo_id=?");
+        $stmtMat->execute([$idEdit]);
+        $editData['materiais'] = $stmtMat->fetchAll(PDO::FETCH_ASSOC);
+
+        // Taxas
+        $stmtTx = $pdo->prepare("SELECT * FROM calculo_servico_taxas WHERE calculo_id=?");
+        $stmtTx->execute([$idEdit]);
+        $editData['taxas'] = $stmtTx->fetchAll(PDO::FETCH_ASSOC);
+
+        // Preenche $resultado para já mostrar os valores na caixinha roxa
+        $resultado = [
+            'nome'           => $editData['nome_servico'],
+            'valorCobrado'   => (float)$editData['valor_cobrado'],
+            'custoMateriais' => (float)$editData['custo_materiais'],
+            'custoTaxas'     => (float)$editData['custo_taxas'],
+            'custoTotal'     => (float)$editData['custo_materiais'] + (float)$editData['custo_taxas'],
+            'lucro'          => (float)$editData['lucro'],
+        ];
+    }
+}
+
+// EXCLUIR CÁLCULO DE SERVIÇO
+if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
+    $idDel = (int)$_GET['delete'];
+
+    // Segurança: só apaga se pertencer ao usuário
+    $stmtCheck = $pdo->prepare("SELECT id FROM calculo_servico WHERE id=? AND user_id=?");
+    $stmtCheck->execute([$idDel, $userId]);
+    if ($stmtCheck->fetch()) {
+        // Remove materiais e taxas vinculados
+        $pdo->prepare("DELETE FROM calculo_servico_materiais WHERE calculo_id=?")->execute([$idDel]);
+        $pdo->prepare("DELETE FROM calculo_servico_taxas WHERE calculo_id=?")->execute([$idDel]);
+        // Remove o cálculo
+        $pdo->prepare("DELETE FROM calculo_servico WHERE id=? AND user_id=?")->execute([$idDel, $userId]);
+        $_SESSION['calcular_servico_sucesso'] = 'Cálculo excluído com sucesso!';
+    }
+
+    header('Location: calcular-servico.php');
+    exit;
+}
+
+/* =========================================================
+ *  FLASH MESSAGES
+ * =======================================================*/
+
+if (isset($_SESSION['calcular_servico_resultado'])) {
+    // Só sobrescreve $resultado se não estiver em modo edição
+    if (!$editData) {
+        $resultado = $_SESSION['calcular_servico_resultado'];
+    }
+    unset($_SESSION['calcular_servico_resultado']);
+}
+if (isset($_SESSION['calcular_servico_sucesso'])) {
+    $sucesso = $_SESSION['calcular_servico_sucesso'];
+    unset($_SESSION['calcular_servico_sucesso']);
+}
+if (isset($_SESSION['calcular_servico_erro'])) {
+    $erro = $_SESSION['calcular_servico_erro'];
+    unset($_SESSION['calcular_servico_erro']);
+}
+
+/* =========================================================
+ *  PROCESSAMENTO DO POST (CRIAR / EDITAR)
+ * =======================================================*/
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nomeServico   = trim($_POST['nome_servico'] ?? '');
     $valorCobrado  = str_replace(',', '.', $_POST['valor_cobrado'] ?? '0');
+    $editId        = isset($_POST['edit_id']) && is_numeric($_POST['edit_id']) ? (int)$_POST['edit_id'] : 0;
+    $isEdit        = $editId > 0;
 
     $materiaisNome        = $_POST['materiais_nome']           ?? [];
     $materiaisQtd         = $_POST['materiais_qtd']            ?? [];
@@ -178,20 +243,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo->beginTransaction();
 
-            $stmt = $pdo->prepare("
-                INSERT INTO calculo_servico (user_id, nome_servico, valor_cobrado, custo_materiais, custo_taxas, lucro, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            ");
-            $stmt->execute([
-                $userId,
-                $nomeServico,
-                $valorCobrado,
-                $custoMateriaisTotal,
-                $custoTaxasTotal,
-                $lucro
-            ]);
+            if ($isEdit) {
+                // Atualiza cálculo existente
+                $stmt = $pdo->prepare("
+                    UPDATE calculo_servico
+                       SET nome_servico = ?,
+                           valor_cobrado = ?,
+                           custo_materiais = ?,
+                           custo_taxas = ?,
+                           lucro = ?
+                     WHERE id = ? AND user_id = ?
+                ");
+                $stmt->execute([
+                    $nomeServico,
+                    $valorCobrado,
+                    $custoMateriaisTotal,
+                    $custoTaxasTotal,
+                    $lucro,
+                    $editId,
+                    $userId
+                ]);
 
-            $calculoId = $pdo->lastInsertId();
+                // Limpa materiais e taxas antigos
+                $pdo->prepare("DELETE FROM calculo_servico_materiais WHERE calculo_id=?")->execute([$editId]);
+                $pdo->prepare("DELETE FROM calculo_servico_taxas     WHERE calculo_id=?")->execute([$editId]);
+
+                $calculoId = $editId;
+            } else {
+                // Novo cálculo
+                $stmt = $pdo->prepare("
+                    INSERT INTO calculo_servico (user_id, nome_servico, valor_cobrado, custo_materiais, custo_taxas, lucro, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ");
+                $stmt->execute([
+                    $userId,
+                    $nomeServico,
+                    $valorCobrado,
+                    $custoMateriaisTotal,
+                    $custoTaxasTotal,
+                    $lucro
+                ]);
+
+                $calculoId = $pdo->lastInsertId();
+            }
 
             if (!empty($itensMateriais)) {
                 $stmtMat = $pdo->prepare("
@@ -229,7 +323,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $pdo->commit();
 
-            $_SESSION['calcular_servico_sucesso'] = 'Cálculo salvo com sucesso!';
+            $_SESSION['calcular_servico_sucesso'] = $isEdit
+                ? 'Cálculo atualizado com sucesso!'
+                : 'Cálculo salvo com sucesso!';
+
             $_SESSION['calcular_servico_resultado'] = [
                 'nome'            => $nomeServico,
                 'valorCobrado'    => $valorCobrado,
@@ -246,12 +343,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Redireciona para evitar reenvio do formulário (PRG)
-    header('Location: ' . $_SERVER['REQUEST_URI']);
+    // PRG – sempre volta para a tela "limpa" (sem ?edit)
+    header('Location: calcular-servico.php');
     exit;
 }
 
-// Histórico recente
+/* =========================================================
+ *  HISTÓRICO + PRODUTOS
+ * =======================================================*/
+
 $stmtHist = $pdo->prepare("
     SELECT * FROM calculo_servico
     WHERE user_id = ?
@@ -261,9 +361,6 @@ $stmtHist = $pdo->prepare("
 $stmtHist->execute([$userId]);
 $historico = $stmtHist->fetchAll();
 
-// Produtos cadastrados (para usar no cálculo)
-// IMPORTANTE: usa tamanho_embalagem e unidade (medida),
-// NÃO a quantidade em estoque.
 $stmtProdCalc = $pdo->prepare("
     SELECT id, nome, marca, tamanho_embalagem, unidade, custo_unitario
     FROM produtos
@@ -326,6 +423,18 @@ include_once __DIR__ . '/../../includes/menu.php';
         color: var(--app-muted);
         font-size: 0.86rem;
         margin-top: 4px;
+    }
+    .page-badge-edit {
+        display:inline-flex;
+        align-items:center;
+        gap:6px;
+        margin-top:6px;
+        font-size:0.75rem;
+        padding:4px 10px;
+        border-radius:999px;
+        background:#eef2ff;
+        color:#4f46e5;
+        font-weight:600;
     }
 
     .form-label {
@@ -490,6 +599,12 @@ include_once __DIR__ . '/../../includes/menu.php';
     }
     .history-table tr:last-child td { border-bottom: none; }
 
+    .cs-history-actions a {
+        text-decoration:none;
+        font-size:0.85rem;
+        margin-left:8px;
+    }
+
     .cs-product-actions {
         display: flex;
         gap: 8px;
@@ -608,6 +723,11 @@ include_once __DIR__ . '/../../includes/menu.php';
     <div class="page-header">
         <h1 class="page-title">Calculadora de Lucro</h1>
         <p class="page-subtitle">Use seus produtos do estoque, informe quanto gastou e veja o lucro real de cada serviço.</p>
+        <?php if ($editData): ?>
+            <div class="page-badge-edit">
+                ✏️ Editando cálculo salvo (ID #<?php echo (int)$editData['id']; ?>)
+            </div>
+        <?php endif; ?>
     </div>
 
     <?php if ($erro): ?>
@@ -618,16 +738,26 @@ include_once __DIR__ . '/../../includes/menu.php';
     <?php endif; ?>
 
     <form method="post" id="form-calculo">
+        <?php if ($editData): ?>
+            <input type="hidden" name="edit_id" value="<?php echo (int)$editData['id']; ?>">
+        <?php endif; ?>
+
         <div class="calc-grid">
             <!-- COLUNA ESQUERDA -->
             <div>
                 <div class="clean-card">
                     <div class="form-group" style="margin-bottom: 12px;">
                         <label class="form-label">Nome do Serviço</label>
-                        <input type="text" name="nome_servico" class="form-control"
+                        <input type="text"
+                               name="nome_servico"
+                               class="form-control"
                                placeholder="Ex: Progressiva longa, Luzes, Corte + Barba"
                                required
-                               value="<?php echo isset($_POST['nome_servico']) ? htmlspecialchars($_POST['nome_servico']) : ''; ?>">
+                               value="<?php 
+                                if ($editData) echo htmlspecialchars($editData['nome_servico']);
+                                elseif (isset($_POST['nome_servico'])) echo htmlspecialchars($_POST['nome_servico']);
+                                else echo '';
+                               ?>">
                     </div>
 
                     <div class="cs-product-actions">
@@ -649,18 +779,48 @@ include_once __DIR__ . '/../../includes/menu.php';
                     <div id="lista-materiais"></div>
                     <button type="button" class="btn-add" onclick="addMaterial()">+ Adicionar Material</button>
 
+                    <?php if ($editData && !empty($editData['materiais'])): ?>
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                const mats = <?php echo json_encode($editData['materiais']); ?>;
+                                const cont = document.getElementById('lista-materiais');
+                                cont.innerHTML = '';
+                                mats.forEach(function(m) {
+                                    addMaterial(m.nome_material, m.unidade, m.quantidade_embalagem, m.preco_produto);
+                                    const last = document.querySelectorAll('#lista-materiais .material-item');
+                                    const item = last[last.length - 1];
+                                    if (item) {
+                                        item.querySelector('input[name="materiais_qtd[]"]').value = m.quantidade_usada;
+                                        item.querySelector('select[name="materiais_unidade_usada[]"]').value = m.unidade;
+                                    }
+                                });
+                            });
+                        </script>
+                    <?php endif; ?>
+
                     <div style="margin-top: 20px;">
                         <label class="form-label">Custos Extras (Taxas por atendimento)</label>
-                        <div id="lista-taxas">
-                            <div class="material-item" style="display:flex;gap:10px;align-items:center;">
-                                <div style="flex:2;">
-                                    <input type="text" name="taxa_nome[]" class="form-control" placeholder="Ex: Luz, Água, Aluguel">
-                                </div>
-                                <div style="flex:1;">
-                                    <input type="number" step="0.01" name="taxa_valor[]" class="form-control" placeholder="R$">
-                                </div>
-                            </div>
-                        </div>
+                        <div id="lista-taxas"></div>
+
+                        <?php if ($editData && !empty($editData['taxas'])): ?>
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    const taxas = <?php echo json_encode($editData['taxas']); ?>;
+                                    const cont = document.getElementById('lista-taxas');
+                                    cont.innerHTML = '';
+                                    taxas.forEach(function(t) {
+                                        addTaxa();
+                                        const last = document.querySelectorAll('#lista-taxas .material-item');
+                                        const item = last[last.length - 1];
+                                        if (item) {
+                                            item.querySelector('input[name="taxa_nome[]"]').value = t.nome_taxa;
+                                            item.querySelector('input[name="taxa_valor[]"]').value = t.valor;
+                                        }
+                                    });
+                                });
+                            </script>
+                        <?php endif; ?>
+
                         <button type="button" class="btn-add" onclick="addTaxa()">+ Adicionar Taxa</button>
                     </div>
                 </div>
@@ -679,10 +839,14 @@ include_once __DIR__ . '/../../includes/menu.php';
                             step="0.01"
                             name="valor_cobrado"
                             class="form-control"
-                            style="padding-left:38px;font-size:1.05rem;font-weight:700;color:var(--app-primary);"
+                            style="padding-left:38px;font-size:1.1rem;font-weight:700;color:var(--app-primary);"
                             required
                             placeholder="0,00"
-                            value="<?php echo isset($_POST['valor_cobrado']) ? htmlspecialchars($_POST['valor_cobrado']) : ''; ?>"
+                            value="<?php 
+                                if ($editData) echo htmlspecialchars($editData['valor_cobrado']);
+                                elseif (isset($_POST['valor_cobrado'])) echo htmlspecialchars($_POST['valor_cobrado']);
+                                else echo '';
+                            ?>"
                         >
                     </div>
 
@@ -712,7 +876,9 @@ include_once __DIR__ . '/../../includes/menu.php';
                         <?php endif; ?>
                     </div>
 
-                    <button type="submit" class="btn-primary" style="margin-top:16px;">Calcular agora</button>
+                    <button type="submit" class="btn-primary" style="margin-top:16px;">
+                        <?php echo $editData ? 'Atualizar cálculo' : 'Calcular agora'; ?>
+                    </button>
                 </div>
 
                 <?php if ($historico && count($historico) > 0): ?>
@@ -728,6 +894,13 @@ include_once __DIR__ . '/../../includes/menu.php';
                                     </td>
                                     <td style="text-align:right;color:#10b981;font-weight:600;">
                                         R$ <?php echo number_format($h['lucro'], 2, ',', '.'); ?>
+                                    </td>
+                                    <td class="cs-history-actions" style="text-align:right;white-space:nowrap;">
+                                        <a href="?edit=<?php echo $h['id']; ?>" title="Editar" style="color:#4f46e5;">✏️</a>
+                                        <a href="?delete=<?php echo $h['id']; ?>"
+                                           title="Excluir"
+                                           onclick="return confirm('Tem certeza que deseja excluir este cálculo?');"
+                                           style="color:#ef4444;">🗑️</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -828,7 +1001,7 @@ include_once __DIR__ . '/../../includes/menu.php';
         `;
         container.appendChild(div);
 
-        // Preenche dados se vieram de produto do estoque
+        // Preenche dados se vieram de produto do estoque / edição
         if (nome) {
             div.querySelector('input[name="materiais_nome[]"]').value = nome;
         }
@@ -879,14 +1052,9 @@ include_once __DIR__ . '/../../includes/menu.php';
     function selectProdutoFromSheet(el) {
         const nome    = el.dataset.nome || '';
         const unidade = el.dataset.unidade || '';
-        const qtdEmb  = el.dataset.tamanho || '';  // <- Tamanho da embalagem vindo do produtos.tamanho_embalagem
+        const qtdEmb  = el.dataset.tamanho || '';
         const preco   = el.dataset.preco || '';
 
-        // Cria um bloco de material já com:
-        // - nome
-        // - valor pago (custo_unitario)
-        // - tamanho da embalagem
-        // - unidade de medida correta
         addMaterial(nome, unidade, qtdEmb, preco);
         closeProdutoSheet();
     }
@@ -900,10 +1068,16 @@ include_once __DIR__ . '/../../includes/menu.php';
         }
     });
 
-    // Garante pelo menos um material ao abrir a página
+    // Garante pelo menos um material/taxa ao abrir a página NOVA (sem edição)
     document.addEventListener('DOMContentLoaded', () => {
-        if (!document.querySelector('#lista-materiais .material-item')) {
-            addMaterial();
+        const hasEdit = <?php echo $editData ? 'true' : 'false'; ?>;
+        if (!hasEdit) {
+            if (!document.querySelector('#lista-materiais .material-item')) {
+                addMaterial();
+            }
+            if (!document.querySelector('#lista-taxas .material-item')) {
+                addTaxa();
+            }
         }
     });
 </script>
