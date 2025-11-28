@@ -4,7 +4,7 @@
 <style>
     .app-toast-container {
         position: fixed;
-        top: 80px;
+        top: 72px;
         right: 16px;
         z-index: 2500;
         display: flex;
@@ -14,7 +14,7 @@
     @media (max-width: 768px) {
         .app-toast-container {
             top: auto;
-            bottom: 80px;
+            bottom: 76px;
             right: 16px;
             left: 16px;
         }
@@ -23,19 +23,19 @@
         min-width: 220px;
         max-width: 340px;
         padding: 9px 11px;
-        border-radius: 16px;
+        border-radius: 18px;
         display: flex;
         align-items: center;
         gap: 8px;
-        font-size: 0.9rem;
-        box-shadow: 0 12px 25px rgba(15,23,42,0.35);
+        font-size: 0.86rem;
+        box-shadow: 0 14px 28px rgba(15,23,42,0.6);
         animation: app-toast-in .22s ease-out, app-toast-out .22s ease-in 3.3s forwards;
     }
     .app-toast-success { background: #dcfce7; color: #166534; }
     .app-toast-danger  { background: #fee2e2; color: #b91c1c; }
     .app-toast-info    { background: #e2f3ff; color: #075985; }
 
-    .app-toast-icon { font-size: 1.1rem; }
+    .app-toast-icon { font-size: 1rem; }
     .app-toast-message { flex: 1; }
     .app-toast-close {
         background: transparent;
@@ -46,11 +46,11 @@
     }
 
     @keyframes app-toast-in {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0); }
+        from { opacity: 0; transform: translateY(8px) scale(0.98); }
+        to   { opacity: 1; transform: translateY(0)   scale(1); }
     }
     @keyframes app-toast-out {
-        to { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 0; transform: translateY(-6px) scale(0.98); }
     }
 </style>
 

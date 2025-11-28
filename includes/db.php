@@ -114,8 +114,9 @@ $pdo->exec('PRAGMA journal_mode = WAL;');  // melhor para concorrência
         user_id INTEGER NOT NULL,
         nome TEXT NOT NULL,
         marca TEXT,
-        quantidade INTEGER DEFAULT 0,
-        unidade TEXT DEFAULT 'unidade', -- ml, kg, unidade, etc
+        quantidade INTEGER DEFAULT 0,     -- Qtd de frascos no estoque
+        tamanho_embalagem REAL DEFAULT 0, -- Conteúdo do frasco (ex: 1000 ou 1)
+        unidade TEXT DEFAULT 'unidade',   -- ml, l, kg, g, un
         custo_unitario REAL,
         preco_venda REAL,
         data_compra DATE,
@@ -172,6 +173,7 @@ $pdo->exec('PRAGMA journal_mode = WAL;');  // melhor para concorrência
     // MIGRAÇÕES (para bancos antigos já existentes)
     // =========================================================
 
+    try { $pdo->exec("ALTER TABLE produtos ADD COLUMN tamanho_embalagem REAL DEFAULT 0"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN cor_tema TEXT DEFAULT '#4f46e5'"); } catch (Exception $e) {}
     // Clientes
     try { $pdo->exec("ALTER TABLE clientes ADD COLUMN cpf TEXT"); } catch (Exception $e) {}

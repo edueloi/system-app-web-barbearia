@@ -13,9 +13,8 @@ require_once __DIR__ . '/../../includes/db.php';
 
 $pageTitle = 'Calcular Serviço';
 
-
-$erro = null;
-$sucesso = null;
+$erro     = null;
+$sucesso  = null;
 $resultado = null;
 
 // Recupera resultado de sessão após redirect (PRG)
@@ -81,7 +80,7 @@ function cs_normalizar_medidas(
     string $unEmb
 ): array {
     list($qUsadaBase, $uBase1) = cs_convert_to_base($qtdUsada, $unUsada);
-    list($qEmbBase, $uBase2)   = cs_convert_to_base($qtdEmb, $unEmb);
+    list($qEmbBase,  $uBase2)  = cs_convert_to_base($qtdEmb,   $unEmb);
 
     if ($uBase1 === $uBase2) {
         return [$qUsadaBase, $qEmbBase, $uBase1];
@@ -246,6 +245,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['calcular_servico_erro'] = 'Erro ao salvar cálculo. Tente novamente.';
         }
     }
+
     // Redireciona para evitar reenvio do formulário (PRG)
     header('Location: ' . $_SERVER['REQUEST_URI']);
     exit;
@@ -262,8 +262,10 @@ $stmtHist->execute([$userId]);
 $historico = $stmtHist->fetchAll();
 
 // Produtos cadastrados (para usar no cálculo)
+// IMPORTANTE: usa tamanho_embalagem e unidade (medida),
+// NÃO a quantidade em estoque.
 $stmtProdCalc = $pdo->prepare("
-    SELECT id, nome, marca, quantidade, unidade, custo_unitario
+    SELECT id, nome, marca, tamanho_embalagem, unidade, custo_unitario
     FROM produtos
     WHERE user_id = ?
     ORDER BY nome ASC
@@ -280,6 +282,7 @@ include_once __DIR__ . '/../../includes/menu.php';
         --app-bg: #f3f4f6;
         --app-card: #ffffff;
         --app-primary: #4f46e5;
+        --app-primary-soft: #eef2ff;
         --app-text: #1f2937;
         --app-muted: #6b7280;
         --app-border: #e5e7eb;
@@ -290,80 +293,86 @@ include_once __DIR__ . '/../../includes/menu.php';
     body {
         background-color: var(--app-bg);
         color: var(--app-text);
-        font-family: 'Inter', -apple-system, sans-serif;
+        font-family: 'Inter', -apple-system, system-ui, sans-serif;
         font-size: 13px;
     }
 
     .main-container {
-        max-width: 900px;
-        margin: 30px auto;
-        padding: 0 20px 60px;
+        max-width: 1040px;
+        margin: 24px auto 60px;
+        padding: 0 16px;
     }
 
     .clean-card {
         background: var(--app-card);
-        border-radius: 16px;
-        padding: 20px;
-        box-shadow: 0 4px 8px rgba(15,23,42,0.04);
-        border: 1px solid var(--app-border);
-        margin-bottom: 20px;
+        border-radius: 20px;
+        padding: 18px 18px 20px;
+        box-shadow: 0 10px 28px rgba(148,163,184,0.20);
+        border: 1px solid rgba(148,163,184,0.25);
+        margin-bottom: 18px;
     }
 
     .page-header {
-        margin-bottom: 20px;
+        margin-bottom: 18px;
     }
     .page-title {
-        font-size: 1.4rem;
+        font-size: 1.45rem;
         font-weight: 700;
         color: #111827;
         margin: 0;
+        letter-spacing: .03em;
     }
     .page-subtitle {
         color: var(--app-muted);
-        font-size: 0.9rem;
+        font-size: 0.86rem;
         margin-top: 4px;
     }
 
     .form-label {
         display: block;
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         font-weight: 600;
         color: #374151;
         margin-bottom: 4px;
+        letter-spacing: .01em;
     }
 
     .form-control {
         width: 100%;
-        padding: 9px 10px;
+        padding: 9px 11px;
         background: #fff;
         border: 1px solid #d1d5db;
-        border-radius: 10px;
-        font-size: 0.85rem;
+        border-radius: 999px;
+        font-size: 0.86rem;
         color: #111827;
-        transition: border-color 0.2s, box-shadow 0.2s;
+        transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
         box-sizing: border-box;
     }
     .form-control:focus {
         outline: none;
         border-color: var(--app-primary);
-        box-shadow: 0 0 0 2px rgba(79,70,229,0.15);
+        box-shadow: 0 0 0 2px rgba(79,70,229,0.16);
+        background: #fff;
     }
 
     .calc-grid {
         display: grid;
-        grid-template-columns: 1.5fr 1fr;
-        gap: 20px;
+        grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.9fr);
+        gap: 18px;
+        align-items: flex-start;
     }
-    @media (max-width: 768px) {
-        .calc-grid { grid-template-columns: 1fr; }
+    @media (max-width: 900px) {
+        .calc-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
     }
 
     .material-item {
         background: #f9fafb;
         border: 1px solid var(--app-border);
-        border-radius: 12px;
-        padding: 14px;
-        margin-bottom: 10px;
+        border-radius: 16px;
+        padding: 12px 12px 14px;
+        margin-bottom: 8px;
         position: relative;
     }
 
@@ -371,7 +380,7 @@ include_once __DIR__ . '/../../includes/menu.php';
         display: grid;
         grid-template-columns: 1.1fr 0.9fr 1.1fr 1.5fr;
         gap: 8px;
-        margin-top: 8px;
+        margin-top: 6px;
     }
     @media (max-width: 600px) {
         .inline-fields {
@@ -380,22 +389,23 @@ include_once __DIR__ . '/../../includes/menu.php';
     }
 
     .helper-text {
-        font-size: 0.72rem;
+        font-size: 0.7rem;
         color: var(--app-muted);
         margin-top: 2px;
     }
 
     .btn-add {
-        background: #fff;
+        background: #f9fafb;
         color: var(--app-primary);
         border: 1px dashed var(--app-primary);
         padding: 7px 12px;
-        border-radius: 10px;
+        border-radius: 999px;
         font-weight: 600;
         cursor: pointer;
         font-size: 0.8rem;
         width: 100%;
-        transition: 0.2s;
+        transition: 0.18s;
+        text-align: center;
     }
     .btn-add:hover {
         background: #eef2ff;
@@ -403,14 +413,15 @@ include_once __DIR__ . '/../../includes/menu.php';
 
     .btn-remove {
         position: absolute;
-        top: 8px;
+        top: 7px;
         right: 10px;
         color: var(--app-danger);
         background: none;
         border: none;
-        font-size: 0.78rem;
+        font-size: 0.75rem;
         cursor: pointer;
         font-weight: 600;
+        text-transform: lowercase;
     }
 
     .btn-primary {
@@ -423,7 +434,7 @@ include_once __DIR__ . '/../../includes/menu.php';
         font-size: 0.9rem;
         cursor: pointer;
         width: 100%;
-        box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+        box-shadow: 0 10px 25px rgba(79, 70, 229, 0.45);
         transition: 0.18s;
     }
     .btn-primary:hover {
@@ -434,35 +445,35 @@ include_once __DIR__ . '/../../includes/menu.php';
     .result-box {
         background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
         color: white;
-        padding: 18px;
-        border-radius: 14px;
-        margin-top: 18px;
+        padding: 16px 16px 14px;
+        border-radius: 16px;
+        margin-top: 16px;
     }
     .result-row {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 6px;
-        font-size: 0.85rem;
-        opacity: 0.9;
+        margin-bottom: 5px;
+        font-size: 0.83rem;
+        opacity: 0.95;
     }
     .result-final {
-        margin-top: 12px;
-        padding-top: 10px;
-        border-top: 1px solid rgba(255,255,255,0.25);
+        margin-top: 10px;
+        padding-top: 9px;
+        border-top: 1px solid rgba(255,255,255,0.28);
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
     .lucro-valor {
-        font-size: 1.3rem;
+        font-size: 1.25rem;
         font-weight: 800;
     }
 
     .alert {
         padding: 10px 14px;
-        border-radius: 10px;
+        border-radius: 12px;
         margin-bottom: 16px;
-        font-size: 0.85rem;
+        font-size: 0.83rem;
     }
     .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
     .alert-success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
@@ -470,20 +481,133 @@ include_once __DIR__ . '/../../includes/menu.php';
     .history-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 0.85rem;
+        font-size: 0.84rem;
     }
     .history-table td {
-        padding: 8px 0;
+        padding: 7px 0;
         border-bottom: 1px solid #f3f4f6;
         color: #374151;
     }
     .history-table tr:last-child td { border-bottom: none; }
+
+    .cs-product-actions {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+    }
+    .cs-chip {
+        border-radius: 999px;
+        padding: 7px 12px;
+        border: 1px solid var(--app-border);
+        background: #fff;
+        font-size: 0.78rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        color: #111827;
+        transition: 0.18s;
+    }
+    .cs-chip-primary {
+        background: var(--app-primary-soft);
+        border-color: rgba(79,70,229,0.4);
+        color: var(--app-primary);
+    }
+    .cs-chip-primary:hover {
+        background: #e0e7ff;
+    }
+    .cs-chip-outline:hover {
+        background: #f3f4ff;
+        border-color: rgba(148,163,184,0.8);
+    }
+
+    /* bottom sheet produtos (app mobile) */
+    .cs-sheet-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15,23,42,0.55);
+        display: none;
+        align-items: flex-end;
+        justify-content: center;
+        z-index: 9999;
+        backdrop-filter: blur(2px);
+    }
+    .cs-sheet-overlay.active {
+        display: flex;
+    }
+    .cs-sheet {
+        background: #f9fafb;
+        width: 100%;
+        max-width: 480px;
+        border-radius: 18px 18px 0 0;
+        padding: 14px 14px 18px;
+        box-shadow: 0 -8px 24px rgba(15,23,42,0.35);
+    }
+    .cs-sheet-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #e5e7eb;
+        margin-bottom: 8px;
+    }
+    .cs-sheet-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+    }
+    .cs-sheet-close {
+        border: none;
+        background: transparent;
+        font-size: 1.1rem;
+        cursor: pointer;
+        color: #6b7280;
+    }
+    .cs-sheet-body {
+        max-height: 55vh;
+        overflow-y: auto;
+        padding-top: 4px;
+    }
+    .cs-product-row {
+        width: 100%;
+        text-align: left;
+        border-radius: 14px;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        padding: 10px 11px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        transition: 0.16s;
+        font-size: 0.82rem;
+    }
+    .cs-product-row:hover {
+        border-color: var(--app-primary);
+        box-shadow: 0 4px 10px rgba(15,23,42,0.08);
+    }
+    .cs-product-row-name {
+        font-weight: 600;
+        color: #111827;
+    }
+    .cs-product-row-meta {
+        color: #6b7280;
+        font-size: 0.75rem;
+    }
+
+    @media (min-width: 901px) {
+        .main-container {
+            margin-top: 32px;
+        }
+    }
 </style>
 
 <div class="main-container">
     <div class="page-header">
         <h1 class="page-title">Calculadora de Lucro</h1>
-        <p class="page-subtitle">Use seus produtos cadastrados, informe quanto gastou e veja o lucro real de cada serviço.</p>
+        <p class="page-subtitle">Use seus produtos do estoque, informe quanto gastou e veja o lucro real de cada serviço.</p>
     </div>
 
     <?php if ($erro): ?>
@@ -498,7 +622,7 @@ include_once __DIR__ . '/../../includes/menu.php';
             <!-- COLUNA ESQUERDA -->
             <div>
                 <div class="clean-card">
-                    <div class="form-group" style="margin-bottom: 16px;">
+                    <div class="form-group" style="margin-bottom: 12px;">
                         <label class="form-label">Nome do Serviço</label>
                         <input type="text" name="nome_servico" class="form-control"
                                placeholder="Ex: Progressiva longa, Luzes, Corte + Barba"
@@ -506,35 +630,26 @@ include_once __DIR__ . '/../../includes/menu.php';
                                value="<?php echo isset($_POST['nome_servico']) ? htmlspecialchars($_POST['nome_servico']) : ''; ?>">
                     </div>
 
-                    <?php if ($produtosCalc): ?>
-                        <div class="form-group" style="margin-bottom: 18px;">
-                            <label class="form-label">Puxar de um produto do estoque</label>
-                            <select class="form-control" onchange="addMaterialFromProduto(this)">
-                                <option value="">Selecionar produto...</option>
-                                <?php foreach ($produtosCalc as $p): ?>
-                                    <option
-                                        value="<?php echo $p['id']; ?>"
-                                        data-nome="<?php
-                                            echo htmlspecialchars($p['nome'] . ($p['marca'] ? ' - ' . $p['marca'] : ''));
-                                        ?>"
-                                        data-unidade="<?php echo htmlspecialchars($p['unidade']); ?>"
-                                        data-quantidade="<?php echo (float)$p['quantidade']; ?>"
-                                        data-preco="<?php echo (float)$p['custo_unitario']; ?>"
-                                    >
-                                        <?php echo htmlspecialchars($p['nome']); ?>
-                                        <?php if ($p['marca']) echo ' (' . htmlspecialchars($p['marca']) . ')'; ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <p class="helper-text">Ao selecionar, ele preenche nome, quantidade da embalagem e custo. Você só coloca quanto usou no serviço.</p>
-                        </div>
-                    <?php endif; ?>
+                    <div class="cs-product-actions">
+                        <?php if ($produtosCalc): ?>
+                            <button type="button" class="cs-chip cs-chip-primary" onclick="openProdutoSheet()">
+                                <span>📦</span> Usar produto do estoque
+                            </button>
+                            <button type="button" class="cs-chip cs-chip-outline" onclick="addMaterial()">
+                                <span>➕</span> Adicionar manual
+                            </button>
+                        <?php else: ?>
+                            <button type="button" class="cs-chip cs-chip-primary" onclick="addMaterial()">
+                                <span>➕</span> Adicionar material
+                            </button>
+                        <?php endif; ?>
+                    </div>
 
-                    <label class="form-label">Materiais Utilizados</label>
+                    <label class="form-label" style="margin-top:10px;">Materiais Utilizados</label>
                     <div id="lista-materiais"></div>
                     <button type="button" class="btn-add" onclick="addMaterial()">+ Adicionar Material</button>
 
-                    <div style="margin-top: 24px;">
+                    <div style="margin-top: 20px;">
                         <label class="form-label">Custos Extras (Taxas por atendimento)</label>
                         <div id="lista-taxas">
                             <div class="material-item" style="display:flex;gap:10px;align-items:center;">
@@ -554,17 +669,17 @@ include_once __DIR__ . '/../../includes/menu.php';
             <!-- COLUNA DIREITA -->
             <div>
                 <div class="clean-card">
-                    <label class="form-label" style="font-size:1.05rem;">Preço de Venda</label>
+                    <label class="form-label" style="font-size:0.95rem;">Preço de Venda</label>
                     <p class="helper-text" style="margin-bottom: 6px;">Quanto você cobra do cliente nesse serviço?</p>
 
-                    <div style="position: relative; margin-bottom: 10px;">
-                        <span style="position:absolute;left:12px;top:10px;font-weight:600;color:#6b7280;">R$</span>
+                    <div style="position: relative; margin-bottom: 8px;">
+                        <span style="position:absolute;left:12px;top:9px;font-weight:600;color:#6b7280;">R$</span>
                         <input
                             type="number"
                             step="0.01"
                             name="valor_cobrado"
                             class="form-control"
-                            style="padding-left:38px;font-size:1.1rem;font-weight:700;color:var(--app-primary);"
+                            style="padding-left:38px;font-size:1.05rem;font-weight:700;color:var(--app-primary);"
                             required
                             placeholder="0,00"
                             value="<?php echo isset($_POST['valor_cobrado']) ? htmlspecialchars($_POST['valor_cobrado']) : ''; ?>"
@@ -597,7 +712,7 @@ include_once __DIR__ . '/../../includes/menu.php';
                         <?php endif; ?>
                     </div>
 
-                    <button type="submit" class="btn-primary" style="margin-top:18px;">Calcular agora</button>
+                    <button type="submit" class="btn-primary" style="margin-top:16px;">Calcular agora</button>
                 </div>
 
                 <?php if ($historico && count($historico) > 0): ?>
@@ -625,6 +740,44 @@ include_once __DIR__ . '/../../includes/menu.php';
     </form>
 </div>
 
+<?php if ($produtosCalc): ?>
+<div class="cs-sheet-overlay" id="produtoSheet">
+    <div class="cs-sheet">
+        <div class="cs-sheet-header">
+            <div class="cs-sheet-title">Escolher produto do estoque</div>
+            <button type="button" class="cs-sheet-close" onclick="closeProdutoSheet()">&times;</button>
+        </div>
+        <div class="cs-sheet-body">
+            <?php foreach ($produtosCalc as $p): ?>
+                <?php
+                    $nomeExibir = $p['nome'] . ($p['marca'] ? ' - ' . $p['marca'] : '');
+                    $tamanhoEmb = (float)($p['tamanho_embalagem'] ?? 0);
+                    $unMedida   = $p['unidade'] ?: 'un';
+                ?>
+                <button
+                    type="button"
+                    class="cs-product-row"
+                    data-nome="<?php echo htmlspecialchars($nomeExibir); ?>"
+                    data-unidade="<?php echo htmlspecialchars(strtolower($unMedida)); ?>"
+                    data-tamanho="<?php echo $tamanhoEmb; ?>"
+                    data-preco="<?php echo (float)$p['custo_unitario']; ?>"
+                    onclick="selectProdutoFromSheet(this)"
+                >
+                    <span class="cs-product-row-name"><?php echo htmlspecialchars($p['nome']); ?></span>
+                    <?php if ($p['marca']): ?>
+                        <span class="cs-product-row-meta"><?php echo htmlspecialchars($p['marca']); ?></span>
+                    <?php endif; ?>
+                    <span class="cs-product-row-meta">
+                        Embalagem: <?php echo $tamanhoEmb; ?> <?php echo htmlspecialchars($unMedida); ?> •
+                        Custo pago: R$ <?php echo number_format($p['custo_unitario'], 2, ',', '.'); ?>
+                    </span>
+                </button>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <script>
     // Opções de unidade usadas nos selects
     const CS_UNIT_OPTIONS = `
@@ -644,7 +797,7 @@ include_once __DIR__ . '/../../includes/menu.php';
         div.className = 'material-item';
         div.innerHTML = `
             <button type="button" class="btn-remove" onclick="this.closest('.material-item').remove()">remover</button>
-            <label class="form-label" style="margin-bottom:4px;">Nome do Produto</label>
+            <label class="form-label" style="margin-bottom:2px;">Nome do Produto</label>
             <input type="text" name="materiais_nome[]" class="form-control" placeholder="Ex: Progressiva, Tintura, Botox">
 
             <div class="inline-fields">
@@ -663,7 +816,7 @@ include_once __DIR__ . '/../../includes/menu.php';
                     <input type="number" step="0.01" name="materiais_preco_prod[]" class="form-control" placeholder="R$ total">
                 </div>
                 <div>
-                    <label class="helper-text">Tamanho embalagem</label>
+                    <label class="helper-text">Tamanho da embalagem</label>
                     <div style="display:flex;gap:4px;">
                         <input type="number" step="0.01" name="materiais_qtd_emb[]" class="form-control" placeholder="Ex: 1000">
                         <select name="materiais_unidade_emb[]" class="form-control" style="max-width:80px;">
@@ -675,7 +828,7 @@ include_once __DIR__ . '/../../includes/menu.php';
         `;
         container.appendChild(div);
 
-        // Preenche dados se vieram de produto
+        // Preenche dados se vieram de produto do estoque
         if (nome) {
             div.querySelector('input[name="materiais_nome[]"]').value = nome;
         }
@@ -691,21 +844,6 @@ include_once __DIR__ . '/../../includes/menu.php';
             selUsada.value = unidade.toLowerCase();
             selEmb.value   = unidade.toLowerCase();
         }
-    }
-
-    function addMaterialFromProduto(select) {
-        const opt = select.options[select.selectedIndex];
-        if (!opt || !opt.value) return;
-
-        const nome     = opt.getAttribute('data-nome') || '';
-        const unidade  = opt.getAttribute('data-unidade') || '';
-        const qtdEmb   = opt.getAttribute('data-quantidade') || '';
-        const preco    = opt.getAttribute('data-preco') || '';
-
-        addMaterial(nome, unidade, qtdEmb, preco);
-
-        // volta para opção vazia
-        select.value = '';
     }
 
     function addTaxa() {
@@ -726,6 +864,41 @@ include_once __DIR__ . '/../../includes/menu.php';
         `;
         container.appendChild(div);
     }
+
+    // Bottom sheet – produtos do estoque
+    function openProdutoSheet() {
+        const sheet = document.getElementById('produtoSheet');
+        if (sheet) sheet.classList.add('active');
+    }
+    function closeProdutoSheet() {
+        const sheet = document.getElementById('produtoSheet');
+        if (sheet) sheet.classList.remove('active');
+    }
+
+    // Quando clica em um produto do estoque
+    function selectProdutoFromSheet(el) {
+        const nome    = el.dataset.nome || '';
+        const unidade = el.dataset.unidade || '';
+        const qtdEmb  = el.dataset.tamanho || '';  // <- Tamanho da embalagem vindo do produtos.tamanho_embalagem
+        const preco   = el.dataset.preco || '';
+
+        // Cria um bloco de material já com:
+        // - nome
+        // - valor pago (custo_unitario)
+        // - tamanho da embalagem
+        // - unidade de medida correta
+        addMaterial(nome, unidade, qtdEmb, preco);
+        closeProdutoSheet();
+    }
+
+    // Fecha sheet ao clicar fora
+    document.addEventListener('click', (e) => {
+        const overlay = document.getElementById('produtoSheet');
+        if (!overlay) return;
+        if (e.target === overlay) {
+            closeProdutoSheet();
+        }
+    });
 
     // Garante pelo menos um material ao abrir a página
     document.addEventListener('DOMContentLoaded', () => {
