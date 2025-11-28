@@ -62,20 +62,27 @@ include '../../includes/menu.php';
 <style>
     :root {
         --primary-color: #4f46e5; /* Indigo */
+        --primary-soft: #eef2ff;
         --bg-page: #f8fafc;
         --bg-card: #ffffff;
-        --text-main: #1e293b;
+        --text-main: #0f172a;
         --text-muted: #64748b;
         --border-color: #e2e8f0;
         --input-bg: #f1f5f9;
+        --shadow-soft: 0 10px 25px rgba(15,23,42,0.06);
     }
 
-    body { background-color: var(--bg-page); }
+    body {
+        background: radial-gradient(circle at top, #e0e7ff 0, #f8fafc 45%, #f8fafc 100%);
+        font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+        font-size: 12px; /* letras menores */
+        color: var(--text-main);
+    }
 
     .main-wrapper {
-        max-width: 600px;
+        max-width: 520px;
         margin: 0 auto;
-        padding: 20px 16px 100px 16px;
+        padding: 18px 14px 90px 14px;
     }
 
     /* Cabeçalho da Página */
@@ -83,57 +90,67 @@ include '../../includes/menu.php';
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 24px;
+        margin-bottom: 18px;
         flex-wrap: wrap;
-        gap: 12px;
+        gap: 10px;
     }
     .page-header h2 {
-        font-size: 1.5rem;
-        font-weight: 700;
+        font-size: 1.25rem;
+        font-weight: 800;
         color: var(--text-main);
         margin: 0;
+        letter-spacing: -0.02em;
     }
     .page-header p {
-        margin: 4px 0 0;
+        margin: 3px 0 0;
         color: var(--text-muted);
-        font-size: 0.9rem;
+        font-size: 0.78rem;
     }
 
     .btn-auto-fill {
-        background: #eef2ff;
+        background: var(--primary-soft);
         color: var(--primary-color);
         border: 1px solid transparent;
-        padding: 8px 16px;
-        border-radius: 99px;
+        padding: 6px 14px;
+        border-radius: 999px;
         font-weight: 600;
-        font-size: 0.85rem;
+        font-size: 0.78rem;
         cursor: pointer;
-        transition: 0.2s;
+        transition: 0.18s;
         display: inline-flex;
         align-items: center;
         gap: 6px;
+        box-shadow: 0 2px 5px rgba(79,70,229,0.18);
+        white-space: nowrap;
     }
-    .btn-auto-fill:hover { background: #e0e7ff; border-color: #c7d2fe; }
+    .btn-auto-fill:hover {
+        background: #e0e7ff;
+        border-color: #c7d2fe;
+        transform: translateY(-1px);
+    }
 
     /* Cards dos Dias */
     .day-card {
         background: var(--bg-card);
-        border-radius: 16px;
-        padding: 16px;
-        margin-bottom: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
-        border: 1px solid var(--border-color);
-        transition: all 0.3s ease;
+        border-radius: 18px;
+        padding: 12px 12px 12px 12px;
+        margin-bottom: 10px;
+        box-shadow: var(--shadow-soft);
+        border: 1px solid rgba(148,163,184,0.22);
+        transition: all 0.22s ease;
     }
 
     /* Estado Fechado */
     .day-card.closed {
-        background: #f8fafc;
+        background: rgba(248,250,252,0.85);
         border-color: transparent;
         box-shadow: none;
-        opacity: 0.8;
+        opacity: 0.9;
     }
-    .day-card.closed .day-title { color: #94a3b8; font-weight: 500; }
+    .day-card.closed .day-title {
+        color: #94a3b8;
+        font-weight: 500;
+    }
     
     .day-header {
         display: flex;
@@ -142,115 +159,158 @@ include '../../includes/menu.php';
         cursor: pointer; /* Permite clicar no header para ativar */
     }
 
-    .day-info { display: flex; align-items: center; gap: 10px; }
+    .day-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
     .day-title {
-        font-size: 1rem;
-        font-weight: 600;
+        font-size: 0.95rem;
+        font-weight: 700;
         color: var(--text-main);
     }
     .status-badge {
-        font-size: 0.75rem;
+        font-size: 0.68rem;
         padding: 2px 8px;
-        border-radius: 6px;
+        border-radius: 999px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.06em;
     }
-    .status-open { color: #16a34a; background: #dcfce7; }
-    .status-closed { color: #94a3b8; background: #f1f5f9; }
+    .status-open {
+        color: #16a34a;
+        background: #dcfce7;
+    }
+    .status-closed {
+        color: #94a3b8;
+        background: #e5e7eb;
+    }
 
     /* IOS Switch */
     .switch {
-        position: relative; display: inline-block; width: 44px; height: 24px;
+        position: relative;
+        display: inline-block;
+        width: 40px;
+        height: 22px;
         flex-shrink: 0;
     }
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider {
-        position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-        background-color: #cbd5e1; transition: .3s; border-radius: 24px;
+        position: absolute;
+        cursor: pointer;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: #cbd5e1;
+        transition: .25s;
+        border-radius: 999px;
     }
     .slider:before {
-        position: absolute; content: ""; height: 20px; width: 20px; left: 2px; bottom: 2px;
-        background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        transition: .25s;
+        border-radius: 50%;
+        box-shadow: 0 1px 3px rgba(15,23,42,0.35);
     }
     input:checked + .slider { background-color: var(--primary-color); }
-    input:checked + .slider:before { transform: translateX(20px); }
+    input:checked + .slider:before { transform: translateX(18px); }
 
     /* Área dos Slots (Horários) */
     .day-body {
-        margin-top: 16px;
-        padding-top: 16px;
+        margin-top: 12px;
+        padding-top: 10px;
         border-top: 1px dashed var(--border-color);
-        animation: slideDown 0.3s ease-out;
+        animation: slideDown 0.22s ease-out;
     }
 
-    .slots-list { display: flex; flex-direction: column; gap: 10px; }
+    .slots-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
 
     /* O Visual "Cápsula" do Horário */
     .time-slot-row {
         display: flex;
         align-items: center;
-        gap: 8px;
-        animation: fadeIn 0.3s;
+        gap: 6px;
+        animation: fadeIn 0.22s;
     }
 
     .time-capsule {
         flex: 1;
         background: var(--input-bg);
-        border-radius: 10px;
-        padding: 8px 12px;
+        border-radius: 999px;
+        padding: 6px 10px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         border: 1px solid transparent;
-        transition: 0.2s;
+        transition: 0.18s;
     }
     .time-capsule:focus-within {
         background: #fff;
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        box-shadow: 0 0 0 2px rgba(79,70,229,0.18);
     }
 
     .time-input {
         background: transparent;
         border: none;
         font-family: inherit;
-        font-size: 0.95rem;
+        font-size: 0.8rem;
         color: var(--text-main);
         width: 100%;
         text-align: center;
         outline: none;
         cursor: pointer;
+        padding: 2px 0;
     }
     
-    /* Separador visual (seta ou traço) */
-    .time-separator { color: var(--text-muted); font-size: 0.8rem; padding: 0 6px; }
+    .time-separator {
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        padding: 0 4px;
+    }
 
     .btn-remove {
-        width: 36px; height: 36px;
-        border-radius: 10px;
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
         border: none;
         background: transparent;
-        color: var(--text-muted);
-        display: flex; align-items: center; justify-content: center;
+        color: #9ca3af;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
-        transition: 0.2s;
+        transition: 0.18s;
+        flex-shrink: 0;
     }
-    .btn-remove:hover { background: #fee2e2; color: #ef4444; }
+    .btn-remove:hover {
+        background: #fee2e2;
+        color: #ef4444;
+    }
 
     .btn-add {
         width: 100%;
-        margin-top: 12px;
-        padding: 10px;
-        background: transparent;
-        border: 2px dashed #cbd5e1;
-        border-radius: 10px;
+        margin-top: 10px;
+        padding: 8px;
+        background: rgba(248,250,252,0.9);
+        border: 1px dashed #cbd5e1;
+        border-radius: 999px;
         color: var(--text-muted);
         font-weight: 600;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         cursor: pointer;
-        transition: 0.2s;
-        display: flex; align-items: center; justify-content: center; gap: 6px;
+        transition: 0.18s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
     }
     .btn-add:hover {
         border-color: var(--primary-color);
@@ -260,33 +320,69 @@ include '../../includes/menu.php';
 
     /* Barra Flutuante de Salvar */
     .sticky-save-bar {
-        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-        width: 80%; max-width: 500px;
-        background: #1e293b;
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 460px;
+        background: #020617;
         color: white;
-        padding: 12px 24px;
-        border-radius: 99px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-        display: flex; justify-content: space-between; align-items: center;
+        padding: 8px 14px;
+        border-radius: 999px;
+        box-shadow: 0 16px 35px rgba(15,23,42,0.65);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         z-index: 1000;
-        animation: floatUp 0.5s ease-out;
+        animation: floatUp 0.35s ease-out;
+        gap: 10px;
     }
-    .save-text { font-size: 0.9rem; font-weight: 500; opacity: 0.9; }
+    .save-text {
+        font-size: 0.8rem;
+        font-weight: 500;
+        opacity: 0.9;
+        white-space: nowrap;
+    }
     .btn-save-action {
-        background: #4f46e5; color: white; border: none;
-        padding: 8px 20px; border-radius: 99px; font-weight: 700;
-        cursor: pointer; transition: 0.2s;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 6px 16px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: 0.18s;
+        white-space: nowrap;
     }
-    .btn-save-action:hover { background: #4338ca; transform: scale(1.05); }
+    .btn-save-action:hover {
+        background: #4338ca;
+        transform: translateY(-1px);
+    }
 
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes slideDown { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 500px; } }
-    @keyframes floatUp { from { transform: translate(-50%, 100%); } to { transform: translate(-50%, 0); } }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideDown {
+        from { opacity: 0; max-height: 0; }
+        to { opacity: 1; max-height: 480px; }
+    }
+    @keyframes floatUp {
+        from { transform: translate(-50%, 120%); }
+        to { transform: translate(-50%, 0); }
+    }
 
-    /* Ajuste Mobile para Inputs de Hora */
-    @media(max-width: 400px) {
-        .time-input { font-size: 0.85rem; }
-        .time-capsule { padding: 8px; }
+    /* Ajustes Mobile */
+    @media(max-width: 480px) {
+        .main-wrapper { padding: 14px 10px 80px 10px; }
+        .page-header h2 { font-size: 1.1rem; }
+        .sticky-save-bar {
+            padding-inline: 12px;
+            gap: 8px;
+        }
+        .save-text { font-size: 0.78rem; }
     }
 </style>
 
@@ -294,11 +390,11 @@ include '../../includes/menu.php';
     
     <div class="page-header">
         <div>
-            <h2>Configurar Horários</h2>
+            <h2>Configurar horários</h2>
             <p>Defina sua disponibilidade semanal.</p>
         </div>
         <button type="button" class="btn-auto-fill" onclick="confirmarHorarioComercial()">
-            <i class="bi bi-magic"></i> Padrão Comercial
+            <i class="bi bi-magic"></i> Padrão comercial
         </button>
     </div>
 
@@ -338,7 +434,7 @@ include '../../includes/menu.php';
                                 <div class="time-capsule">
                                     <input type="time" name="horarios[<?php echo $diaIndex; ?>][<?php echo $i; ?>][inicio]" 
                                            class="time-input" value="<?php echo $horario['inicio']; ?>" required>
-                                    <i class="bi bi-arrow-right-short time-separator"></i>
+                                    <span class="time-separator"><i class="bi bi-arrow-right-short"></i></span>
                                     <input type="time" name="horarios[<?php echo $diaIndex; ?>][<?php echo $i; ?>][fim]" 
                                            class="time-input" value="<?php echo $horario['fim']; ?>" required>
                                 </div>
@@ -350,7 +446,7 @@ include '../../includes/menu.php';
                     </div>
 
                     <button type="button" class="btn-add" onclick="adicionarSlot(<?php echo $diaIndex; ?>)">
-                        <i class="bi bi-plus-lg"></i> Adicionar Intervalo
+                        <i class="bi bi-plus-lg"></i> Adicionar intervalo
                     </button>
                 </div>
 
@@ -360,9 +456,9 @@ include '../../includes/menu.php';
 </div>
 
 <div class="sticky-save-bar">
-    <span class="save-text">Alterações pendentes?</span>
+    <span class="save-text">Alterações pendentes</span>
     <button type="submit" form="formHorarios" class="btn-save-action">
-        Salvar Tudo
+        Salvar tudo
     </button>
 </div>
 
@@ -408,13 +504,12 @@ include '../../includes/footer.php';
         const container = document.getElementById(`slots-${diaIndex}`);
         const randId = Math.floor(Math.random() * 100000);
 
-        // HTML do Slot com visual "Cápsula"
         const html = `
             <div class="time-slot-row">
                 <div class="time-capsule">
                     <input type="time" name="horarios[${diaIndex}][${randId}][inicio]" 
                            class="time-input" value="${inicio}" required>
-                    <i class="bi bi-arrow-right-short time-separator"></i>
+                    <span class="time-separator"><i class="bi bi-arrow-right-short"></i></span>
                     <input type="time" name="horarios[${diaIndex}][${randId}][fim]" 
                            class="time-input" value="${fim}" required>
                 </div>
@@ -425,23 +520,22 @@ include '../../includes/footer.php';
         `;
         container.insertAdjacentHTML('beforeend', html);
         
-        // Foca no primeiro input recém criado para agilizar
         const newInputs = container.lastElementChild.querySelectorAll('input');
-        if(newInputs[0] && !inicio) newInputs[0].focus(); 
+        if (newInputs[0] && !inicio) newInputs[0].focus(); 
     }
 
     function removerSlot(btn) {
         const row = btn.closest('.time-slot-row');
         row.style.opacity = '0';
-        row.style.transform = 'translateX(10px)';
-        setTimeout(() => row.remove(), 200);
+        row.style.transform = 'translateX(6px)';
+        setTimeout(() => row.remove(), 180);
     }
 
-    // Modal Comercial (igual anterior)
+    // Modal Comercial
     function confirmarHorarioComercial() {
         AppConfirm.open({
-            title: 'Aplicar Padrão Comercial',
-            message: 'Isso definirá Seg-Sex das 08:00 às 18:00 (com almoço) e fechará o fim de semana. Continuar?',
+            title: 'Aplicar padrão comercial',
+            message: 'Isso definirá Seg–Sex das 08:00 às 18:00 (com almoço) e fechará o fim de semana. Continuar?',
             confirmText: 'Aplicar',
             type: 'info',
             onConfirm: aplicarHorarioComercial
@@ -456,7 +550,7 @@ include '../../includes/footer.php';
             toggleDia(i);
 
             const container = document.getElementById(`slots-${i}`);
-            container.innerHTML = ''; // Limpa
+            container.innerHTML = '';
             adicionarSlot(i, '08:00', '12:00');
             adicionarSlot(i, '13:00', '18:00');
         }

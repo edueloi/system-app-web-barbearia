@@ -7,6 +7,10 @@
 
 include '../../includes/db.php';
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 if (!isset($_SESSION['user_id'])) {
     $_SESSION['user_id'] = 1;
 }
@@ -105,39 +109,53 @@ include '../../includes/menu.php';
         --bg-page: #f8fafc;
         --text-dark: #0f172a;
         --text-gray: #64748b;
-        --shadow: 0 10px 30px rgba(15,23,42,0.10);
+        --border-soft: #e2e8f0;
+        --shadow-soft: 0 12px 30px rgba(15,23,42,0.10);
+        --radius-lg: 20px;
+        --radius-md: 14px;
+        --radius-pill: 999px;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        font-size: 14px; /* menor, cara de app */
+        background-color: var(--bg-page);
     }
 
     .main-content {
-        padding-bottom: 90px;
-        padding-inline: 14px;
+        width: 100%;
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 16px 14px 90px 14px;
+        box-sizing: border-box;
     }
 
     @media (min-width: 768px) {
         .main-content {
-            padding-inline: 24px;
+            padding-inline: 20px;
         }
     }
 
     .config-header {
-        margin: 8px 0 20px 0;
+        margin: 6px 0 18px 0;
     }
     .config-header h2 {
         margin: 0;
-        font-size: 1.35rem;
+        font-size: 1.25rem;
         font-weight: 700;
         color: var(--text-dark);
+        letter-spacing: -0.01em;
     }
     .config-header p {
         margin: 4px 0 0 0;
         color: var(--text-gray);
-        font-size: 0.9rem;
+        font-size: 0.86rem;
     }
 
     .config-grid {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 18px;
+        gap: 16px;
     }
     @media(min-width: 900px) {
         .config-grid {
@@ -150,15 +168,15 @@ include '../../includes/menu.php';
     }
 
     .card {
-        background: white;
-        border-radius: 16px;
-        padding: 18px 18px 18px 18px;
-        box-shadow: var(--shadow);
+        background: #ffffff;
+        border-radius: 22px;
+        padding: 18px 16px 18px 16px;
+        box-shadow: var(--shadow-soft);
         border: 1px solid #f1f5f9;
     }
     @media (min-width: 768px) {
         .card {
-            padding: 22px 22px 20px 22px;
+            padding: 20px 20px 18px 20px;
         }
     }
 
@@ -166,65 +184,85 @@ include '../../includes/menu.php';
         margin-top: 0;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 9px;
         color: var(--text-dark);
-        font-size: 1.02rem;
+        font-size: 0.98rem;
         font-weight: 700;
+    }
+    .card-title i {
+        font-size: 1.05rem;
     }
     .card-desc {
         color: var(--text-gray);
-        font-size: 0.9rem;
-        margin-bottom: 16px;
+        font-size: 0.86rem;
+        margin-bottom: 14px;
         line-height: 1.5;
     }
 
-    .form-group { margin-bottom: 13px; }
+    .form-group { margin-bottom: 11px; }
     .form-label {
         display: block;
-        margin-bottom: 5px;
+        margin-bottom: 4px;
         font-weight: 600;
-        font-size: 0.88rem;
+        font-size: 0.8rem;
         color: #475569;
     }
     .form-control {
         width: 100%;
-        padding: 11px 12px;
+        padding: 9px 11px;
         border: 1px solid #e2e8f0;
-        border-radius: 10px;
+        border-radius: var(--radius-md);
         box-sizing: border-box;
-        font-size: 0.93rem;
+        font-size: 0.88rem;
+        background: #f8fafc;
+        transition: 0.15s;
+    }
+    .form-control:focus {
+        border-color: var(--primary);
+        outline: none;
+        background: #ffffff;
+        box-shadow: 0 0 0 2px rgba(99,102,241,0.16);
     }
 
     .btn-primary {
         background: var(--primary);
         color: white;
         border: none;
-        padding: 11px 18px;
-        border-radius: 12px;
+        padding: 10px 18px;
+        border-radius: var(--radius-pill);
         cursor: pointer;
         font-weight: 600;
         width: 100%;
         transition: 0.18s;
-        font-size: 0.93rem;
+        font-size: 0.9rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
+        gap: 7px;
+        box-shadow: 0 10px 22px rgba(99,102,241,0.35);
+        letter-spacing: 0.01em;
+    }
+    .btn-primary i {
+        font-size: 1rem;
     }
     .btn-primary:hover {
         background: var(--primary-hover);
         transform: translateY(-1px);
     }
+    .btn-primary:active {
+        transform: translateY(1px) scale(0.98);
+        box-shadow: 0 6px 16px rgba(79,70,229,0.4);
+    }
 
     /* Alertas */
     .alert {
-        padding: 11px 12px;
-        border-radius: 10px;
-        margin-bottom: 16px;
-        font-size: 0.87rem;
-        display: flex;
+        padding: 9px 11px;
+        border-radius: 999px;
+        margin-bottom: 14px;
+        font-size: 0.8rem;
+        display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
     }
     .alert.success {
         background: #dcfce7;
@@ -241,16 +279,17 @@ include '../../includes/menu.php';
     .color-picker-wrapper {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
         border: 1px solid #e2e8f0;
-        padding: 8px 10px;
-        border-radius: 12px;
-        margin-bottom: 10px;
+        padding: 8px 9px;
+        border-radius: 16px;
+        margin-bottom: 9px;
+        background: #ffffff;
     }
     input[type="color"] {
         border: none;
-        width: 42px;
-        height: 42px;
+        width: 40px;
+        height: 40px;
         cursor: pointer;
         background: transparent;
         padding: 0;
@@ -260,7 +299,7 @@ include '../../includes/menu.php';
         min-width: 0;
     }
     .preview-label {
-        font-size: 0.78rem;
+        font-size: 0.76rem;
         color: #64748b;
         margin-bottom: 3px;
     }
@@ -270,7 +309,7 @@ include '../../includes/menu.php';
         color: white;
         font-weight: 600;
         border: none;
-        font-size: 0.82rem;
+        font-size: 0.8rem;
         pointer-events: none;
         display: inline-flex;
         align-items: center;
@@ -280,16 +319,16 @@ include '../../includes/menu.php';
     }
 
     .hex-helper {
-        font-size: 0.78rem;
+        font-size: 0.74rem;
         color: #94a3b8;
         margin-top: 3px;
     }
 
     .theme-palettes-title {
-        font-size: 0.84rem;
+        font-size: 0.8rem;
         font-weight: 600;
         color: #475569;
-        margin: 10px 0 4px 0;
+        margin: 9px 0 4px 0;
         display: flex;
         align-items: center;
         gap: 6px;
@@ -297,25 +336,25 @@ include '../../includes/menu.php';
         flex-wrap: wrap;
     }
     .theme-palettes-title span {
-        font-size: 0.74rem;
+        font-size: 0.72rem;
         font-weight: 500;
         color: #9ca3af;
     }
 
     .theme-grid-wrapper {
         overflow-x: auto;
-        padding-bottom: 4px;
+        padding-bottom: 3px;
     }
 
     .theme-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
         gap: 8px;
         min-width: 260px;
     }
 
     .theme-card {
-        border-radius: 12px;
+        border-radius: 14px;
         border: 1px solid #e2e8f0;
         padding: 7px 8px;
         cursor: pointer;
@@ -323,7 +362,7 @@ include '../../includes/menu.php';
         background: #f9fafb;
         display: flex;
         flex-direction: column;
-        gap: 5px;
+        gap: 4px;
     }
     .theme-card-header {
         display: flex;
@@ -335,16 +374,16 @@ include '../../includes/menu.php';
         height: 16px;
         border-radius: 999px;
         border: 2px solid #e5e7eb;
-        box-shadow: 0 0 0 1px rgba(15,23,42,0.1);
+        box-shadow: 0 0 0 1px rgba(15,23,42,0.12);
         flex-shrink: 0;
     }
     .theme-name {
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         font-weight: 600;
         color: #0f172a;
     }
     .theme-meta {
-        font-size: 0.74rem;
+        font-size: 0.72rem;
         color: #6b7280;
     }
 
@@ -367,7 +406,7 @@ include '../../includes/menu.php';
         background: #e5e7eb;
         overflow: hidden;
         position: relative;
-        margin-top: 4px;
+        margin-top: 3px;
     }
     .theme-preview-bar-inner {
         position: absolute;
@@ -388,34 +427,35 @@ include '../../includes/menu.php';
         background: #0f172a;
         color: white;
         text-decoration: none;
-        padding: 11px 18px;
-        border-radius: 12px;
+        padding: 10px 18px;
+        border-radius: var(--radius-pill);
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 8px;
         font-weight: 600;
         transition: 0.18s;
-        font-size: 0.93rem;
+        font-size: 0.9rem;
+        box-shadow: 0 10px 20px rgba(15,23,42,0.4);
     }
     .btn-download:hover {
-        background: #334155;
+        background: #111827;
         transform: translateY(-1px);
     }
 
     .copy-box {
         display: flex;
-        gap: 9px;
+        gap: 8px;
     }
     .btn-copy {
         background: #e0e7ff;
         color: #4f46e5;
         border: none;
         padding: 0 16px;
-        border-radius: 10px;
+        border-radius: 12px;
         cursor: pointer;
         font-weight: 600;
-        font-size: 0.84rem;
+        font-size: 0.8rem;
         white-space: nowrap;
         transition: 0.15s;
     }
@@ -458,7 +498,8 @@ include '../../includes/menu.php';
                 Personalizar Agendamento
             </h3>
             <p class="card-desc">
-                Defina a cor principal da sua página pública de agendamento. Essa cor será usada em botões, destaques e detalhes para combinar com a identidade visual do seu salão.
+                Defina a cor principal da sua página pública de agendamento. Essa cor será usada em botões,
+                destaques e detalhes para combinar com a identidade visual do seu salão.
             </p>
 
             <form method="POST">
@@ -661,7 +702,7 @@ include '../../includes/menu.php';
                     </div>
                 </div>
 
-                <div style="margin-top: 15px;">
+                <div style="margin-top: 14px;">
                     <button type="submit" class="btn-primary">
                         <i class="bi bi-check-circle-fill"></i> Salvar cor do agendamento
                     </button>
@@ -669,7 +710,7 @@ include '../../includes/menu.php';
             </form>
         </div>
 
-        <!-- COLUNA DIREITA (RESPONSIVA) -->
+        <!-- COLUNA DIREITA -->
         <div class="card">
             <h3 class="card-title">
                 <i class="bi bi-share-fill" style="color:#6366f1;"></i>
@@ -712,6 +753,7 @@ include '../../includes/menu.php';
                     <input type="password" name="confirmar_senha" class="form-control" required>
                 </div>
                 <button type="submit" class="btn-primary" style="background:#0f172a;">
+                    <i class="bi bi-key-fill"></i>
                     Atualizar senha
                 </button>
             </form>

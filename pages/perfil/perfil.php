@@ -89,19 +89,24 @@ unset($_SESSION['perfil_msg']);
         --bg-page: #f8fafc;
         --text-dark: #0f172a;
         --text-gray: #64748b;
-        --shadow-soft: 0 10px 30px rgba(15,23,42,0.10);
+        --border-soft: #e2e8f0;
+        --shadow-soft: 0 12px 30px rgba(15,23,42,0.10);
+        --radius-lg: 20px;
+        --radius-md: 14px;
+        --radius-pill: 999px;
     }
 
     body {
         background-color: var(--bg-page);
         font-family: 'Inter', sans-serif;
+        font-size: 14px; /* levemente menor, mais cara de app */
     }
 
     .main-content {
         width: 100%;
-        max-width: 900px;
+        max-width: 960px;
         margin: 0 auto;
-        padding: 16px 16px 90px 16px;
+        padding: 16px 14px 90px 14px;
         box-sizing: border-box;
     }
 
@@ -111,133 +116,182 @@ unset($_SESSION['perfil_msg']);
         }
     }
 
-    /* Header do Perfil */
+    /* Card principal do perfil */
     .profile-card {
-        background: white;
+        background: #ffffff;
         border-radius: 24px;
         box-shadow: var(--shadow-soft);
         overflow: hidden;
-        margin-bottom: 24px;
-        border: 1px solid #e2e8f0;
+        margin-bottom: 18px;
+        border: 1px solid var(--border-soft);
     }
 
     .profile-header {
-        background: linear-gradient(135deg, var(--primary), #4338ca);
-        height: 160px;
+        background: radial-gradient(circle at top left, #818cf8, var(--primary));
+        height: 170px; /* mais alto pra dar respiro pro avatar */
         position: relative;
     }
 
+    /* Avatar flutuando */
     .avatar-wrapper {
         position: absolute;
-        bottom: -50px;
+        bottom: -56px;
         left: 24px;
-        width: 110px;
-        height: 110px;
-        border-radius: 50%;
+        width: 112px;
+        height: 112px;
+        border-radius: 999px;
         background: white;
         padding: 4px;
-        box-shadow: 0 8px 20px rgba(15,23,42,0.35);
+        box-shadow: 0 10px 25px rgba(15,23,42,0.30);
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .avatar-img {
         width: 100%;
         height: 100%;
-        border-radius: 50%;
+        border-radius: 999px;
         object-fit: cover;
         background-color: #e2e8f0;
     }
 
+    /* Botão da câmera menor e mais “pra fora” pra não tampar o logo */
     .btn-upload-foto {
         position: absolute;
-        bottom: 2px;
-        right: 2px;
-        background: var(--text-dark);
+        bottom: 0;
+        right: 0;
+        transform: translate(40%, 40%);
+        background: #020617;
         color: white;
         border: 2px solid white;
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
         transition: 0.2s;
-        font-size: 1rem;
+        font-size: 0.8rem;
+        box-shadow: 0 6px 14px rgba(15,23,42,0.4);
     }
     .btn-upload-foto:hover {
         background: var(--primary);
-        transform: scale(1.1);
+        transform: translate(40%, 40%) scale(1.05);
     }
 
+    /* Texto do topo */
     .profile-header-text {
         position: absolute;
-        bottom: 18px;
+        bottom: 24px;
         left: 150px;
         color: white;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
     }
 
     .profile-title {
-        font-size: 1.3rem;
+        font-size: 1.1rem;
         font-weight: 700;
-        margin: 0 0 4px 0;
+        margin: 0;
+        letter-spacing: -0.01em;
     }
     .profile-subtitle {
-        font-size: 0.9rem;
-        opacity: 0.85;
+        font-size: 0.78rem;
+        opacity: 0.9;
+    }
+
+    .profile-meta-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 4px;
+    }
+
+    .badge-soft {
+        font-size: 0.72rem;
+        padding: 4px 9px;
+        border-radius: 999px;
+        background: rgba(15,23,42,0.20);
+        border: 1px solid rgba(148,163,184,0.45);
+        color: #e2e8f0;
     }
 
     @media (max-width: 640px) {
         .profile-header {
-            height: 140px;
+            height: 155px;
         }
         .avatar-wrapper {
             left: 50%;
-            bottom: -55px;
+            z-index: 10;
+            bottom: -60px;
             transform: translateX(-50%);
+        }
+        .btn-upload-foto {
+            transform: translate(30%, 30%);
         }
         .profile-header-text {
             width: 100%;
             left: 0;
             text-align: center;
-            bottom: 12px;
+            bottom: 14px;
+            align-items: center;
+        }
+        .profile-body {
+            padding: 78px 16px 18px 16px; /* mais espaço pro avatar não encostar no form */
         }
     }
 
     .profile-body {
-        padding: 70px 20px 22px 20px;
+        padding: 64px 16px 18px 16px;
     }
 
     @media (min-width: 768px) {
         .profile-body {
-            padding: 70px 28px 26px 28px;
+            padding: 64px 24px 22px 24px;
         }
     }
 
     /* Seções do formulário */
     .form-section {
-        background: white;
-        border-radius: 20px;
-        padding: 22px 20px 8px 20px;
-        box-shadow: var(--shadow-soft);
-        border: 1px solid #e2e8f0;
-        margin-bottom: 20px;
+        background: #ffffff;
+        border-radius: var(--radius-lg);
+        padding: 18px 16px 10px 16px;
+        box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+        border: 1px solid var(--border-soft);
+        margin-bottom: 16px;
+    }
+
+    @media (min-width: 768px) {
+        .form-section {
+            padding: 20px 20px 12px 20px;
+        }
     }
 
     .section-title {
-        font-size: 1rem;
+        font-size: 0.9rem;
         font-weight: 700;
-        margin-bottom: 16px;
+        margin-bottom: 12px;
         color: var(--text-dark);
-        display: flex;
+        display: inline-flex;
         align-items: center;
         gap: 8px;
+        padding: 4px 10px;
+        border-radius: var(--radius-pill);
+        background: #eef2ff;
+        color: #312e81;
     }
     .section-title i {
-        color: var(--primary);
+        color: #4f46e5;
+        font-size: 1rem;
     }
 
     .input-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 16px 20px;
+        gap: 14px 16px;
     }
     .full-width {
         grid-column: 1 / -1;
@@ -245,30 +299,31 @@ unset($_SESSION['perfil_msg']);
 
     .form-group label {
         display: block;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
         font-weight: 600;
-        font-size: 0.9rem;
+        font-size: 0.78rem;
         color: #475569;
     }
     .form-control {
         width: 100%;
-        padding: 11px 12px;
+        padding: 9px 11px;
         border: 1px solid #cbd5e1;
-        border-radius: 10px;
-        font-size: 0.95rem;
+        border-radius: var(--radius-md);
+        font-size: 0.9rem;
         box-sizing: border-box;
-        transition: 0.2s;
+        transition: 0.15s;
         background: #f8fafc;
     }
     .form-control:focus {
         border-color: var(--primary);
         outline: none;
         background: white;
-        box-shadow: 0 0 0 2px rgba(99,102,241,0.15);
+        box-shadow: 0 0 0 2px rgba(99,102,241,0.16);
     }
     textarea.form-control {
         resize: vertical;
-        min-height: 90px;
+        min-height: 80px;
+        max-height: 220px;
     }
 
     @media (max-width: 768px) {
@@ -280,23 +335,27 @@ unset($_SESSION['perfil_msg']);
     .btn-save-wrapper {
         display: flex;
         justify-content: flex-end;
-        margin-top: 10px;
+        margin-top: 8px;
     }
 
     .btn-save {
         background: var(--primary);
         color: white;
         border: none;
-        padding: 13px 26px;
-        border-radius: 999px;
-        font-size: 0.95rem;
+        padding: 11px 22px;
+        border-radius: var(--radius-pill);
+        font-size: 0.9rem;
         font-weight: 600;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        box-shadow: 0 10px 25px rgba(99,102,241,0.35);
+        gap: 6px;
+        box-shadow: 0 10px 24px rgba(99,102,241,0.35);
         transition: 0.15s;
+        letter-spacing: 0.01em;
+    }
+    .btn-save i {
+        font-size: 1rem;
     }
     .btn-save:hover {
         background: var(--primary-hover);
@@ -336,6 +395,10 @@ unset($_SESSION['perfil_msg']);
                 <div class="profile-header-text">
                     <h1 class="profile-title"><?php echo htmlspecialchars($user['nome'] ?? 'Profissional'); ?></h1>
                     <div class="profile-subtitle">Essas informações aparecem para seus clientes.</div>
+                    <div class="profile-meta-badges">
+                        <span class="badge-soft"><i class="bi bi-person-badge"></i> Perfil profissional</span>
+                        <span class="badge-soft"><i class="bi bi-scissors"></i> Salão / Studio</span>
+                    </div>
                 </div>
             </div>
 
@@ -360,7 +423,8 @@ unset($_SESSION['perfil_msg']);
                         <div class="form-group">
                             <label>Email de Contato</label>
                             <input type="email" name="email" class="form-control"
-                                   value="<?php echo htmlspecialchars($user['email'] ?? ''); ?>">
+                                   value="<?php echo htmlspecialchars($user['email'] ?? ''); ?>"
+                                   placeholder="Seu melhor e-mail para contato">
                         </div>
                         <div class="form-group">
                             <label>Telefone / WhatsApp</label>
@@ -394,7 +458,7 @@ unset($_SESSION['perfil_msg']);
                             <label>CEP</label>
                             <input type="text" name="cep" class="form-control"
                                    value="<?php echo htmlspecialchars($user['cep'] ?? ''); ?>"
-                                   onblur="buscarCep(this.value)">
+                                   onblur="buscarCep(this.value)" placeholder="Somente números">
                         </div>
                         <div class="form-group">
                             <label>Estado (UF)</label>

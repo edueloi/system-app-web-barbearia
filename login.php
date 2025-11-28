@@ -20,11 +20,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $senha = $_POST['senha'] ?? '';
 
-    $stmt = $pdo->prepare("SELECT id, nome, senha FROM usuarios WHERE email = ?");
+    $stmt = $pdo->prepare("SELECT id, nome, senha, ativo FROM usuarios WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
     if ($user && password_verify($senha, $user['senha'])) {
+        if (isset($user['ativo']) && $user['ativo'] == 0) {
+            $_SESSION['login_erro'] = 'Seu acesso está inativo. Fale com o administrador.';
+            header('Location: login.php');
+            exit;
+        }
         // Sucesso no login
         $_SESSION['user_id']   = $user['id'];
         $_SESSION['user_name'] = $user['nome'];

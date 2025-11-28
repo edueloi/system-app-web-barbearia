@@ -1,7 +1,6 @@
+
 <?php
 $pageTitle = 'Produtos & Estoque';
-include '../../includes/header.php';
-include '../../includes/menu.php';
 include '../../includes/db.php';
 
 // Simulação de Login
@@ -57,6 +56,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao']) && $_POST['ac
 
 // Buscar todos os produtos
 $produtos = $pdo->query("SELECT * FROM produtos WHERE user_id = {$userId} ORDER BY nome ASC")->fetchAll();
+
+// Inclui header e menu só depois do processamento de POST/GET
+include '../../includes/header.php';
+include '../../includes/menu.php';
 
 // Calcular Valor Total de Custo em Estoque
 $custoTotalEstoque = 0;

@@ -135,6 +135,39 @@ $pdo->exec('PRAGMA journal_mode = WAL;');  // melhor para concorrência
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
+      // 8. Cálculo de serviços (custos e lucro)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS calculo_servico (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        nome_servico TEXT NOT NULL,
+        valor_cobrado REAL NOT NULL,
+        custo_materiais REAL NOT NULL,
+        custo_taxas REAL NOT NULL,
+        lucro REAL NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS calculo_servico_materiais (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        calculo_id INTEGER NOT NULL,
+        nome_material TEXT NOT NULL,
+        quantidade_usada REAL,
+        unidade TEXT,
+        preco_produto REAL,
+        quantidade_embalagem REAL,
+        custo_calculado REAL,
+        FOREIGN KEY (calculo_id) REFERENCES calculo_servico(id) ON DELETE CASCADE
+    )");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS calculo_servico_taxas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        calculo_id INTEGER NOT NULL,
+        nome_taxa TEXT NOT NULL,
+        valor REAL NOT NULL,
+        FOREIGN KEY (calculo_id) REFERENCES calculo_servico(id) ON DELETE CASCADE
+    )");
+
+
     // =========================================================
     // MIGRAÇÕES (para bancos antigos já existentes)
     // =========================================================

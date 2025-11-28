@@ -129,9 +129,9 @@ if (isset($_GET['action'])) {
 
     // Buscar Cliente
     if ($_GET['action'] === 'buscar_cliente') {
-        $cpf = preg_replace('/[^0-9]/', '', $_GET['cpf']);
-        $stmt = $pdo->prepare("SELECT * FROM clientes WHERE cpf = ? AND user_id = ? LIMIT 1");
-        $stmt->execute([$cpf, $profissionalId]);
+        $telefone = preg_replace('/[^0-9]/', '', $_GET['telefone']);
+        $stmt = $pdo->prepare("SELECT * FROM clientes WHERE REPLACE(REPLACE(REPLACE(REPLACE(telefone, '(', ''), ')', ''), '-', ''), ' ', '') = ? AND user_id = ? LIMIT 1");
+        $stmt->execute([$telefone, $profissionalId]);
         $cliente = $stmt->fetch();
 
         if ($cliente) {
@@ -154,8 +154,7 @@ if (isset($_GET['action'])) {
 // =========================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome       = $_POST['cliente_nome'] ?? '';
-    $telefone   = $_POST['cliente_telefone'] ?? '';
-    $cpf        = preg_replace('/[^0-9]/', '', $_POST['cliente_cpf'] ?? '');
+    $telefone   = preg_replace('/[^0-9]/', '', $_POST['cliente_telefone'] ?? '');
     $nascimento = !empty($_POST['cliente_nascimento']) ? $_POST['cliente_nascimento'] : null;
     $obs        = $_POST['cliente_obs'] ?? '';
     $servicoId  = $_POST['servico_id'] ?? null;
@@ -168,10 +167,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $servicoNome  = $servicoDados['nome']  ?? 'Serviço';
     $servicoValor = $servicoDados['preco'] ?? 0;
 
-    if ($nome && $cpf && $data && $horario) {
+    if ($nome && $telefone && $data && $horario) {
         // Cliente
-        $stmt = $pdo->prepare("SELECT id FROM clientes WHERE cpf = ? AND user_id = ?");
-        $stmt->execute([$cpf, $profissionalId]);
+        $stmt = $pdo->prepare("SELECT id FROM clientes WHERE REPLACE(REPLACE(REPLACE(REPLACE(telefone, '(', ''), ')', ''), '-', ''), ' ', '') = ? AND user_id = ?");
+        $stmt->execute([$telefone, $profissionalId]);
         $existing = $stmt->fetch();
 
         if ($existing) {
@@ -179,21 +178,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare("UPDATE clientes SET nome=?, telefone=?, data_nascimento=? WHERE id=?")
                 ->execute([$nome, $telefone, $nascimento, $clienteId]);
         } else {
-            $pdo->prepare("INSERT INTO clientes (user_id, nome, telefone, cpf, data_nascimento)
-                           VALUES (?, ?, ?, ?, ?)")
-                ->execute([$profissionalId, $nome, $telefone, $cpf, $nascimento]);
+            $pdo->prepare("INSERT INTO clientes (user_id, nome, telefone, data_nascimento)
+                           VALUES (?, ?, ?, ?)")
+                ->execute([$profissionalId, $nome, $telefone, $nascimento]);
             $clienteId = $pdo->lastInsertId();
         }
 
         // Agendamento
         $sql = "INSERT INTO agendamentos
-                (user_id, cliente_id, cliente_nome, cliente_cpf, servico, valor, data_agendamento, horario, status, observacoes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pendente', ?)";
+            (user_id, cliente_id, cliente_nome, cliente_telefone, servico, valor, data_agendamento, horario, status, observacoes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pendente', ?)";
         $pdo->prepare($sql)->execute([
             $profissionalId,
             $clienteId,
             $nome,
-            $cpf,
+            $telefone,
             $servicoNome,
             $servicoValor,
             $data,
@@ -586,10 +585,10 @@ $servicos = $stmt->fetchAll();
                     <p class="card-subtitle">Para confirmarmos sua reserva.</p>
 
                     <div class="form-group">
-                        <label class="form-label">CPF (Somente números)</label>
-                        <input type="tel" name="cliente_cpf" id="cpfInput" class="form-control"
-                               placeholder="000.000.000-00" maxlength="14"
-                               oninput="maskCPF(this)" onblur="checkClient()">
+                        <label class="form-label">Celular / WhatsApp</label>
+                        <input type="tel" name="cliente_telefone" id="telInput" class="form-control"
+                               placeholder="(11) 99999-9999" maxlength="15"
+                               oninput="maskPhone(this)" onblur="checkClient()">
                         <div id="cpfLoading"
                              style="display:none; font-size:0.85rem; color:var(--text-muted); margin-top:5px;">
                             Verificando...
@@ -716,17 +715,17 @@ $servicos = $stmt->fetchAll();
     }
 
     function checkClient() {
-        const cpf = document.getElementById('cpfInput').value.replace(/\D/g, '');
+        const tel = document.getElementById('telInput').value.replace(/\D/g, '');
         const btn = document.getElementById('btnConfirmar');
 
-        if (cpf.length < 11) {
+        if (tel.length < 10) {
             btn.disabled = true;
             return;
         }
 
         document.getElementById('cpfLoading').style.display = 'block';
 
-        fetch(`${CURRENT_PAGE}?user=${PROF_ID}&action=buscar_cliente&cpf=${cpf}`)
+        fetch(`${CURRENT_PAGE}?user=${PROF_ID}&action=buscar_cliente&telefone=${tel}`)
             .then(res => res.json())
             .then(data => {
                 document.getElementById('cpfLoading').style.display = 'none';
@@ -752,7 +751,7 @@ $servicos = $stmt->fetchAll();
                     newFields.style.display = 'block';
 
                     nomeIn.value = '';
-                    telIn.value  = '';
+                    telIn.value  = tel;
 
                     nomeIn.setAttribute('required', 'true');
                     telIn.setAttribute('required', 'true');
