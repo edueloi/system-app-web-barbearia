@@ -309,7 +309,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $m['custoUsado']
                     ]);
                 }
-
+            }
 
             if (!empty($itensTaxas)) {
                 $stmtTx = $pdo->prepare("

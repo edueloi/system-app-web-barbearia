@@ -22,6 +22,7 @@ if (isset($_GET['delete'])) {
 
 // B. SALVAR (CRIAR OU EDITAR)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
     $acao   = $_POST['acao']; // 'create' ou 'update'
     $idEdit = $_POST['id_servico'] ?? null;
 
@@ -30,6 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $duracao = $_POST['duracao'];
     $obs     = $_POST['obs'];
     $tipo    = $_POST['tipo'];
+    $calculoServicoId = !empty($_POST['calculo_servico_id']) ? (int)$_POST['calculo_servico_id'] : null;
 
     $itens = isset($_POST['itens_selecionados']) ? implode(',', $_POST['itens_selecionados']) : '';
 
@@ -78,16 +80,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($acao === 'update' && $idEdit) {
             // ATUALIZAR
             $sql = "UPDATE servicos 
-                       SET nome=?, preco=?, duracao=?, foto=?, observacao=?, itens_pacote=? 
+                       SET nome=?, preco=?, duracao=?, foto=?, observacao=?, itens_pacote=?, calculo_servico_id=? 
                      WHERE id=? AND user_id=?";
             $stmt = $pdo->prepare($sql);
-            $stmt->execute([$nome, $preco, $duracao, $fotoPath, $obs, $itens, $idEdit, $userId]);
+            $stmt->execute([$nome, $preco, $duracao, $fotoPath, $obs, $itens, $calculoServicoId, $idEdit, $userId]);
         } else {
             // CRIAR NOVO
-            $sql = "INSERT INTO servicos (user_id, nome, preco, duracao, foto, observacao, tipo, itens_pacote)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            $sql = "INSERT INTO servicos (user_id, nome, preco, duracao, foto, observacao, tipo, itens_pacote, calculo_servico_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
             $stmt = $pdo->prepare($sql);
-            $stmt->execute([$userId, $nome, $preco, $duracao, $fotoPath, $obs, $tipo, $itens]);
+            $stmt->execute([$userId, $nome, $preco, $duracao, $fotoPath, $obs, $tipo, $itens, $calculoServicoId]);
         }
 
         header("Location: servicos.php?status=saved");

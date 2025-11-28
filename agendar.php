@@ -200,6 +200,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $obs
         ]);
 
+        // Consumir estoque conforme cálculo vinculado ao serviço (usando servico_id direto)
+        require_once __DIR__ . '/includes/estoque_helper.php';
+        consumirEstoquePorServico($pdo, $profissionalId, (int)$servicoId);
+
         $page = basename($_SERVER['PHP_SELF']);
         header("Location: $page?user={$profissionalId}&ok=1");
         exit;
@@ -497,7 +501,20 @@ $servicos = $stmt->fetchAll();
                 <i class="bi bi-check-circle-fill"
                    style="font-size:5rem; color:#10b981; margin-bottom:20px; display:block;"></i>
                 <h2 class="card-title">Agendamento Confirmado!</h2>
-                <p class="card-subtitle">Obrigado pela preferência. Te esperamos lá!</p>
+                <p class="card-subtitle">
+                    Serviço: <strong><?php echo htmlspecialchars($servicoNome ?? ''); ?></strong><br>
+                    Data/Hora: <strong><?php echo htmlspecialchars($_POST['data_escolhida'] ?? ''); ?> <?php echo htmlspecialchars($_POST['horario_escolhido'] ?? ''); ?></strong>
+                </p>
+                <?php
+                $whats = preg_replace('/[^0-9]/', '', $profissional['telefone'] ?? '');
+                $msg = rawurlencode("Olá! Acabei de agendar o serviço: {$servicoNome} para {$_POST['data_escolhida']} às {$_POST['horario_escolhido']}. Obrigado!");
+                ?>
+                <?php if ($whats): ?>
+                    <a href="https://wa.me/<?php echo $whats; ?>?text=<?php echo $msg; ?>"
+                       target="_blank" class="btn-action" style="background:#25d366; color:white; margin-bottom:10px; display:inline-block;">
+                        <i class="bi bi-whatsapp"></i> Confirmar pelo WhatsApp
+                    </a>
+                <?php endif; ?>
                 <a href="?user=<?php echo $profissionalId; ?>" class="btn-action" style="text-decoration:none;">
                     Agendar Novamente
                 </a>
