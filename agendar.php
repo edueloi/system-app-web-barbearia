@@ -223,229 +223,12 @@ $servicos = $stmt->fetchAll();
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title><?php echo htmlspecialchars($nomeEstabelecimento); ?> | Agendamento</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
           rel="stylesheet">
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="assets/css/main.css">
 
-    <style>
-        /* --- SISTEMA DE CORES DINÂMICO --- */
-        :root {
-            /* PHP injeta a cor escolhida no painel de Configurações */
-            --brand-color: <?php echo $corPersonalizada; ?>;
-
-            /* Variações simuladas a partir da cor principal */
-            --brand-dark: color-mix(in srgb, var(--brand-color), black 20%);
-            --brand-light: color-mix(in srgb, var(--brand-color), white 90%);
-
-            --bg-body: #f8fafc;
-            --bg-card: #ffffff;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-            --radius-lg: 24px;
-            --radius-md: 16px;
-            --shadow-card: 0 4px 6px -1px rgba(0,0,0,0.05),
-                           0 2px 4px -1px rgba(0,0,0,0.03);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Outfit', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .app-container { display: grid; grid-template-columns: 1fr; min-height: 100vh; }
-
-        .sidebar {
-            background: white;
-            padding: 40px 30px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            border-bottom: 1px solid var(--border);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .sidebar::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 150px;
-            background: linear-gradient(to bottom, var(--brand-light), transparent);
-            z-index: 0;
-        }
-
-        .business-logo {
-            width: 120px;
-            height: 120px;
-            border-radius: 35px;
-            background: white;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
-            z-index: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            border: 4px solid white;
-        }
-
-        .logo-img { width: 100%; height: 100%; object-fit: cover; }
-        .logo-initial { font-size: 3rem; font-weight: 800; color: var(--brand-color); }
-
-        .business-name {
-            font-size: 1.75rem;
-            font-weight: 800;
-            margin-bottom: 5px;
-            color: var(--text-main);
-            z-index: 1;
-            line-height: 1.2;
-        }
-
-        .business-bio {
-            font-size: 0.95rem;
-            color: var(--text-muted);
-            margin-bottom: 20px;
-            max-width: 350px;
-            z-index: 1;
-        }
-
-        .info-pill {
-            background: var(--bg-body);
-            padding: 8px 16px;
-            border-radius: 50px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--text-main);
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
-            z-index: 1;
-        }
-
-        .info-pill i { color: var(--brand-color); }
-
-        .main-content {
-            padding: 20px;
-            width: 100%;
-            max-width: 600px;
-            margin: 0 auto;
-            z-index: 2;
-        }
-
-        @media (min-width: 900px) {
-            .app-container { grid-template-columns: 420px 1fr; }
-            .sidebar {
-                border-right: 1px solid var(--border);
-                border-bottom: none;
-                height: 100vh;
-                position: sticky;
-                top: 0;
-                justify-content: center;
-            }
-            .main-content {
-                padding: 60px;
-                max-width: 800px;
-                margin: 0;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-            }
-        }
-
-        .step-progress { display:flex; justify-content:space-between; margin-bottom:40px; position:relative; padding:0 10px; }
-        .progress-line { position:absolute; top:15px; left:20px; right:20px; height:3px; background:#e2e8f0; z-index:0; }
-        .step-dot {
-            width:34px; height:34px; border-radius:50%;
-            background:white; border:2px solid #e2e8f0;
-            z-index:1; display:flex; align-items:center; justify-content:center;
-            font-weight:700; color:#94a3b8; transition:0.3s;
-        }
-        .step-label {
-            position:absolute; top:40px; font-size:0.75rem; font-weight:600;
-            color:#94a3b8; transform:translateX(-50%); left:50%; white-space:nowrap;
-        }
-        .step-wrapper { position:relative; display:flex; flex-direction:column; align-items:center; }
-        .step-wrapper.active .step-dot {
-            border-color:var(--brand-color); background:var(--brand-color); color:white;
-            transform:scale(1.1); box-shadow:0 0 0 4px var(--brand-light);
-        }
-        .step-wrapper.active .step-label { color:var(--brand-color); }
-        .step-wrapper.done .step-dot { border-color:var(--brand-color); background:var(--brand-color); color:white; }
-
-        .card-title { font-size:1.5rem; font-weight:700; margin-bottom:10px; color:var(--text-main); }
-        .card-subtitle { color:var(--text-muted); margin-bottom:30px; }
-
-        .service-card {
-            background:white; padding:20px; border-radius:var(--radius-md);
-            border:2px solid transparent; box-shadow:var(--shadow-card);
-            cursor:pointer; transition:0.2s; display:flex; justify-content:space-between;
-            align-items:center; margin-bottom:12px;
-        }
-        .service-card:hover { transform:translateY(-3px); border-color:var(--brand-light); }
-        .service-card.selected { border-color:var(--brand-color); background:var(--brand-light); }
-        .service-price { font-weight:700; color:var(--brand-color); font-size:1.1rem; }
-
-        .form-label { display:block; font-size:0.9rem; font-weight:600; margin-bottom:8px; }
-        .form-control {
-            width:100%; padding:14px; border:2px solid var(--border);
-            border-radius:var(--radius-md); font-size:1rem; outline:none;
-            transition:0.3s; background:white;
-        }
-        .form-control:focus { border-color:var(--brand-color); }
-
-        .btn-action {
-            width:100%; padding:18px; background:var(--brand-color);
-            color:white; border:none; border-radius:50px; font-size:1rem;
-            font-weight:700; cursor:pointer; transition:0.3s;
-            display:flex; align-items:center; justify-content:center; gap:10px;
-            margin-top:30px; box-shadow:0 4px 15px rgba(0,0,0,0.1);
-        }
-        .btn-action:hover { background:var(--brand-dark); transform:translateY(-2px); }
-        .btn-action:disabled { background:#cbd5e1; cursor:not-allowed; transform:none; }
-
-        .step-screen { display:none; animation:fadeIn 0.4s ease-out forwards; }
-        .step-screen.active { display:block; }
-        @keyframes fadeIn {
-            from { opacity:0; transform:translateY(10px); }
-            to   { opacity:1; transform:translateY(0); }
-        }
-
-        .time-slots-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(80px,1fr)); gap:10px; }
-        .time-slot {
-            padding:12px; text-align:center; background:white;
-            border:1px solid var(--border); border-radius:10px;
-            font-weight:600; cursor:pointer; transition:0.2s;
-        }
-        .time-slot:hover { border-color:var(--brand-color); color:var(--brand-color); }
-        .time-slot.selected { background:var(--brand-color); color:white; border-color:var(--brand-color); }
-
-        .btn-back {
-            background:none; border:none; color:var(--text-muted); font-weight:600;
-            cursor:pointer; margin-bottom:20px; display:inline-flex; align-items:center; gap:8px;
-        }
-
-        .loading-spinner {
-            display:inline-block; width:20px; height:20px;
-            border:3px solid rgba(255,255,255,0.3); border-radius:50%;
-            border-top-color:white; animation:spin 1s infinite;
-        }
-        @keyframes spin { to { transform:rotate(360deg); } }
-    </style>
 </head>
 <body>
 
@@ -627,11 +410,6 @@ $servicos = $stmt->fetchAll();
                             <input type="text" name="cliente_nome" id="nomeInput" class="form-control">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Celular / WhatsApp</label>
-                            <input type="tel" name="cliente_telefone" id="telInput"
-                                   class="form-control" oninput="maskPhone(this)">
-                        </div>
-                        <div class="form-group">
                             <label class="form-label">Nascimento</label>
                             <input type="date" name="cliente_nascimento" id="nascInput"
                                    class="form-control">
@@ -750,7 +528,7 @@ $servicos = $stmt->fetchAll();
                 const newFields = document.getElementById('newClientFields');
                 const welcome   = document.getElementById('welcomeCard');
                 const nomeIn    = document.getElementById('nomeInput');
-                const telIn     = document.getElementById('telInput');
+                const telInput  = document.getElementById('telInput'); // Renomeado para clareza
 
                 if (data.found) {
                     newFields.style.display = 'none';
@@ -758,20 +536,20 @@ $servicos = $stmt->fetchAll();
 
                     document.getElementById('clientNameDisplay').innerText = data.nome.split(' ')[0];
                     nomeIn.value = data.nome;
-                    telIn.value  = data.telefone;
+                    telInput.value  = data.telefone; // Apenas o principal é atualizado
                     document.getElementById('nascInput').value = data.data_nascimento;
 
                     nomeIn.removeAttribute('required');
-                    telIn.removeAttribute('required');
                 } else {
                     welcome.style.display   = 'none';
                     newFields.style.display = 'block';
 
                     nomeIn.value = '';
-                    telIn.value  = tel;
+                    // A máscara de telefone já é aplicada pelo oninput,
+                    // então apenas garantimos que o valor esteja lá
+                    telInput.value = document.getElementById('telInput').value;
 
                     nomeIn.setAttribute('required', 'true');
-                    telIn.setAttribute('required', 'true');
                 }
 
                 btn.disabled = false;
