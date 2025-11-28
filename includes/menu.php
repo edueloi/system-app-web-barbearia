@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/config.php';
 // =========================================================
 // 1. CONFIGURAÇÃO E DADOS DO USUÁRIO
 // =========================================================
@@ -450,8 +451,8 @@ function isActive($pageName)
         <button class="menu-btn" id="openMenuBtn" type="button">
             <i class="bi bi-list"></i>
         </button>
-        <a href="/karen_site/controle-salao/pages/dashboard.php" class="brand-logo">
-            <img src="/karen_site/controle-salao/img/logo-azul.png" alt="Logo Salão Top"
+        <a href="<?= BASE_URL ?>dashboard" class="brand-logo">
+            <img src="<?= BASE_URL ?>img/logo-azul.png" alt="Logo Salão Top"
                  style="height:38px; width:auto; display:inline-block; vertical-align:middle;">
         </a>
     </div>
@@ -477,14 +478,14 @@ function isActive($pageName)
                 <div style="padding:10px 12px; font-weight:600; border-bottom:1px solid #f1f5f9; font-size:0.9rem; margin-bottom:4px;">
                     Olá, <?php echo htmlspecialchars($firstName); ?>
                 </div>
-                <a href="/karen_site/controle-salao/pages/perfil/perfil.php" class="dropdown-item">
+                <a href="<?= BASE_URL ?>perfil" class="dropdown-item">
                     <i class="bi bi-person"></i> Meu Perfil
                 </a>
-                <a href="/karen_site/controle-salao/pages/configuracoes/configuracoes.php" class="dropdown-item">
+                <a href="<?= BASE_URL ?>configuracoes" class="dropdown-item">
                     <i class="bi bi-gear"></i> Configurações
                 </a>
                 <div class="dropdown-divider"></div>
-                <a href="/karen_site/controle-salao/logout.php" class="dropdown-item text-danger">
+                <a href="<?= BASE_URL ?>logout.php" class="dropdown-item text-danger">
                     <i class="bi bi-box-arrow-right"></i> Sair
                 </a>
             </div>
@@ -511,26 +512,26 @@ function isActive($pageName)
 
     <ul class="sidebar-menu">
         <div class="menu-label">Principal</div>
-        <li><a href="/karen_site/controle-salao/pages/dashboard.php"
+        <li><a href="<?= BASE_URL ?>dashboard"
                class="sidebar-link <?php echo isActive('dashboard.php'); ?>"><i class="bi bi-grid-fill"></i> Dashboard</a></li>
-        <li><a href="/karen_site/controle-salao/pages/agenda/agenda.php"
+        <li><a href="<?= BASE_URL ?>agenda"
                class="sidebar-link <?php echo isActive('agenda.php'); ?>"><i class="bi bi-calendar2-week-fill"></i> Agenda</a></li>
-        <li><a href="/karen_site/controle-salao/pages/horarios/horarios.php"
+        <li><a href="<?= BASE_URL ?>horarios"
                class="sidebar-link <?php echo isActive('horarios.php'); ?>"><i class="bi bi-clock-fill"></i> Horários</a></li>
-        <li><a href="/karen_site/controle-salao/pages/clientes/clientes.php"
+        <li><a href="<?= BASE_URL ?>clientes"
                class="sidebar-link <?php echo isActive('clientes.php'); ?>"><i class="bi bi-people-fill"></i> Clientes</a></li>
 
         <div class="menu-label">Gestão</div>
-         <li><a href="/karen_site/controle-salao/pages/servicos/servicos.php"
+         <li><a href="<?= BASE_URL ?>servicos"
              class="sidebar-link <?php echo isActive('servicos.php'); ?>"><i class="bi bi-scissors"></i> Serviços</a></li>
-         <li><a href="/karen_site/controle-salao/pages/produtos-estoque/produtos-estoque.php"
+         <li><a href="<?= BASE_URL ?>produtos-estoque"
              class="sidebar-link <?php echo isActive('produtos-estoque.php'); ?>"><i class="bi bi-box-seam-fill"></i> Produtos</a></li>
-         <li><a href="/karen_site/controle-salao/pages/calcular-servico/calcular-servico.php"
+         <li><a href="<?= BASE_URL ?>calcular-servico/calcular-servico.php"
              class="sidebar-link <?php echo isActive('calcular-servico.php'); ?>"><i class="bi bi-calculator"></i> Calcular Serviço</a></li>
     </ul>
 
     <div class="sidebar-footer">
-        <a href="/karen_site/controle-salao/logout.php" class="sidebar-link btn-logout">
+        <a href="<?= BASE_URL ?>logout.php" class="sidebar-link btn-logout">
             <i class="bi bi-box-arrow-right"></i> Sair do Sistema
         </a>
     </div>

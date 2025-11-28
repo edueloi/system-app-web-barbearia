@@ -1,5 +1,33 @@
-# Não listar arquivos de pasta
+RewriteEngine On
+RewriteBase /
+
+# Não listar arquivos da pasta (segurança)
 Options -Indexes
 
-# Quando acessar o domínio, abrir o login.php
-DirectoryIndex login.php
+# Bloqueia acesso direto à pasta "pages" pela URL (opcional, mas bom pra segurança)
+# Se alguém digitar salao.develoi.com/pages/agenda/agenda.php, redireciona para a URL bonita
+RewriteCond %{THE_REQUEST} \s/pages/([^/]+)/([^.]+)\.php [NC]
+RewriteRule ^ /%1 [R=301,L]
+
+# --- ROTAS AMIGÁVEIS ---
+
+# Rota: /dashboard -> abre pages/dashboard.php (ou onde ele estiver)
+# OBS: Verifiquei que na sua print não vi dashboard.php na raiz, assumo que esteja em pages
+RewriteRule ^dashboard$ pages/dashboard.php [L]
+
+# Rota: /agenda -> abre pages/agenda/agenda.php
+RewriteRule ^agenda$ pages/agenda/agenda.php [L]
+
+# Rota: /clientes -> abre pages/clientes/clientes.php
+RewriteRule ^clientes$ pages/clientes/clientes.php [L]
+
+# Rota: /servicos -> abre pages/servicos/servicos.php
+RewriteRule ^servicos$ pages/servicos/servicos.php [L]
+
+# Rota: /estoque -> abre pages/produtos-estoque/produtos-estoque.php
+RewriteRule ^estoque$ pages/produtos-estoque/produtos-estoque.php [L]
+
+# Esconde .php de arquivos na RAIZ (ex: login.php, cadastro.php)
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^([a-z0-9-_]+)$ $1.php [NC,L]

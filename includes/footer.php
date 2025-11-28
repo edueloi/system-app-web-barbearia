@@ -1,4 +1,5 @@
 </main> <!-- Fechando a tag main do header -->
+<?php if (!defined('BASE_URL')) require_once __DIR__ . '/config.php'; ?>
 </div> <!-- Fechando a tag d-flex do header -->
 
 <!-- Bootstrap JS Bundle -->

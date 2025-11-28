@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../includes/config.php';
 // --- 1. LÓGICA PHP (CRIAR, EDITAR, EXCLUIR) ---
 include '../../includes/db.php';
 

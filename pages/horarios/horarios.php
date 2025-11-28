@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../includes/config.php';
 // --- PROCESSAR SALVAMENTO (Lógica Mantida) ---
 include '../../includes/db.php';
 if (session_status() === PHP_SESSION_NONE) {

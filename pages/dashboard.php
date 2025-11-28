@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../includes/config.php';
 // dashboard.php (painel do profissional)
 
 // Definições da página
