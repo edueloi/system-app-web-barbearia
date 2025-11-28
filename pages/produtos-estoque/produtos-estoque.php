@@ -3,10 +3,17 @@ require_once __DIR__ . '/../../includes/config.php';
 $pageTitle = 'Produtos & Estoque';
 include '../../includes/db.php';
 
+
 // Simulação de Login
 if (session_status() === PHP_SESSION_NONE) session_start();
 if (!isset($_SESSION['user_id'])) $_SESSION['user_id'] = 1;
 $userId = $_SESSION['user_id'];
+
+// 🔹 Descobre se está em produção (salao.develoi.com) ou local
+$isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+$produtosEstoqueUrl = $isProd
+    ? '/produtos-estoque' // em produção usa rota amigável
+    : '/karen_site/controle-salao/pages/produtos-estoque/produtos-estoque.php';
 
 // --- 1. PROCESSAMENTO DE AÇÕES ---
 
@@ -15,7 +22,7 @@ if (isset($_GET['delete'])) {
     $idDel = (int)$_GET['delete'];
     $stmt = $pdo->prepare("DELETE FROM produtos WHERE id=? AND user_id=?");
     $stmt->execute([$idDel, $userId]);
-    header("Location: produtos-estoque.php?status=deleted");
+    header("Location: {$produtosEstoqueUrl}?status=deleted");
     exit;
 }
 
@@ -61,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao']) && $_POST['ac
         $status = 'saved';
     }
 
-    header("Location: produtos-estoque.php?status={$status}");
+    header("Location: {$produtosEstoqueUrl}?status={$status}");
     exit;
 }
 

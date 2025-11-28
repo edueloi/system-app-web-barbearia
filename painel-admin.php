@@ -10,10 +10,16 @@ session_start();
 $adminUser = 'Admin';
 $adminPass = 'Edu@06051992';
 
+// 🔹 Descobre se está em produção (salao.develoi.com) ou local
+$isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+$painelAdminUrl = $isProd
+    ? '/painel-admin' // em produção usa rota amigável
+    : '/karen_site/controle-salao/painel-admin.php';
+
 // Logout
 if (isset($_GET['logout'])) {
     unset($_SESSION['admin_logged_in']);
-    header('Location: painel-admin.php');
+    header("Location: {$painelAdminUrl}");
     exit;
 }
 
@@ -26,7 +32,7 @@ if (!isset($_SESSION['admin_logged_in'])) {
 
         if ($userInput === $adminUser && $passInput === $adminPass) {
             $_SESSION['admin_logged_in'] = true;
-            header('Location: painel-admin.php');
+            header("Location: {$painelAdminUrl}");
             exit;
         } else {
             $error = 'Usuário ou senha incorretos.';
@@ -231,28 +237,28 @@ if (isset($_GET['acao'], $_GET['id'])) {
 
     // Proteção: não excluir o ID 1 (Admin padrão do sistema se existir)
     if ($id === 1 && $_GET['acao'] === 'excluir') {
-        header('Location: painel-admin.php?msg=error_admin');
+        header("Location: {$painelAdminUrl}?msg=error_admin");
         exit;
     }
 
     if ($_GET['acao'] === 'excluir') {
         $stmtDel = $pdo->prepare("DELETE FROM usuarios WHERE id = ?");
         $stmtDel->execute([$id]);
-        header('Location: painel-admin.php?msg=deleted');
+        header("Location: {$painelAdminUrl}?msg=deleted");
         exit;
     }
 
     if ($_GET['acao'] === 'ativar') {
         $stmtOn = $pdo->prepare("UPDATE usuarios SET ativo = 1 WHERE id = ?");
         $stmtOn->execute([$id]);
-        header('Location: painel-admin.php?msg=activated');
+        header("Location: {$painelAdminUrl}?msg=activated");
         exit;
     }
 
     if ($_GET['acao'] === 'inativar') {
         $stmtOff = $pdo->prepare("UPDATE usuarios SET ativo = 0 WHERE id = ?");
         $stmtOff->execute([$id]);
-        header('Location: painel-admin.php?msg=deactivated');
+        header("Location: {$painelAdminUrl}?msg=deactivated");
         exit;
     }
 }
@@ -292,7 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([$nome, $email, $tel, $cid, $uf, $estab, $hash]);
 
-                header('Location: painel-admin.php?msg=created');
+                header("Location: {$painelAdminUrl}?msg=created");
                 exit;
             }
         } catch (Exception $e) {

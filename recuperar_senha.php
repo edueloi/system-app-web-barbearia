@@ -3,11 +3,18 @@
 
 // Esta página é uma SIMULAÇÃO. A lógica real exigiria PHPMailer e um servidor SMTP.
 
+
 $mensagem = '';
+// 🔹 Descobre se está em produção (salao.develoi.com) ou local
+$isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+$recuperarSenhaUrl = $isProd
+    ? '/recuperar_senha' // em produção usa rota amigável
+    : '/karen_site/controle-salao/recuperar_senha.php';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['recuperar_msg'] = 'Se o e-mail estiver em nosso cadastro, você receberá instruções de recuperação em breve. (Funcionalidade de e-mail desativada na simulação).';
     $_SESSION['recuperar_tipo'] = 'info';
-    header('Location: recuperar_senha.php');
+    header("Location: {$recuperarSenhaUrl}");
     exit;
 }
 

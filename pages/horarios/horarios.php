@@ -8,6 +8,13 @@ if (session_status() === PHP_SESSION_NONE) {
 if (!isset($_SESSION['user_id'])) $_SESSION['user_id'] = 1;
 $userId = $_SESSION['user_id'];
 
+
+// 🔹 Descobre se está em produção (salao.develoi.com) ou local
+$isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+$horariosUrl = $isProd
+    ? '/horarios' // em produção usa rota amigável
+    : '/karen_site/controle-salao/pages/horarios/horarios.php';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo->prepare("DELETE FROM horarios_atendimento WHERE user_id = ?")->execute([$userId]);
@@ -25,10 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        header('Location: horarios.php?status=success');
+        header("Location: {$horariosUrl}?status=success");
         exit;
     } catch (Exception $e) {
-        header('Location: horarios.php?status=error');
+        header("Location: {$horariosUrl}?status=error");
         exit;
     }
 }

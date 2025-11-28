@@ -21,7 +21,13 @@ if (ini_get("session.use_cookies")) {
 // Finalmente, destrói a sessão
 session_destroy();
 
+// 🔹 Descobre se está em produção (salao.develoi.com) ou local
+$isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+$loginUrl = $isProd
+    ? '/login' // em produção usa rota amigável
+    : '/karen_site/controle-salao/login.php';
+
 // Redireciona para a página de login
-header('Location: login.php');
+header("Location: {$loginUrl}");
 exit;
 ?>

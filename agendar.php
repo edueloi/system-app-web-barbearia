@@ -210,9 +210,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         require_once __DIR__ . '/includes/estoque_helper.php'; 
         consumirEstoquePorServico($pdo, $profissionalId, (int)$servicoId); 
  
-        $page = basename($_SERVER['PHP_SELF']); 
-        header("Location: $page?user={$profissionalId}&ok=1"); 
-        exit; 
+        // 🔹 Descobre se está em produção (salao.develoi.com) ou local
+        $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+        $agendarUrl = $isProd
+            ? '/agendar' // em produção usa rota amigável
+            : '/karen_site/controle-salao/agendar.php';
+        header("Location: {$agendarUrl}?user={$profissionalId}&ok=1");
+        exit;
     } 
 } 
  

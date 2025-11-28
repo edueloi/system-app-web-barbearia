@@ -26,6 +26,20 @@ RewriteRule ^servicos$ pages/servicos/servicos.php [L]
 
 # Rota: /estoque -> abre pages/produtos-estoque/produtos-estoque.php
 RewriteRule ^estoque$ pages/produtos-estoque/produtos-estoque.php [L]
+# Rota: /produtos-estoque -> abre pages/produtos-estoque/produtos-estoque.php
+RewriteRule ^produtos-estoque$ pages/produtos-estoque/produtos-estoque.php [L]
+
+# Rota: /perfil -> abre pages/perfil/perfil.php
+RewriteRule ^perfil$ pages/perfil/perfil.php [L]
+
+# Rota: /calcular-servico -> abre pages/calcular-servico/calcular-servico.php
+RewriteRule ^calcular-servico$ pages/calcular-servico/calcular-servico.php [L]
+
+# Rota: /horarios -> abre pages/horarios/horarios.php
+RewriteRule ^horarios$ pages/horarios/horarios.php [L]
+
+# Rota: /configuracoes -> abre pages/configuracoes/configuracoes.php
+RewriteRule ^configuracoes$ pages/configuracoes/configuracoes.php [L]
 
 # Esconde .php de arquivos na RAIZ (ex: login.php, cadastro.php)
 RewriteCond %{REQUEST_FILENAME} !-d

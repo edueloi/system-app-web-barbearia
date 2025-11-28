@@ -8,9 +8,19 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+
+// 🔹 Descobre se está em produção (salao.develoi.com) ou local
+$isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+$dashboardUrl = $isProd
+    ? '/dashboard' // em produção usa rota amigável
+    : '/karen_site/controle-salao/pages/dashboard.php';
+$loginUrl = $isProd
+    ? '/login' // em produção usa rota amigável
+    : '/karen_site/controle-salao/login.php';
+
 // Se o usuário já estiver logado, redireciona para o dashboard
 if (isset($_SESSION['user_id'])) {
-    header('Location: pages/dashboard.php');
+    header("Location: {$dashboardUrl}");
     exit;
 }
 
@@ -27,18 +37,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($user && password_verify($senha, $user['senha'])) {
         if (isset($user['ativo']) && $user['ativo'] == 0) {
             $_SESSION['login_erro'] = 'Seu acesso está inativo. Fale com o administrador.';
-            header('Location: login.php');
+            header("Location: {$loginUrl}");
             exit;
         }
         // Sucesso no login
         $_SESSION['user_id']   = $user['id'];
         $_SESSION['user_name'] = $user['nome'];
 
-        header('Location: pages/dashboard.php');
+        header("Location: {$dashboardUrl}");
         exit;
     } else {
         $_SESSION['login_erro'] = 'E-mail ou senha incorretos. Tente novamente.';
-        header('Location: login.php');
+        header("Location: {$loginUrl}");
         exit;
     }
 }

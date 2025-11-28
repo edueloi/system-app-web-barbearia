@@ -2,24 +2,38 @@
 require_once __DIR__ . '/../includes/config.php';
 // dashboard.php (painel do profissional)
 
-// Definições da página
+// =========================================================
+// 1. SESSÃO, AMBIENTE E LOGIN
+// =========================================================
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Flag de ambiente: produção x localhost
+$isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+
+// Garante login
+if (!isset($_SESSION['user_id'])) {
+    // Em prod -> /login.php | Em localhost -> ../login.php
+    $loginUrl = $isProd ? '/login.php' : '../login.php';
+    header('Location: ' . $loginUrl);
+    exit;
+}
+
+$userId = $_SESSION['user_id'];
+
+// =========================================================
+// 2. DEFINIÇÕES DA PÁGINA E INCLUDES
+// =========================================================
 $pageTitle = 'Dashboard - Salão Top';
 
 include '../includes/header.php';
 include '../includes/menu.php';
 include '../includes/db.php';
 
-// Garante sessão e login
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
-
-$userId = $_SESSION['user_id'];
+// =========================================================
+// 3. LÓGICA: CONSULTAS NO BANCO
+// =========================================================
 
 // Datas
 $hoje        = date('Y-m-d');
@@ -655,7 +669,7 @@ $aniversariantes = $stmtAniv->fetchAll();
     </div>
     <div class="modules-scroll">
 
-        <a href="agenda/agenda.php" class="nav-card">
+        <a href="<?php echo $isProd ? '/agenda' : '/karen_site/controle-salao/pages/agenda/agenda.php'; ?>" class="nav-card">
             <div class="icon-circle bg-indigo">
                 <i class="bi bi-calendar-check"></i>
             </div>
@@ -663,7 +677,7 @@ $aniversariantes = $stmtAniv->fetchAll();
             <div class="nav-desc">Ver marcações, horários e encaixes.</div>
         </a>
 
-        <a href="servicos/servicos.php" class="nav-card">
+        <a href="<?php echo $isProd ? '/servicos' : '/karen_site/controle-salao/pages/servicos/servicos.php'; ?>" class="nav-card">
             <div class="icon-circle bg-orange">
                 <i class="bi bi-scissors"></i>
             </div>
@@ -671,7 +685,7 @@ $aniversariantes = $stmtAniv->fetchAll();
             <div class="nav-desc">Cortes, pacotes, coloração e preços.</div>
         </a>
 
-        <a href="produtos-estoque/produtos-estoque.php" class="nav-card">
+        <a href="<?php echo $isProd ? '/produtos-estoque' : '/karen_site/controle-salao/pages/produtos-estoque/produtos-estoque.php'; ?>" class="nav-card">
             <div class="icon-circle bg-blue">
                 <i class="bi bi-box-seam"></i>
             </div>
@@ -679,7 +693,7 @@ $aniversariantes = $stmtAniv->fetchAll();
             <div class="nav-desc">Controle de produtos e vendas.</div>
         </a>
 
-        <a href="clientes/clientes.php" class="nav-card">
+        <a href="<?php echo $isProd ? '/clientes' : '/karen_site/controle-salao/pages/clientes/clientes.php'; ?>" class="nav-card">
             <div class="icon-circle bg-emerald">
                 <i class="bi bi-people"></i>
             </div>
@@ -701,7 +715,7 @@ $aniversariantes = $stmtAniv->fetchAll();
                         <h3 class="section-title">Próximos agendamentos (hoje)</h3>
                         <p class="section-sub">Veja quem está chegando ao salão.</p>
                     </div>
-                    <a href="agenda/agenda.php" class="btn-action">
+                    <a href="<?php echo $isProd ? '/agenda' : '/karen_site/controle-salao/pages/agenda/agenda.php'; ?>" class="btn-action">
                         <i class="bi bi-arrow-right-circle"></i> Ver agenda
                     </a>
                 </div>
@@ -732,7 +746,7 @@ $aniversariantes = $stmtAniv->fetchAll();
                                             </span>
                                         </td>
                                         <td data-label="Ação">
-                                            <a href="agenda/agenda.php" class="btn-action">
+                                            <a href="<?php echo $isProd ? '/agenda' : '/karen_site/controle-salao/pages/agenda/agenda.php'; ?>" class="btn-action">
                                                 <i class="bi bi-pencil"></i> Abrir
                                             </a>
                                         </td>
@@ -761,7 +775,7 @@ $aniversariantes = $stmtAniv->fetchAll();
                         <h3 class="section-title">Clientes que mais vêm</h3>
                         <p class="section-sub">Quem é fiel ao seu salão.</p>
                     </div>
-                    <a href="clientes/clientes.php" class="btn-action">
+                    <a href="<?php echo $isProd ? '/clientes' : '/karen_site/controle-salao/pages/clientes/clientes.php'; ?>" class="btn-action">
                         <i class="bi bi-people"></i> Ver clientes
                     </a>
                 </div>
@@ -829,7 +843,7 @@ $aniversariantes = $stmtAniv->fetchAll();
                         <h3 class="section-title">Aniversariantes de <?php echo htmlspecialchars($nomeMesAtual); ?></h3>
                         <p class="section-sub">Mande um parabéns especial e fidelize ainda mais.</p>
                     </div>
-                    <a href="clientes/clientes.php" class="btn-action">
+                    <a href="<?php echo $isProd ? '/clientes' : '/karen_site/controle-salao/pages/clientes/clientes.php'; ?>" class="btn-action">
                         <i class="bi bi-gift"></i> Ver todos
                     </a>
                 </div>

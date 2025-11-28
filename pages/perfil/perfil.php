@@ -52,8 +52,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['user']['name'] = $nome;
     $_SESSION['perfil_msg']   = 'Perfil atualizado com sucesso!';
 
+    // 🔹 Descobre se está em produção (salao.develoi.com) ou local
+    $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+    $perfilUrl = $isProd
+        ? '/perfil' // em produção usa rota amigável
+        : '/karen_site/controle-salao/pages/perfil/perfil.php';
     // PRG: redireciona para evitar repost em F5
-    header('Location: perfil.php?status=updated');
+    header("Location: {$perfilUrl}?status=updated");
     exit;
 }
 

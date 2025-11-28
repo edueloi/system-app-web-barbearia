@@ -7,10 +7,16 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Flag pra saber se está em produção (salao.develoi.com)
+$isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+
 // Redirecionamento de segurança (se não estiver logado)
 $pagsPublicas = ['login.php', 'cadastro.php', 'recuperar_senha.php'];
 if (!isset($_SESSION['user_id']) && !in_array(basename($_SERVER['PHP_SELF']), $pagsPublicas)) {
-    header('Location: /karen_site/controle-salao/login.php');
+    // Se estiver em prod → /login
+    // Se estiver local → /karen_site/controle-salao/login.php
+    $loginUrl = $isProd ? '/login' : '/karen_site/controle-salao/login.php';
+    header('Location: ' . $loginUrl);
     exit;
 }
 
@@ -451,8 +457,10 @@ function isActive($pageName)
         <button class="menu-btn" id="openMenuBtn" type="button">
             <i class="bi bi-list"></i>
         </button>
-        <a href="<?= BASE_URL ?>dashboard" class="brand-logo">
-            <img src="<?= BASE_URL ?>img/logo-azul.png" alt="Logo Salão Top"
+        <!-- LOGO: prod = /dashboard | local = /karen_site/controle-salao/pages/dashboard.php -->
+        <a href="<?php echo $isProd ? '/dashboard' : '/karen_site/controle-salao/pages/dashboard.php'; ?>" class="brand-logo">
+            <img src="<?php echo $isProd ? '/img/logo-azul.png' : '/karen_site/controle-salao/img/logo-azul.png'; ?>" 
+                 alt="Logo Salão Top"
                  style="height:38px; width:auto; display:inline-block; vertical-align:middle;">
         </a>
     </div>
@@ -478,14 +486,14 @@ function isActive($pageName)
                 <div style="padding:10px 12px; font-weight:600; border-bottom:1px solid #f1f5f9; font-size:0.9rem; margin-bottom:4px;">
                     Olá, <?php echo htmlspecialchars($firstName); ?>
                 </div>
-                <a href="<?= BASE_URL ?>perfil" class="dropdown-item">
+                <a href="<?php echo $isProd ? '/perfil' : '/karen_site/controle-salao/pages/perfil/perfil.php'; ?>" class="dropdown-item">
                     <i class="bi bi-person"></i> Meu Perfil
                 </a>
-                <a href="<?= BASE_URL ?>configuracoes" class="dropdown-item">
+                <a href="<?php echo $isProd ? '/configuracoes' : '/karen_site/controle-salao/pages/configuracoes/configuracoes.php'; ?>" class="dropdown-item">
                     <i class="bi bi-gear"></i> Configurações
                 </a>
                 <div class="dropdown-divider"></div>
-                <a href="<?= BASE_URL ?>logout.php" class="dropdown-item text-danger">
+                <a href="<?php echo $isProd ? '/logout.php' : '/karen_site/controle-salao/logout.php'; ?>" class="dropdown-item text-danger">
                     <i class="bi bi-box-arrow-right"></i> Sair
                 </a>
             </div>
@@ -512,26 +520,54 @@ function isActive($pageName)
 
     <ul class="sidebar-menu">
         <div class="menu-label">Principal</div>
-        <li><a href="<?= BASE_URL ?>dashboard"
-               class="sidebar-link <?php echo isActive('dashboard.php'); ?>"><i class="bi bi-grid-fill"></i> Dashboard</a></li>
-        <li><a href="<?= BASE_URL ?>agenda"
-               class="sidebar-link <?php echo isActive('agenda.php'); ?>"><i class="bi bi-calendar2-week-fill"></i> Agenda</a></li>
-        <li><a href="<?= BASE_URL ?>horarios"
-               class="sidebar-link <?php echo isActive('horarios.php'); ?>"><i class="bi bi-clock-fill"></i> Horários</a></li>
-        <li><a href="<?= BASE_URL ?>clientes"
-               class="sidebar-link <?php echo isActive('clientes.php'); ?>"><i class="bi bi-people-fill"></i> Clientes</a></li>
+        <li>
+            <a href="<?php echo $isProd ? '/dashboard' : '/karen_site/controle-salao/pages/dashboard.php'; ?>"
+               class="sidebar-link <?php echo isActive('dashboard.php'); ?>">
+                <i class="bi bi-grid-fill"></i> Dashboard
+            </a>
+        </li>
+        <li>
+            <a href="<?php echo $isProd ? '/agenda' : '/karen_site/controle-salao/pages/agenda/agenda.php'; ?>"
+               class="sidebar-link <?php echo isActive('agenda.php'); ?>">
+                <i class="bi bi-calendar2-week-fill"></i> Agenda
+            </a>
+        </li>
+        <li>
+            <a href="<?php echo $isProd ? '/horarios' : '/karen_site/controle-salao/pages/horarios/horarios.php'; ?>"
+               class="sidebar-link <?php echo isActive('horarios.php'); ?>">
+                <i class="bi bi-clock-fill"></i> Horários
+            </a>
+        </li>
+        <li>
+            <a href="<?php echo $isProd ? '/clientes' : '/karen_site/controle-salao/pages/clientes/clientes.php'; ?>"
+               class="sidebar-link <?php echo isActive('clientes.php'); ?>">
+                <i class="bi bi-people-fill"></i> Clientes
+            </a>
+        </li>
 
         <div class="menu-label">Gestão</div>
-         <li><a href="<?= BASE_URL ?>servicos"
-             class="sidebar-link <?php echo isActive('servicos.php'); ?>"><i class="bi bi-scissors"></i> Serviços</a></li>
-         <li><a href="<?= BASE_URL ?>produtos-estoque"
-             class="sidebar-link <?php echo isActive('produtos-estoque.php'); ?>"><i class="bi bi-box-seam-fill"></i> Produtos</a></li>
-         <li><a href="<?= BASE_URL ?>calcular-servico/calcular-servico.php"
-             class="sidebar-link <?php echo isActive('calcular-servico.php'); ?>"><i class="bi bi-calculator"></i> Calcular Serviço</a></li>
+        <li>
+            <a href="<?php echo $isProd ? '/servicos' : '/karen_site/controle-salao/pages/servicos/servicos.php'; ?>"
+               class="sidebar-link <?php echo isActive('servicos.php'); ?>">
+                <i class="bi bi-scissors"></i> Serviços
+            </a>
+        </li>
+        <li>
+            <a href="<?php echo $isProd ? '/produtos-estoque' : '/karen_site/controle-salao/pages/produtos-estoque/produtos-estoque.php'; ?>"
+               class="sidebar-link <?php echo isActive('produtos-estoque.php'); ?>">
+                <i class="bi bi-box-seam-fill"></i> Produtos
+            </a>
+        </li>
+        <li>
+            <a href="<?php echo $isProd ? '/calcular-servico' : '/karen_site/controle-salao/pages/calcular-servico/calcular-servico.php'; ?>"
+               class="sidebar-link <?php echo isActive('calcular-servico.php'); ?>">
+                <i class="bi bi-calculator"></i> Calcular Serviço
+            </a>
+        </li>
     </ul>
 
     <div class="sidebar-footer">
-        <a href="<?= BASE_URL ?>logout.php" class="sidebar-link btn-logout">
+        <a href="<?php echo $isProd ? '/logout.php' : '/karen_site/controle-salao/logout.php'; ?>" class="sidebar-link btn-logout">
             <i class="bi bi-box-arrow-right"></i> Sair do Sistema
         </a>
     </div>
@@ -606,7 +642,7 @@ function isActive($pageName)
             document.exitFullscreen();
         } else if (document.webkitExitFullscreen) {
             document.webkitExitFullscreen();
-        } else if (document.mozCancelFullScreen) {
+        } else if (el.mozCancelFullScreen) {
             document.mozCancelFullScreen();
         } else if (document.msExitFullscreen) {
             document.msExitFullscreen();

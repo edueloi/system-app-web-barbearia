@@ -4,9 +4,19 @@ require_once __DIR__ . '/../../includes/config.php';
 include '../../includes/db.php';
 
 // Simulação de User ID
+
 if (session_status() === PHP_SESSION_NONE) session_start();
 if (!isset($_SESSION['user_id'])) $_SESSION['user_id'] = 1;
 $userId = $_SESSION['user_id'];
+
+// 🔹 Descobre se está em produção (salao.develoi.com) ou local
+$isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+
+// 🔹 URL para voltar para a tela de serviços
+// 👉 AJUSTE essa URL local conforme seu path no XAMPP/WAMP
+$servicosUrl = $isProd
+    ? '/servicos' // em produção usa rota amigável
+    : '/karen_site/controle-salao/pages/servicos/servicos.php';
 
 // Cria pasta uploads se não existir
 if (!is_dir('../../uploads')) { mkdir('../../uploads', 0777, true); }
@@ -17,7 +27,7 @@ if (isset($_GET['delete'])) {
     // Verifica se pertence ao usuário para segurança
     $stmt = $pdo->prepare("DELETE FROM servicos WHERE id = ? AND user_id = ?");
     $stmt->execute([$idDelete, $userId]);
-    echo "<script>window.location.href='servicos.php';</script>";
+    echo "<script>window.location.href='{$servicosUrl}';</script>";
     exit;
 }
 
@@ -93,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$userId, $nome, $preco, $duracao, $fotoPath, $obs, $tipo, $itens, $calculoServicoId]);
         }
 
-        header("Location: servicos.php?status=saved");
+        header("Location: {$servicosUrl}?status=saved");
         exit;
     }
 }
@@ -616,7 +626,7 @@ $listaPacotes  = array_filter($todosRegistros, function($item){ return $item['ti
                         <button class="action-btn btn-edit" onclick='editar(<?php echo json_encode($s); ?>)'>
                             <i class="bi bi-pencil-fill"></i>
                         </button>
-                        <a href="?delete=<?php echo $s['id']; ?>" class="action-btn btn-delete" onclick="return confirm('Tem certeza que deseja apagar?');">
+                        <a href="<?php echo $servicosUrl; ?>?delete=<?php echo $s['id']; ?>" class="action-btn btn-delete" onclick="return confirm('Tem certeza que deseja apagar?');">
                             <i class="bi bi-trash-fill"></i>
                         </a>
                     </div>
@@ -655,7 +665,7 @@ $listaPacotes  = array_filter($todosRegistros, function($item){ return $item['ti
                         <button class="action-btn btn-edit" onclick='editar(<?php echo json_encode($p); ?>)'>
                             <i class="bi bi-pencil-fill"></i>
                         </button>
-                        <a href="?delete=<?php echo $p['id']; ?>" class="action-btn btn-delete" onclick="return confirm('Tem certeza que deseja apagar?');">
+                        <a href="<?php echo $servicosUrl; ?>?delete=<?php echo $p['id']; ?>" class="action-btn btn-delete" onclick="return confirm('Tem certeza que deseja apagar?');">
                             <i class="bi bi-trash-fill"></i>
                         </a>
                     </div>
