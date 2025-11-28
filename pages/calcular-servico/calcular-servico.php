@@ -165,6 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $editId        = isset($_POST['edit_id']) && is_numeric($_POST['edit_id']) ? (int)$_POST['edit_id'] : 0;
     $isEdit        = $editId > 0;
 
+    $materiaisProdutoId   = $_POST['materiais_produto_id']     ?? [];
     $materiaisNome        = $_POST['materiais_nome']           ?? [];
     $materiaisQtd         = $_POST['materiais_qtd']            ?? [];
     $materiaisUnidadeUsed = $_POST['materiais_unidade_usada']  ?? [];
@@ -188,6 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $nomeMat = trim($nomeMat);
             if ($nomeMat === '') continue;
 
+            $produtoId = isset($materiaisProdutoId[$idx]) ? (int)$materiaisProdutoId[$idx] : 0;
             $qtdUsada   = (float) str_replace(',', '.', $materiaisQtd[$idx]        ?? 0);
             $unUsed     = trim($materiaisUnidadeUsed[$idx] ?? '');
             $precoProd  = (float) str_replace(',', '.', $materiaisPrecoProd[$idx]  ?? 0);
@@ -212,6 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $custoMateriaisTotal += $custoUsado;
 
             $itensMateriais[] = [
+                'produto_id'  => $produtoId ?: null,
                 'nome'        => $nomeMat,
                 'qtd'         => $qUsadaBase,
                 'unidadeBase' => $unBase,
@@ -247,11 +250,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Atualiza cálculo existente
                 $stmt = $pdo->prepare("
                     UPDATE calculo_servico
-                       SET nome_servico = ?,
-                           valor_cobrado = ?,
-                           custo_materiais = ?,
-                           custo_taxas = ?,
-                           lucro = ?
+                       SET nome_servico   = ?,
+                           valor_cobrado  = ?,
+                           custo_materiais= ?,
+                           custo_taxas    = ?,
+                           lucro          = ?
                      WHERE id = ? AND user_id = ?
                 ");
                 $stmt->execute([
@@ -272,7 +275,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 // Novo cálculo
                 $stmt = $pdo->prepare("
-                    INSERT INTO calculo_servico (user_id, nome_servico, valor_cobrado, custo_materiais, custo_taxas, lucro, created_at)
+                    INSERT INTO calculo_servico
+                    (user_id, nome_servico, valor_cobrado, custo_materiais, custo_taxas, lucro, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 ");
                 $stmt->execute([
@@ -290,12 +294,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!empty($itensMateriais)) {
                 $stmtMat = $pdo->prepare("
                     INSERT INTO calculo_servico_materiais
-                    (calculo_id, nome_material, quantidade_usada, unidade, preco_produto, quantidade_embalagem, custo_calculado)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (calculo_id, produto_id, nome_material, quantidade_usada, unidade, preco_produto, quantidade_embalagem, custo_calculado)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 foreach ($itensMateriais as $m) {
                     $stmtMat->execute([
                         $calculoId,
+                        $m['produto_id'],
                         $m['nome'],
                         $m['qtd'],
                         $m['unidadeBase'],
@@ -304,7 +309,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $m['custoUsado']
                     ]);
                 }
-            }
+
 
             if (!empty($itensTaxas)) {
                 $stmtTx = $pdo->prepare("
@@ -372,6 +377,10 @@ $produtosCalc = $stmtProdCalc->fetchAll();
 
 include_once __DIR__ . '/../../includes/header.php';
 include_once __DIR__ . '/../../includes/menu.php';
+
+// Se não estiver global, pode incluir aqui:
+include_once __DIR__ . '/../../includes/ui-toast.php';
+include_once __DIR__ . '/../../includes/ui-confirm.php';
 ?>
 
 <style>
@@ -487,14 +496,22 @@ include_once __DIR__ . '/../../includes/menu.php';
 
     .inline-fields {
         display: grid;
-        grid-template-columns: 1.1fr 0.9fr 1.1fr 1.5fr;
+        grid-template-columns: 1.1fr 0.9fr 1.5fr;
         gap: 8px;
         margin-top: 6px;
     }
+
     @media (max-width: 600px) {
         .inline-fields {
             grid-template-columns: 1fr 1fr;
         }
+        .inline-fields .cs-field-full {
+            grid-column: 1 / -1;
+        }
+    }
+
+    .single-field {
+        margin-top: 8px;
     }
 
     .helper-text {
@@ -737,6 +754,26 @@ include_once __DIR__ . '/../../includes/menu.php';
         <div class="alert alert-success"><?php echo htmlspecialchars($sucesso); ?></div>
     <?php endif; ?>
 
+    <?php if ($sucesso): ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                if (window.AppToast) {
+                    AppToast.show(<?php echo json_encode($sucesso); ?>, 'success');
+                }
+            });
+        </script>
+    <?php endif; ?>
+
+    <?php if ($erro): ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                if (window.AppToast) {
+                    AppToast.show(<?php echo json_encode($erro); ?>, 'danger');
+                }
+            });
+        </script>
+    <?php endif; ?>
+
     <form method="post" id="form-calculo">
         <?php if ($editData): ?>
             <input type="hidden" name="edit_id" value="<?php echo (int)$editData['id']; ?>">
@@ -897,9 +934,11 @@ include_once __DIR__ . '/../../includes/menu.php';
                                     </td>
                                     <td class="cs-history-actions" style="text-align:right;white-space:nowrap;">
                                         <a href="?edit=<?php echo $h['id']; ?>" title="Editar" style="color:#4f46e5;">✏️</a>
-                                        <a href="?delete=<?php echo $h['id']; ?>"
+                                        <a href="#"
+                                           class="cs-delete-link"
+                                           data-id="<?php echo (int)$h['id']; ?>"
+                                           data-name="<?php echo htmlspecialchars($h['nome_servico']); ?>"
                                            title="Excluir"
-                                           onclick="return confirm('Tem certeza que deseja excluir este cálculo?');"
                                            style="color:#ef4444;">🗑️</a>
                                     </td>
                                 </tr>
@@ -930,12 +969,14 @@ include_once __DIR__ . '/../../includes/menu.php';
                 <button
                     type="button"
                     class="cs-product-row"
+                    data-id="<?php echo (int)$p['id']; ?>"
                     data-nome="<?php echo htmlspecialchars($nomeExibir); ?>"
                     data-unidade="<?php echo htmlspecialchars(strtolower($unMedida)); ?>"
                     data-tamanho="<?php echo $tamanhoEmb; ?>"
                     data-preco="<?php echo (float)$p['custo_unitario']; ?>"
                     onclick="selectProdutoFromSheet(this)"
                 >
+
                     <span class="cs-product-row-name"><?php echo htmlspecialchars($p['nome']); ?></span>
                     <?php if ($p['marca']): ?>
                         <span class="cs-product-row-meta"><?php echo htmlspecialchars($p['marca']); ?></span>
@@ -964,12 +1005,15 @@ include_once __DIR__ . '/../../includes/menu.php';
         <option value="mm">mm</option>
     `;
 
-    function addMaterial(nome = '', unidade = '', qtdEmb = '', preco = '') {
+    function addMaterial(nome = '', unidade = '', qtdEmb = '', preco = '', produtoId = '') {
         const container = document.getElementById('lista-materiais');
         const div = document.createElement('div');
         div.className = 'material-item';
         div.innerHTML = `
             <button type="button" class="btn-remove" onclick="this.closest('.material-item').remove()">remover</button>
+            
+            <input type="hidden" name="materiais_produto_id[]" value=""> <!-- NOVO -->
+
             <label class="form-label" style="margin-bottom:2px;">Nome do Produto</label>
             <input type="text" name="materiais_nome[]" class="form-control" placeholder="Ex: Progressiva, Tintura, Botox">
 
@@ -984,11 +1028,7 @@ include_once __DIR__ . '/../../includes/menu.php';
                         ${CS_UNIT_OPTIONS}
                     </select>
                 </div>
-                <div>
-                    <label class="helper-text">Valor pago no produto</label>
-                    <input type="number" step="0.01" name="materiais_preco_prod[]" class="form-control" placeholder="R$ total">
-                </div>
-                <div>
+                <div class="cs-field-full">
                     <label class="helper-text">Tamanho da embalagem</label>
                     <div style="display:flex;gap:4px;">
                         <input type="number" step="0.01" name="materiais_qtd_emb[]" class="form-control" placeholder="Ex: 1000">
@@ -997,6 +1037,11 @@ include_once __DIR__ . '/../../includes/menu.php';
                         </select>
                     </div>
                 </div>
+            </div>
+
+            <div class="single-field">
+                <label class="helper-text">Valor pago no produto</label>
+                <input type="number" step="0.01" name="materiais_preco_prod[]" class="form-control" placeholder="R$ total">
             </div>
         `;
         container.appendChild(div);
@@ -1016,6 +1061,9 @@ include_once __DIR__ . '/../../includes/menu.php';
             const selEmb   = div.querySelector('select[name="materiais_unidade_emb[]"]');
             selUsada.value = unidade.toLowerCase();
             selEmb.value   = unidade.toLowerCase();
+        }
+        if (produtoId) {
+            div.querySelector('input[name="materiais_produto_id[]"]').value = produtoId;
         }
     }
 
@@ -1050,12 +1098,13 @@ include_once __DIR__ . '/../../includes/menu.php';
 
     // Quando clica em um produto do estoque
     function selectProdutoFromSheet(el) {
-        const nome    = el.dataset.nome || '';
-        const unidade = el.dataset.unidade || '';
-        const qtdEmb  = el.dataset.tamanho || '';
-        const preco   = el.dataset.preco || '';
+        const produtoId = el.dataset.id || '';
+        const nome      = el.dataset.nome || '';
+        const unidade   = el.dataset.unidade || '';
+        const qtdEmb    = el.dataset.tamanho || '';
+        const preco     = el.dataset.preco || '';
 
-        addMaterial(nome, unidade, qtdEmb, preco);
+        addMaterial(nome, unidade, qtdEmb, preco, produtoId);
         closeProdutoSheet();
     }
 
@@ -1068,9 +1117,10 @@ include_once __DIR__ . '/../../includes/menu.php';
         }
     });
 
-    // Garante pelo menos um material/taxa ao abrir a página NOVA (sem edição)
+    // DOMContentLoaded: mínimos + delete com AppConfirm
     document.addEventListener('DOMContentLoaded', () => {
         const hasEdit = <?php echo $editData ? 'true' : 'false'; ?>;
+
         if (!hasEdit) {
             if (!document.querySelector('#lista-materiais .material-item')) {
                 addMaterial();
@@ -1079,6 +1129,34 @@ include_once __DIR__ . '/../../includes/menu.php';
                 addTaxa();
             }
         }
+
+        // Botões de excluir histórico usando AppConfirm
+        const deleteLinks = document.querySelectorAll('.cs-delete-link');
+        deleteLinks.forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+
+                const id   = this.dataset.id;
+                const name = this.dataset.name || '';
+
+                if (window.AppConfirm) {
+                    AppConfirm.open({
+                        title: 'Excluir cálculo',
+                        message: `Tem certeza que deseja excluir o cálculo <strong>${name}</strong>?`,
+                        confirmText: 'Sim, excluir',
+                        cancelText: 'Cancelar',
+                        type: 'danger',
+                        onConfirm: function () {
+                            window.location.href = 'calcular-servico.php?delete=' + id;
+                        }
+                    });
+                } else {
+                    if (confirm('Tem certeza que deseja excluir este cálculo?')) {
+                        window.location.href = 'calcular-servico.php?delete=' + id;
+                    }
+                }
+            });
+        });
     });
 </script>
 

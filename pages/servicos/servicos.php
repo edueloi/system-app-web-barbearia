@@ -40,6 +40,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Caminho salvo no banco (relativo ao projeto)
     $uploadDirDb = 'uploads/';
 
+    $stmtCalcs = $pdo->prepare("
+        SELECT id, nome_servico, valor_cobrado
+        FROM calculo_servico
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+    ");
+    $stmtCalcs->execute([$userId]);
+    $calculos = $stmtCalcs->fetchAll();
+
+
     // Upload de Imagem
     $fotoPath = $_POST['foto_atual'] ?? '';
     if (!empty($_FILES['foto']['name'])) {
@@ -689,6 +699,20 @@ $listaPacotes  = array_filter($todosRegistros, function($item){ return $item['ti
             <div class="form-group">
                 <label class="form-label">Nome do serviço / pacote</label>
                 <input type="text" name="nome" id="inputNome" class="form-control" placeholder="Ex: Corte Degrade + Barba" required>
+            </div>
+
+            <div class="form-group">
+                <label>Cálculo de custos vinculado (opcional)</label>
+                <select name="calculo_servico_id" class="form-control">
+                    <option value="">Nenhum (preencher manual)</option>
+                    <?php foreach ($calculos as $c): ?>
+                        <option value="<?php echo $c['id']; ?>"
+                            <?php if (!empty($servicoEdicao['calculo_servico_id']) && $servicoEdicao['calculo_servico_id'] == $c['id']) echo 'selected'; ?>
+                        >
+                            <?php echo htmlspecialchars($c['nome_servico']); ?> - R$ <?php echo number_format($c['valor_cobrado'], 2, ',', '.'); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </div>
 
             <div class="form-group" id="areaSelecaoItens" style="display:none;">

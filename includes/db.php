@@ -61,7 +61,8 @@ $pdo->exec('PRAGMA journal_mode = WAL;');  // melhor para concorrência
         foto TEXT,
         observacao TEXT,
         tipo TEXT DEFAULT 'unico', 
-        itens_pacote TEXT, 
+        itens_pacote TEXT,
+        calculo_servico_id INTEGER,
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
@@ -151,11 +152,12 @@ $pdo->exec('PRAGMA journal_mode = WAL;');  // melhor para concorrência
     $pdo->exec("CREATE TABLE IF NOT EXISTS calculo_servico_materiais (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         calculo_id INTEGER NOT NULL,
+        produto_id INTEGER,          -- NOVO: vínculo com produtos
         nome_material TEXT NOT NULL,
-        quantidade_usada REAL,
+        quantidade_usada REAL,       -- já está em unidade base (ml, g, mm, etc)
         unidade TEXT,
         preco_produto REAL,
-        quantidade_embalagem REAL,
+        quantidade_embalagem REAL,   -- também em unidade base
         custo_calculado REAL,
         FOREIGN KEY (calculo_id) REFERENCES calculo_servico(id) ON DELETE CASCADE
     )");
@@ -172,6 +174,10 @@ $pdo->exec('PRAGMA journal_mode = WAL;');  // melhor para concorrência
     // =========================================================
     // MIGRAÇÕES (para bancos antigos já existentes)
     // =========================================================
+
+    try { $pdo->exec("ALTER TABLE servicos ADD COLUMN calculo_servico_id INTEGER"); } catch (Exception $e) {}
+
+    try { $pdo->exec("ALTER TABLE calculo_servico_materiais ADD COLUMN produto_id INTEGER"); } catch (Exception $e) {}
 
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN tamanho_embalagem REAL DEFAULT 0"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN cor_tema TEXT DEFAULT '#4f46e5'"); } catch (Exception $e) {}
