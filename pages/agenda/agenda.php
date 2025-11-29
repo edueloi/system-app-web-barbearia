@@ -59,7 +59,7 @@ try {
     // 2.3 Novo Agendamento (POST)
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['novo_agendamento'])) {
         $cliente   = trim($_POST['cliente']);
-        $servicoId = $_POST['servico_id'];
+        $servicoNome = trim($_POST['servico_nome'] ?? '');
         $valor     = str_replace(',', '.', $_POST['valor']);
         $horario   = $_POST['horario'];
         $obs       = trim($_POST['obs']);
@@ -71,9 +71,13 @@ try {
         }
 
         // Busca nome do serviço
-        $stmt = $pdo->prepare("SELECT nome FROM servicos WHERE id=? AND user_id=?");
-        $stmt->execute([$servicoId, $userId]);
-        $nomeServico = $stmt->fetchColumn() ?: 'Serviço';
+        if ($servicoNome) {
+            $nomeServico = $servicoNome;
+        } else {
+            $stmt = $pdo->prepare("SELECT nome FROM servicos WHERE id=? AND user_id=?");
+            $stmt->execute([$servicoId, $userId]);
+            $nomeServico = $stmt->fetchColumn() ?: 'Serviço';
+        }
 
         if ($cliente && $horario) {
             $sql = "INSERT INTO agendamentos (user_id, cliente_nome, servico, valor, data_agendamento, horario, observacoes, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'Confirmado')";
@@ -695,15 +699,23 @@ include '../../includes/menu.php';
         
         <form method="POST">
             <input type="hidden" name="novo_agendamento" value="1">
-            
+
             <div class="form-group">
                 <label class="form-label">Data</label>
                 <input type="date" name="data_agendamento" value="<?php echo ($viewType==='day'?$dataExibida:$hoje); ?>" min="<?php echo $hoje; ?>" class="form-input" required>
             </div>
 
             <div class="form-group">
+                <label class="form-label">Nome do cliente</label>
+                <input type="text" name="cliente" id="inputNomeCliente" class="form-input" placeholder="Digite ou selecione o nome do cliente" list="dlNomes" required oninput="preencherTelefonePorNome();">
+                <datalist id="dlNomes">
+                    <?php foreach($clientes as $c) echo "<option value='".htmlspecialchars($c['nome'])."'>"; ?>
+                </datalist>
+            </div>
+
+            <div class="form-group">
                 <label class="form-label">Telefone do cliente</label>
-                <input type="tel" name="telefone" id="inputTelefone" class="form-input" placeholder="(11) 99999-9999" list="dlTels" required oninput="preencherNomePorTelefone(); mascaraTelefone(this);">
+                <input type="tel" name="telefone" id="inputTelefone" class="form-input" placeholder="(11) 99999-9999" list="dlTels" required oninput="mascaraTelefone(this);">
                 <datalist id="dlTels">
                     <?php foreach($clientes as $c) echo "<option value='".htmlspecialchars($c['telefone'])."'>"; ?>
                 </datalist>
@@ -716,37 +728,46 @@ include '../../includes/menu.php';
                     v = v.replace(/([0-9]{5})([0-9]{1,4})$/, "$1-$2");
                     i.value = v.substring(0, 15);
                 }
-            </script>
-
-            <div class="form-group">
-                <label class="form-label">Nome do cliente</label>
-                <input type="text" name="cliente" id="inputNomeCliente" class="form-input" placeholder="Preenchido pelo telefone, se existir" required readonly>
-            </div>
-            <script>
-            // Lista de clientes PHP para JS
-            var clientes = <?php echo json_encode($clientes); ?>;
-            function preencherNomePorTelefone() {
-                var tel = document.getElementById('inputTelefone').value.replace(/\D/g, '');
-                var nomeInput = document.getElementById('inputNomeCliente');
-                var achou = false;
-                clientes.forEach(function(c) {
-                    var cTel = (c.telefone||'').replace(/\D/g, '');
-                    if (cTel && tel && cTel.endsWith(tel)) {
-                        nomeInput.value = c.nome;
-                        achou = true;
-                    }
-                });
-                if (!achou) nomeInput.value = '';
-            }
+                // Lista de clientes PHP para JS
+                var clientes = <?php echo json_encode($clientes); ?>;
+                function preencherTelefonePorNome() {
+                    var nome = document.getElementById('inputNomeCliente').value.trim().toLowerCase();
+                    var telInput = document.getElementById('inputTelefone');
+                    var achou = false;
+                    clientes.forEach(function(c) {
+                        if (c.nome && c.nome.trim().toLowerCase() === nome) {
+                            telInput.value = c.telefone;
+                            achou = true;
+                        }
+                    });
+                    if (!achou) telInput.value = '';
+                }
             </script>
 
             <div class="form-group">
                 <label class="form-label">Serviço</label>
-                <select name="servico_id" id="selServico" class="form-input" onchange="atualizaPreco()" required>
-                    <option value="">Selecione...</option>
-                    <?php foreach($servicos as $s) echo "<option value='{$s['id']}' data-preco='{$s['preco']}'>".htmlspecialchars($s['nome'])."</option>"; ?>
-                </select>
+                <input type="text" name="servico_nome" id="inputServicoNome" class="form-input" list="datalistServicos" placeholder="Digite ou escolha o serviço" required oninput="atualizaPrecoPorNome()">
+                <datalist id="datalistServicos">
+                    <?php foreach($servicos as $s) echo "<option value='".htmlspecialchars($s['nome'])."' data-preco='{$s['preco']}'>"; ?>
+                </datalist>
             </div>
+            <script>
+            // Atualiza preço ao digitar serviço
+            function atualizaPrecoPorNome() {
+                var servicoInput = document.getElementById('inputServicoNome');
+                var valorInput = document.getElementById('inputValor');
+                var nome = servicoInput.value.trim().toLowerCase();
+                var found = false;
+                <?php echo "var servicos = ".json_encode($servicos).";"; ?>
+                servicos.forEach(function(s) {
+                    if (s.nome && s.nome.toLowerCase() === nome) {
+                        valorInput.value = s.preco;
+                        found = true;
+                    }
+                });
+                if (!found) valorInput.value = '';
+            }
+            </script>
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                 <div class="form-group">
