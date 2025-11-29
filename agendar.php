@@ -69,7 +69,12 @@ if (!empty($profissional['cor_tema'])) {
 } 
  
 
+
 $servicoNome = $servicoNome ?? '';
+// Variáveis para exibir na tela de sucesso (sempre disponíveis)
+$servicoConfirmado = $_GET['servico'] ?? '';
+$dataConfirmada    = $_GET['data'] ?? '';
+$horaConfirmada    = $_GET['hora'] ?? '';
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     // Garante que não dará warning ao acessar fora do POST
     $_POST['data_escolhida'] = $_POST['data_escolhida'] ?? '';
@@ -213,10 +218,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 🔹 Descobre se está em produção (salao.develoi.com) ou local
         $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
         $agendarUrl = $isProd
-            ? '/agendar' // em produção usa rota amigável
+            ? '/agendar'
             : '/karen_site/controle-salao/agendar.php';
-        header("Location: {$agendarUrl}?user={$profissionalId}&ok=1");
+
+        // Envia dados do agendamento pela URL
+        $params = [
+            'user'    => $profissionalId,
+            'ok'      => 1,
+            'servico' => $servicoNome,
+            'data'    => $data,
+            'hora'    => $horario,
+        ];
+
+        header('Location: ' . $agendarUrl . '?' . http_build_query($params));
         exit;
+
     } 
 } 
  
@@ -524,15 +540,17 @@ $servicos = $stmt->fetchAll();
                 <i class="bi bi-check-circle-fill" 
                    style="font-size:5rem; color:#10b981; margin-bottom:20px; display:block;"></i> 
                 <h2 class="card-title">Agendamento Confirmado!</h2> 
-                <p class="card-subtitle"> 
-                    Serviço: <strong><?php echo htmlspecialchars($servicoNome ?? ''); ?></strong><br> 
-                    Data/Hora: <strong><?php echo htmlspecialchars($_POST['data_escolhida'] ?? ''); ?> <?php echo htmlspecialchars($_POST['horario_escolhido'] ?? ''); ?></strong> 
-                </p> 
-                <?php 
-                $whats = preg_replace('/[^0-9]/', '', $profissional['telefone'] ?? ''); 
-                $msg = rawurlencode("Olá! Acabei de agendar o serviço: {$servicoNome} para {$_POST['data_escolhida']} às {$_POST['horario_escolhido']}. Obrigado!"); 
-                ?> 
-                <?php if ($whats): ?> 
+                <p class="card-subtitle">
+                    Serviço: <strong><?php echo htmlspecialchars($servicoConfirmado); ?></strong><br>
+                    Data/Hora: <strong><?php echo htmlspecialchars($dataConfirmada); ?> <?php echo htmlspecialchars($horaConfirmada); ?></strong>
+                </p>
+                <?php
+                $whats = preg_replace('/[^0-9]/', '', $profissional['telefone'] ?? '');
+                $msg   = rawurlencode(
+                    "Olá! Acabei de agendar o serviço: {$servicoConfirmado} para {$dataConfirmada} às {$horaConfirmada}. Obrigado!"
+                );
+                ?>
+                <?php if ($whats): ?>
                     <a href="https://wa.me/<?php echo $whats; ?>?text=<?php echo $msg; ?>" 
                        target="_blank" class="btn-action" style="background:#25d366; color:white; margin-bottom:10px; display:inline-block;"> 
                         <i class="bi bi-whatsapp"></i> Confirmar pelo WhatsApp 
