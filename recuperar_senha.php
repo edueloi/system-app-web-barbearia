@@ -46,33 +46,124 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // 4. Monta o link de recuperação (ambiente prod x local)
             if ($isProd) {
                 $link = "https://salao.develoi.com/nova_senha.php?token=" . urlencode($token);
+                $logoUrl = "https://salao.develoi.com/img/logo-D.png";
             } else {
-                $host = $_SERVER['HTTP_HOST'];
-                $link = "http://{$host}/karen_site/controle-salao/nova_senha.php?token=" . urlencode($token);
+                $host   = $_SERVER['HTTP_HOST'];
+                $link   = "http://{$host}/karen_site/controle-salao/nova_senha.php?token=" . urlencode($token);
+                $logoUrl = "http://{$host}/karen_site/controle-salao/img/logo-D.png";
             }
 
-            // 5. Corpo do e-mail
+            // 5. Corpo do e-mail (template bonito)
             $nomeUsuario = $user['nome'] ?? 'Cliente';
+            $subject     = 'Recuperação de senha - Develoi Agenda';
+            $year        = date('Y');
 
-            $subject = 'Recuperação de senha - Develoi Agenda';
+            $htmlBody = <<<HTML
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>{$subject}</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 0;">
+        <tr>
+            <td align="center">
 
-            $htmlBody = "
-                <p>Olá, <strong>{$nomeUsuario}</strong>!</p>
-                <p>Recebemos uma solicitação para redefinir a sua senha no <strong>Develoi Agenda</strong>.</p>
-                <p>Clique no botão abaixo para criar uma nova senha. 
-                Este link é válido por <strong>2 horas</strong> e só pode ser utilizado uma vez.</p>
-                <p style=\"text-align:center; margin:30px 0;\">
-                    <a href=\"{$link}\" 
-                    style=\"background:#4f46e5;color:#fff;padding:12px 24px;
-                            border-radius:999px;text-decoration:none;font-weight:bold;\">
-                        Redefinir minha senha
-                    </a>
-                </p>
-                <p>Se o botão não funcionar, copie e cole este link no seu navegador:</p>
-                <p><a href=\"{$link}\">{$link}</a></p>
-                <hr>
-                <p>Se você não fez essa solicitação, pode ignorar este e-mail.</p>
-            ";
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(15,23,42,.12);">
+                    
+                    <!-- HEADER COM LOGO -->
+                    <tr>
+                        <td style="padding:24px 32px 18px 32px;background:linear-gradient(135deg,#6366f1,#ec4899);">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="left" style="vertical-align:middle;">
+                                        <img src="{$logoUrl}" alt="Develoi Agenda" style="display:block;width:44px;height:44px;border-radius:14px;">
+                                    </td>
+                                    <td align="right" style="font-size:12px;color:#e5e7eb;font-weight:500;vertical-align:middle;">
+                                        Develoi Agenda<br>
+                                        <span style="opacity:.9;">Gestão inteligente para salões & barbearias</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- CONTEÚDO PRINCIPAL -->
+                    <tr>
+                        <td style="padding:24px 32px 8px 32px;">
+                            <p style="margin:0 0 10px 0;font-size:14px;color:#6b7280;">
+                                Olá, <strong style="color:#111827;">{$nomeUsuario}</strong> 👋
+                            </p>
+
+                            <h1 style="margin:0 0 12px 0;font-size:20px;line-height:1.3;color:#111827;">
+                                Redefinição de senha
+                            </h1>
+
+                            <p style="margin:0 0 10px 0;font-size:14px;line-height:1.6;color:#4b5563;">
+                                Recebemos uma solicitação para redefinir a sua senha no
+                                <strong>Develoi Agenda</strong>.
+                            </p>
+
+                            <p style="margin:0 0 18px 0;font-size:14px;line-height:1.6;color:#4b5563;">
+                                Para criar uma nova senha, clique no botão abaixo.  
+                                Este link é válido por <strong>2 horas</strong> e pode ser utilizado apenas uma vez.
+                            </p>
+
+                            <!-- BOTÃO -->
+                            <p style="text-align:center;margin:0 0 24px 0;">
+                                <a href="{$link}"
+                                   style="display:inline-block;padding:12px 26px;border-radius:999px;
+                                          background:#111827;color:#ffffff;text-decoration:none;
+                                          font-size:14px;font-weight:600;">
+                                    Redefinir minha senha
+                                </a>
+                            </p>
+
+                            <!-- LINK EM TEXTO -->
+                            <p style="margin:0 0 8px 0;font-size:12px;line-height:1.6;color:#6b7280;">
+                                Se o botão acima não funcionar, copie e cole este link no seu navegador:
+                            </p>
+
+                            <p style="margin:0 0 20px 0;font-size:12px;color:#4b5563;word-break:break-all;">
+                                <a href="{$link}" style="color:#4f46e5;text-decoration:none;">{$link}</a>
+                            </p>
+
+                            <p style="margin:0;font-size:12px;line-height:1.6;color:#6b7280;">
+                                Se você <strong>não fez</strong> essa solicitação, pode ignorar este e-mail.
+                                Sua senha atual continuará válida.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- RODAPÉ / ASSINATURA -->
+                    <tr>
+                        <td style="padding:14px 32px 18px 32px;border-top:1px solid #e5e7eb;background:#f9fafb;">
+                            <p style="margin:0 0 4px 0;font-size:11px;color:#9ca3af;">
+                                Este é um e-mail automático, por favor <strong>não responda</strong>.
+                            </p>
+
+                            <p style="margin:0 0 4px 0;font-size:11px;color:#9ca3af;">
+                                Em caso de dúvidas, fale com nossa equipe pelo e-mail
+                                <a href="mailto:contato@salao.develoi.com" style="color:#4f46e5;text-decoration:none;">
+                                    contato@salao.develoi.com
+                                </a>.
+                            </p>
+
+                            <p style="margin:6px 0 0 0;font-size:11px;color:#d1d5db;">
+                                © {$year} Develoi Agenda — Gestão premium para salões, barbearias e estéticas.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+HTML;
 
             // 6. Envia o e-mail
             $enviou = sendMailDeveloi($email, $nomeUsuario, $subject, $htmlBody);
@@ -102,7 +193,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Recuperar Senha • Develoi Agenda</title>
 
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+    <?php
+    // Favicon e logo dinâmicos conforme ambiente
+    if ($isProd) {
+        $faviconUrl = 'https://salao.develoi.com/img/logo-azul.png';
+        $logoUrl = 'https://salao.develoi.com/img/logo-azul.png';
+    } else {
+        $host = $_SERVER['HTTP_HOST'];
+        $faviconUrl = "http://{$host}/karen_site/controle-salao/img/logo-azul.png";
+        $logoUrl = "http://{$host}/karen_site/controle-salao/img/logo-azul.png";
+    }
+    ?>
+    <link rel="icon" href="<?php echo $faviconUrl; ?>" type="image/png">
+    <link rel="shortcut icon" href="<?php echo $faviconUrl; ?>" type="image/png">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -164,7 +268,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .login-content { width: 100%; max-width: 340px; }
 
-        /* Estilo da Logo Pequena */
         .mini-logo {
             width: 45px; height: 45px;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
@@ -184,14 +287,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #64748b; margin-bottom: 30px; font-size: 0.9rem; text-align: center; line-height: 1.5; 
         }
 
-        /* Input Arredondado e Delicado */
         .input-group-custom { position: relative; margin-bottom: 20px; }
         
         .input-custom {
             width: 100%;
             padding: 14px 14px 14px 45px;
             border: 2px solid #e2e8f0;
-            border-radius: 99px; /* BEM REDONDO */
+            border-radius: 99px;
             font-size: 0.9rem;
             background: #f8fafc;
             transition: all 0.3s;
@@ -207,12 +309,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         .input-custom:focus + .input-icon { color: var(--primary); }
 
-        /* Botão Enviar */
         .btn-send {
             width: 100%;
             padding: 14px;
             border: none;
-            border-radius: 99px; /* BEM REDONDO */
+            border-radius: 99px;
             background: var(--dark);
             color: white;
             font-weight: 700; font-size: 0.9rem;
@@ -227,7 +328,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
         }
 
-        /* Link Voltar */
         .back-link {
             display: inline-flex; align-items: center; gap: 6px;
             margin-top: 25px;
@@ -236,14 +336,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         .back-link:hover { color: var(--primary); transform: translateX(-3px); }
 
-        /* Alertas */
         .alert-custom {
             border-radius: 16px; font-size: 0.85rem; padding: 12px 16px; margin-bottom: 20px; border: none;
         }
         .alert-erro { background: #fef2f2; color: #b91c1c; }
         .alert-sucesso { background: #f0fdf4; color: #15803d; }
 
-        /* --- LADO DIREITO (VISUAL SEGURO) --- */
         .visual-panel {
             position: relative; display: flex; align-items: center; justify-content: center;
             perspective: 1200px;
@@ -265,7 +363,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         @keyframes hoverSecure {
             0%, 100% { transform: rotateY(-5deg) translateY(0); }
-            50% { transform: rotateY(-5deg) translateY(-15px); }
+            50%       { transform: rotateY(-5deg) translateY(-15px); }
         }
 
         .lock-icon-container {
@@ -286,9 +384,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .sec-title { font-family: 'Outfit'; font-weight: 700; font-size: 1.5rem; margin-bottom: 10px; }
-        .sec-desc { font-size: 0.95rem; opacity: 0.8; line-height: 1.6; }
+        .sec-desc  { font-size: 0.95rem; opacity: 0.8; line-height: 1.6; }
 
-        /* Responsivo */
         @media (max-width: 991px) {
             .split-container { grid-template-columns: 1fr; }
             .visual-panel { display: none; }
@@ -307,7 +404,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="login-panel animate__animated animate__fadeInLeft">
             <div class="login-content">
                 
-                <div class="mini-logo">D</div>
+                <div class="mini-logo" style="background:none;box-shadow:none;padding:0;">
+                    <img src="<?php echo $logoUrl; ?>" alt="Logo" style="width:45px;height:45px;object-fit:contain;display:block;border-radius:12px;background:#eef2ff;padding:4px;box-shadow:0 2px 8px #e0e7ff;">
+                </div>
 
                 <h1>Esqueceu a senha?</h1>
                 <p class="subtitle">Não se preocupe. Digite seu e-mail cadastrado e enviaremos um link seguro.</p>
@@ -357,7 +456,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h2 class="sec-title">Recuperação Segura</h2>
                 <p class="sec-desc">
                     Seu sistema é protegido com criptografia de ponta.
-                    O link enviado expira em 1 hora para garantir a segurança dos seus dados.
+                    O link enviado expira em <strong>2 horas</strong> para garantir a segurança dos seus dados.
                 </p>
 
             </div>
