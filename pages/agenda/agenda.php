@@ -875,7 +875,10 @@ function renderCard($ag, $clientes) {
         // Ação: Status/Excluir
         document.getElementById('actCancel').href = base + '&status=Cancelado';
         document.getElementById('actDelete').onclick = () => { if(confirm('Tem certeza que deseja excluir?')) window.location.href = base + '&delete=1'; };
-        document.getElementById('actNota').href = `nota.php?id=${data.id}`;
+        // Corrige o link para emitir nota, usando rota amigável em produção
+        var isProd = window.location.hostname === 'salao.develoi.com';
+        var notaUrl = isProd ? '/nota' : 'nota.php';
+        document.getElementById('actNota').href = `${notaUrl}?id=${data.id}`;
         
         // Ação: WhatsApp avulso
         if(data.tel) {
