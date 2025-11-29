@@ -1,0 +1,10 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="d-favicon-gradient" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#d-favicon-gradient)"/>
+  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-family="Outfit, Arial, sans-serif" font-size="36" font-weight="800" fill="#fff">D</text>
+</svg>

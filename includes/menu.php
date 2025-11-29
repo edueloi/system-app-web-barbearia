@@ -529,13 +529,13 @@ function isActive($pageName)
         <li>
             <a href="<?php echo $isProd ? '/agenda' : '/karen_site/controle-salao/pages/agenda/agenda.php'; ?>"
                class="sidebar-link <?php echo isActive('agenda.php'); ?>">
-                <i class="bi bi-calendar2-week-fill"></i> Agenda
+                <i class="bi bi-calendar2-week-fill"></i> Agendamentos
             </a>
         </li>
         <li>
             <a href="<?php echo $isProd ? '/horarios' : '/karen_site/controle-salao/pages/horarios/horarios.php'; ?>"
                class="sidebar-link <?php echo isActive('horarios.php'); ?>">
-                <i class="bi bi-clock-fill"></i> Horários
+                <i class="bi bi-clock-fill"></i> Expediente
             </a>
         </li>
         <li>

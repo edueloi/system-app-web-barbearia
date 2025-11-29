@@ -61,7 +61,7 @@ $diasSemana = [
 ];
 
 $toastStatus = $_GET['status'] ?? null;
-$pageTitle = 'Configurar Horários';
+$pageTitle = 'Seu Expediente';
 
 include '../../includes/header.php';
 include '../../includes/menu.php';
@@ -398,7 +398,7 @@ include '../../includes/menu.php';
     
     <div class="page-header">
         <div>
-            <h2>Configurar horários</h2>
+            <h2>Seu Expediente</h2>
             <p>Defina sua disponibilidade semanal.</p>
         </div>
         <button type="button" class="btn-auto-fill" onclick="confirmarHorarioComercial()">

