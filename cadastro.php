@@ -45,7 +45,7 @@ if (isset($_SESSION['cadastro_msg'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastro - Salão Top</title>
+    <title>Cadastro - Salão Develoi</title>
     <?php /* Incluiria o CSS aqui ou nos estilos inline */ ?>
     <style>
         :root { /* ... (mesmas variáveis de estilo) ... */ --primary: #6366f1; --bg-body: #f1f5f9; --text-dark: #1e293b; --text-gray: #64748b; --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); }
@@ -65,7 +65,7 @@ if (isset($_SESSION['cadastro_msg'])) {
 <body>
 
 <div class="login-container">
-    <div class="logo">Salão Top</div>
+    <div class="logo">Salão Develoi</div>
     <p class="subtitle">Criar Conta Principal</p>
 
     <?php if ($mensagem): ?>

@@ -64,7 +64,7 @@ if (isset($_SESSION['login_erro'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Salão Top</title>
+    <title>Login - Salão Develoi</title>
     <link rel="icon" type="image/png" href="img/logo-azul.png">
     <link rel="shortcut icon" href="img/logo-azul.png" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
@@ -272,9 +272,9 @@ if (isset($_SESSION['login_erro'])) {
 <div class="login-container">
     <div class="login-inner">
         <div class="app-icon-wrapper" style="background: none; box-shadow: none;">
-            <img src="img/logo-azul.png" alt="Logo Salão Top" style="width:54px; height:54px; object-fit:contain; display:block; margin:0 auto; border-radius:12px; background:#eef2ff; padding:4px; box-shadow:0 2px 8px #e0e7ff;">
+            <img src="img/logo-azul.png" alt="Logo Salão Develoi" style="width:54px; height:54px; object-fit:contain; display:block; margin:0 auto; border-radius:12px; background:#eef2ff; padding:4px; box-shadow:0 2px 8px #e0e7ff;">
         </div>
-        <div class="logo">Salão Top</div>
+        <div class="logo">Salão Develoi</div>
         <p class="subtitle">Acesso ao Painel do Profissional</p>
 
         <?php if ($mensagem): ?>

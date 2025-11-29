@@ -25,7 +25,7 @@ $userId = $_SESSION['user_id'];
 // =========================================================
 // 2. DEFINIÇÕES DA PÁGINA E INCLUDES
 // =========================================================
-$pageTitle = 'Dashboard - Salão Top';
+$pageTitle = 'Dashboard - Salão Develoi';
 
 include '../includes/header.php';
 include '../includes/menu.php';

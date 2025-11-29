@@ -7,7 +7,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Título padrão da página (podes mudar antes do include se quiseres)
 if (!isset($pageTitle)) {
-    $pageTitle = 'Salão Top - Gestão';
+    $pageTitle = 'Salão Develoi - Gestão';
 }
 ?>
 <!DOCTYPE html>

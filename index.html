@@ -2,640 +2,1106 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Develoi • Sistemas Inteligentes</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Sistemas sob medida para negócios reais. Agenda, Financeiro e Gestão.">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <title>Develoi • Gestão Inteligente</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="O sistema definitivo para salões e barbearias. Abandone o papel e tenha gestão na palma da mão.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
-    /* ========= VARIÁVEIS (TEMA CLEAN) ========= */
+    /* ============ CONFIGURAÇÕES GERAIS ============ */
     :root {
-      /* Paleta de Cores Claras */
-      --bg-body: #ffffff;
-      --bg-surface: #f8fafc; /* Cinza muito suave para seções alternadas */
-      --bg-card: #ffffff;
+      --primary: #6366f1;
+      --primary-dark: #4338ca;
+      --secondary: #ec4899;
+      --accent: #06b6d4;
       
-      /* Cores de Marca */
-      --primary: #4f46e5;    /* Indigo vibrante, mas profissional */
-      --primary-dark: #3730a3;
-      --secondary: #0ea5e9;  /* Azul céu */
-      --accent: #f59e0b;     /* Laranja suave para detalhes */
-
-      /* Texto */
-      --text-main: #0f172a;  /* Azul marinho quase preto (muito elegante) */
-      --text-body: #475569;  /* Cinza médio para parágrafos */
-      --text-light: #94a3b8; /* Cinza claro para detalhes */
-
-      /* Bordas e Sombras */
-      --border: #e2e8f0;
-      --radius-lg: 1rem;
-      --radius-md: 0.75rem;
-      --radius-full: 9999px;
+      --bg-body: #f4f5fb;
+      --text-main: #020617;
+      --text-body: #475569;
       
-      /* Sombra "Top" (Smooth Shadow) */
-      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-      --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-
-      --transition: 0.3s ease;
+      --glass: rgba(255, 255, 255, 0.65);
+      --glass-solid: rgba(255, 255, 255, 0.9);
+      --border-light: rgba(255, 255, 255, 0.6);
+      
+      --shadow-soft: 0 18px 60px -18px rgba(99, 102, 241, 0.35);
+      --shadow-card: 0 10px 30px rgba(15, 23, 42, 0.07);
+      
+      --radius-app: 28px;
+      --radius-btn: 999px;
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
 
     body {
-      font-family: 'Inter', sans-serif; /* Fonte mais usada em apps modernos */
-      background-color: var(--bg-body);
+      font-family: 'Outfit', sans-serif;
+      background: radial-gradient(circle at top, #eef2ff 0, #f8fafc 40%, #f4f5fb 100%);
       color: var(--text-body);
+      overflow-x: hidden;
       line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
     }
 
-    a { text-decoration: none; color: inherit; transition: var(--transition); }
+    h1, h2, h3 {
+      color: var(--text-main);
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+      transition: 0.3s;
+    }
+
     ul { list-style: none; }
     img { max-width: 100%; display: block; }
 
-    /* ========= ESTRUTURA ========= */
-    .shell {
-      max-width: 1140px;
-      margin: 0 auto;
-      padding: 0 1.5rem;
+    /* ============ BACKGROUND ANIMADO ============ */
+    .mesh-bg {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: -1;
+      pointer-events: none;
+      background: transparent;
+      overflow: hidden;
     }
 
-    /* ========= NAVBAR ========= */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(90px);
+      opacity: 0.5;
+      animation: float 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .blob-1 { width: 550px; height: 550px; background: #e0e7ff; top: -150px; left: -120px; }
+    .blob-2 { width: 480px; height: 480px; background: #fce7f3; bottom: -150px; right: -80px; animation-delay: -5s; }
+    .blob-3 { width: 320px; height: 320px; background: #cffafe; top: 40%; left: 35%; animation-delay: -10s; }
+
+    @keyframes float {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(30px, -30px) scale(1.1); }
+    }
+
+    /* ============ NAVBAR ============ */
     .navbar {
       position: fixed;
       top: 0; left: 0; width: 100%;
-      height: 72px;
-      background: rgba(255, 255, 255, 0.85); /* Vidro fosco claro */
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      z-index: 100;
+      padding: 0.8rem 1rem;
+      z-index: 1000;
+      transition: all 0.4s ease;
       display: flex;
-      align-items: center;
+      justify-content: center;
     }
 
-    .nav-inner {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .navbar-inner {
       width: 100%;
+      max-width: 1100px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: 999px;
+      padding: 0.65rem 1.1rem;
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 8px 28px rgba(15,23,42,0.08);
+      border: 1px solid rgba(148,163,184,0.2);
+    }
+
+    .navbar.scrolled .navbar-inner {
+      box-shadow: 0 14px 40px rgba(15,23,42,0.12);
     }
 
     .brand {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      font-weight: 700;
-      color: var(--text-main);
+      font-weight: 800;
       font-size: 1.25rem;
-    }
-
-    .brand-logo {
-      width: 36px; height: 36px;
       background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-sub {
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+
+    .brand-wrap {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .nav-btn {
+      padding: 0.5rem 1.3rem;
+      background: #020617;
       color: white;
-      border-radius: 8px;
-      display: grid;
-      place-items: center;
-      font-size: 1rem;
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 2rem;
-    }
-
-    .nav-links a {
-      font-size: 0.95rem;
-      font-weight: 500;
-      color: var(--text-body);
-    }
-
-    .nav-links a:hover {
-      color: var(--primary);
-    }
-
-    .nav-actions {
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0.6rem 1.25rem;
-      border-radius: var(--radius-full);
+      border-radius: var(--radius-btn);
+      font-size: 0.83rem;
       font-weight: 600;
-      font-size: 0.9rem;
-      transition: var(--transition);
-      cursor: pointer;
-      border: 1px solid transparent;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.25);
+      white-space: nowrap;
     }
 
-    .btn-ghost {
-      background: transparent;
-      color: var(--text-body);
-    }
-    .btn-ghost:hover {
-      background: var(--bg-surface);
-      color: var(--primary);
+    .nav-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.32);
     }
 
-    .btn-primary {
-      background: var(--primary);
-      color: white;
-      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-    }
-    .btn-primary:hover {
-      background: var(--primary-dark);
-      transform: translateY(-1px);
+    /* ============ LAYOUT PRINCIPAL ============ */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.25rem;
     }
 
-    /* Mobile toggle */
-    .nav-toggle { display: none; background: none; border: none; font-size: 1.5rem; color: var(--text-main); cursor: pointer; }
-    
-    @media(max-width: 768px) {
-      .nav-links, .nav-actions { display: none; }
-      .nav-toggle { display: block; }
+    .page-shell {
+      margin-top: 88px;
+      margin-bottom: 40px;
     }
 
-    /* ========= HERO SECTION ========= */
+    /* ============ HERO SECTION ============ */
     .hero {
-      padding-top: 140px;
-      padding-bottom: 80px;
-      background: radial-gradient(circle at top right, #e0e7ff 0%, #ffffff 40%);
-      overflow: hidden;
+      padding: 2rem 0 3.5rem;
     }
 
     .hero-grid {
       display: grid;
-      grid-template-columns: 1.2fr 1fr;
-      gap: 4rem;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      gap: 3rem;
       align-items: center;
     }
 
-    .tag-hero {
-      display: inline-block;
-      padding: 0.35rem 0.85rem;
-      background: #e0e7ff;
-      color: var(--primary);
-      font-size: 0.8rem;
+    .hero-content {
+      max-width: 540px;
+    }
+
+    .badge-top {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      background: #eef2ff;
+      color: var(--primary-dark);
+      border-radius: 99px;
+      font-size: 0.76rem;
       font-weight: 600;
-      border-radius: var(--radius-full);
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
+      border: 1px solid #e0e7ff;
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 0 6px rgba(34,197,94,0.25);
     }
 
     h1.hero-title {
-      font-size: 3.5rem;
-      line-height: 1.1;
+      font-size: clamp(2.1rem, 4vw, 3.1rem);
+      margin-bottom: 0.9rem;
+      letter-spacing: -1.1px;
+    }
+
+    .type-wrap {
+      color: var(--primary);
+      display: inline-block;
+      position: relative;
+      white-space: nowrap;
+    }
+
+    .type-wrap::after {
+      content: '|';
+      animation: blink 1s infinite;
       color: var(--text-main);
-      font-weight: 800;
+      margin-left: 2px;
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .hero-text {
+      font-size: 0.98rem;
       margin-bottom: 1.5rem;
-      letter-spacing: -0.03em;
-    }
-
-    h1 span.highlight {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .hero-desc {
-      font-size: 1.125rem;
       color: var(--text-body);
-      margin-bottom: 2rem;
-      max-width: 90%;
     }
 
-    .hero-btns {
+    .hero-text strong {
+      color: var(--text-main);
+    }
+
+    .hero-actions {
       display: flex;
-      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.7rem 1rem;
+      margin-bottom: 1.4rem;
+    }
+
+    .btn-hero {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, var(--primary), #4f46e5);
+      color: white;
+      padding: 0.85rem 2rem;
+      border-radius: var(--radius-btn);
+      font-weight: 700;
+      font-size: 0.94rem;
+      box-shadow: 0 16px 32px -12px rgba(79, 70, 229, 0.75);
+      transition: all 0.3s;
+      border: 0;
+    }
+
+    .btn-hero span {
+      font-size: 1.05rem;
+    }
+
+    .btn-hero:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 20px 44px -14px rgba(79, 70, 229, 0.85);
+    }
+
+    .hero-subnote {
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+
+    .hero-subnote strong {
+      color: #0f172a;
+    }
+
+    /* ============ PHONE MOCKUP – TEMA CLARO ============ */
+    .hero-visual {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .phone-wrapper {
+      perspective: 1100px;
+      display: inline-flex;
+    }
+
+    .phone {
+      width: 310px;
+      max-width: 100%;
+      aspect-ratio: 9/17;
+      background: #e5e7eb;
+      border-radius: 34px;
+      padding: 8px;
+      border: 1px solid rgba(148,163,184,0.7);
+      position: relative;
+      box-shadow:
+        0 14px 40px rgba(15,23,42,0.45),
+        0 0 0 4px rgba(148,163,184,0.4);
+      overflow: hidden;
+      transform: rotateX(14deg) rotateY(-16deg) rotateZ(3deg);
+      transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+    }
+
+    .phone::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90px;
+      height: 15px;
+      border-radius: 999px;
+      background: #02061710;
+    }
+
+    .phone:hover {
+      transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1.02);
+    }
+
+    .app-screen {
+      position: relative;
+      margin-top: 22px;
+      width: 100%;
+      height: calc(100% - 32px);
+      border-radius: 26px;
+      overflow: hidden;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #e2e8f0;
+    }
+
+    .app-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      color: #64748b;
+      font-size: 0.7rem;
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .app-status-dots {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(148,163,184,0.8);
+    }
+
+    .dot.primary {
+      background: #22c55e;
+    }
+
+    .app-body {
+      flex: 1;
+      padding: 12px 14px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .app-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .app-avatar {
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(135deg,#f97316,#facc15);
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px #fefce8;
+    }
+
+    .app-h1 {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 1px;
+    }
+
+    .app-sub {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+
+    .app-chip-row {
+      display: flex;
+      gap: 6px;
+      margin: 8px 0 4px;
       flex-wrap: wrap;
     }
 
-    /* Hero Visual (O Dashboard Clean) */
-    .hero-visual {
-      position: relative;
+    .app-chip {
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
     }
 
-    .dash-mockup {
-      background: white;
-      border-radius: 1.5rem;
-      padding: 1.5rem;
-      box-shadow: var(--shadow-xl);
-      border: 1px solid var(--border);
-      position: relative;
-      z-index: 2;
-      transform: perspective(1000px) rotateY(-5deg) rotateX(2deg);
-      transition: transform 0.5s ease;
-    }
-
-    .dash-mockup:hover {
-      transform: perspective(1000px) rotateY(0) rotateX(0);
-    }
-
-    .dash-header {
+    .app-card {
+      background: #ffffff;
+      padding: 8px 10px;
+      border-radius: 14px;
+      margin-bottom: 6px;
+      box-shadow: 0 4px 12px rgba(15,23,42,0.06);
       display: flex;
-      justify-content: space-between;
-      margin-bottom: 1.5rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid var(--bg-surface);
+      align-items: center;
+      gap: 8px;
+      animation: slideUp 0.8s ease-out forwards;
+      opacity: 0;
+      border: 1px solid #e2e8f0;
     }
-    
-    .dash-stat-row {
+
+    .app-card-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .app-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
+      place-items: center;
+      font-size: 1rem;
+      background: #eff6ff;
+      color: #4f46e5;
     }
 
-    .stat-card {
-      background: var(--bg-surface);
-      padding: 1rem;
-      border-radius: var(--radius-md);
-    }
-    .stat-num { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
-    .stat-label { font-size: 0.85rem; color: var(--text-light); }
-
-    /* Elemento decorativo atrás do dashboard */
-    .blob {
-      position: absolute;
-      top: -10%; right: -10%;
-      width: 300px; height: 300px;
-      background: linear-gradient(135deg, #c7d2fe, #fecaca);
-      filter: blur(60px);
-      border-radius: 50%;
-      z-index: 1;
-      opacity: 0.6;
+    .app-icon.pink {
+      background: #fdf2f8;
+      color: #db2777;
     }
 
-    @media(max-width: 900px) {
-      .hero-grid { grid-template-columns: 1fr; text-align: center; }
-      .hero-desc { margin: 0 auto 2rem; }
-      .hero-btns { justify-content: center; }
-      .dash-mockup { margin-top: 3rem; transform: none; }
+    .app-icon.green {
+      background: #ecfdf5;
+      color: #16a34a;
     }
 
-    /* ========= SEÇÕES GERAIS ========= */
-    section { padding: 5rem 0; }
-    
-    .section-bg { background-color: var(--bg-surface); }
+    .app-card-title {
+      font-weight: 600;
+      font-size: 0.83rem;
+      color: #0f172a;
+    }
 
-    .center-header {
+    .app-card-sub {
+      font-size: 0.72rem;
+      color: #64748b;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .app-cta {
+      margin-top: 4px;
+      padding: 7px 9px;
+      border-radius: 12px;
+      background: linear-gradient(135deg,#6366f1,#a855f7);
       text-align: center;
-      max-width: 700px;
-      margin: 0 auto 4rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: white;
     }
 
-    .sub-tag {
-      font-size: 0.85rem;
+    .app-bottom-nav {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 7px 10px 8px;
+      background: #ffffff;
+      border-top-left-radius: 18px;
+      border-top-right-radius: 18px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 0.68rem;
+      color: #9ca3af;
+    }
+
+    .app-bottom-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      opacity: 0.8;
+    }
+
+    .app-bottom-item span {
+      font-size: 0.9rem;
+    }
+
+    .app-bottom-item.active {
+      color: #6366f1;
+      opacity: 1;
+      font-weight: 600;
+    }
+
+    /* ============ SEÇÃO PROBLEMA X SOLUÇÃO ============ */
+    .section {
+      padding: 3.8rem 0;
+    }
+    
+    .text-center { text-align: center; }
+    
+    .section-title {
+      font-size: 2rem;
+      margin-bottom: 0.9rem;
+      letter-spacing: -0.5px;
+    }
+
+    .section-desc {
+      font-size: 0.98rem;
+      color: var(--text-body);
+      max-width: 650px;
+      margin: 0 auto 2.6rem;
+    }
+
+    .grid-features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.7rem;
+    }
+
+    .feature-card {
+      background: var(--glass-solid);
+      padding: 1.9rem;
+      border-radius: var(--radius-app);
+      border: 1px solid rgba(148,163,184,0.18);
+      box-shadow: var(--shadow-card);
+      transition: 0.3s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px) scale(1.01);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .f-icon {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, #e0e7ff, #ffffff);
+      color: var(--primary);
+      border-radius: 18px;
+      display: grid; place-items: center;
+      font-size: 1.6rem;
+      margin-bottom: 1.2rem;
+    }
+
+    /* ============ MÓDULOS (DETALHES) ============ */
+    .module-row {
+      display: flex;
+      align-items: center;
+      gap: 3rem;
+      margin-bottom: 4.5rem;
+    }
+
+    .module-content { flex: 1; }
+    .module-visual { flex: 1; position: relative; }
+
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(14px);
+      padding: 1.8rem;
+      border-radius: 22px;
+      border: 1px solid rgba(148,163,184,0.25);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .check-list li {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 0.7rem; font-weight: 500;
+      font-size: 0.95rem;
+    }
+    .check { color: var(--primary); font-weight: 800; }
+
+    .module-label {
+      color: var(--primary);
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--primary);
-      margin-bottom: 0.5rem;
-      display: block;
+      font-size: 0.8rem;
+      letter-spacing: 1px;
     }
 
-    .section-title {
-      font-size: 2.25rem;
-      color: var(--text-main);
-      font-weight: 700;
-      margin-bottom: 1rem;
-      letter-spacing: -0.02em;
+    .module-label.secondary {
+      color: var(--secondary);
     }
 
-    /* ========= CARDS DE PRODUTOS ========= */
-    .grid-3 {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 2rem;
+    /* Inverter ordem no mobile */
+    @media (max-width: 900px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 2.3rem;
+      }
+
+      .hero {
+        padding-top: 1.5rem;
+      }
+
+      .hero-content {
+        order: 2;
+        text-align: left;
+      }
+
+      .hero-visual {
+        order: 1;
+        justify-content: center;
+      }
+
+      .module-row {
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .module-row.reverse {
+        flex-direction: column-reverse;
+      }
     }
 
-    .card {
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 2rem;
-      transition: var(--transition);
+    /* ============ CTA FINAL ============ */
+    .cta-wrapper {
+      margin: 3rem 0 0;
+      background: #020617;
+      border-radius: 2.1rem;
+      padding: 3.1rem 1.6rem;
+      text-align: center;
+      color: white;
       position: relative;
       overflow: hidden;
     }
 
-    .card:hover {
-      transform: translateY(-8px);
-      box-shadow: var(--shadow-lg);
-      border-color: #cbd5e1;
+    .cta-wrapper h2 {
+      color: white;
+      margin-bottom: 1.2rem;
+      font-size: 1.9rem;
+      position: relative;
+      z-index: 2;
     }
 
-    .card-icon {
-      width: 48px; height: 48px;
-      background: #e0e7ff;
-      color: var(--primary);
-      border-radius: 10px;
-      display: grid;
-      place-items: center;
-      font-size: 1.5rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .card h3 {
-      font-size: 1.25rem;
-      color: var(--text-main);
-      margin-bottom: 0.75rem;
-      font-weight: 600;
-    }
-
-    .card p {
+    .cta-wrapper p {
+      color: #94a3b8;
+      margin-bottom: 2rem;
+      max-width: 440px;
+      margin-inline: auto;
+      position: relative;
+      z-index: 2;
       font-size: 0.95rem;
-      color: var(--text-body);
-      margin-bottom: 1.5rem;
-    }
-
-    .card-link {
-      color: var(--primary);
-      font-weight: 600;
-      font-size: 0.9rem;
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-    }
-    .card-link:hover { gap: 0.5rem; }
-
-    @media(max-width: 800px) {
-      .grid-3 { grid-template-columns: 1fr; }
-    }
-
-    /* ========= SOBRE (TEXTO + IMAGEM) ========= */
-    .split-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4rem;
-      align-items: center;
-    }
-
-    .feature-list li {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-    }
-
-    .check-icon {
-      color: var(--secondary);
-      background: #e0f2fe;
-      width: 24px; height: 24px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      flex-shrink: 0;
-      font-size: 0.8rem;
-    }
-
-    .stats-container {
-      background: white;
-      padding: 2rem;
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-lg);
-      border: 1px solid var(--border);
     }
     
-    .big-number {
-      font-size: 2.5rem;
-      font-weight: 800;
-      color: var(--primary);
-      line-height: 1;
+    .cta-bg-effect {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at top right, #4338ca, transparent 55%),
+        radial-gradient(circle at bottom left, #ec4899, transparent 55%);
+      opacity: 0.55;
     }
 
-    @media(max-width: 900px) {
-      .split-grid { grid-template-columns: 1fr; }
-    }
-
-    /* ========= CTA FINAL ========= */
-    .cta-box {
-      background: linear-gradient(120deg, var(--primary) 0%, #4338ca 100%);
-      border-radius: 2rem;
-      padding: 4rem 2rem;
-      text-align: center;
-      color: white;
-      box-shadow: var(--shadow-xl);
-    }
-
-    .cta-box h2 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-      font-weight: 700;
-    }
-
-    .cta-box p {
-      color: #e0e7ff;
-      max-width: 600px;
-      margin: 0 auto 2rem;
-    }
-
-    .btn-white {
-      background: white;
-      color: var(--primary);
-      padding: 0.8rem 2rem;
-      border-radius: var(--radius-full);
-      font-weight: 600;
-      font-size: 1rem;
-      transition: var(--transition);
-      border: 2px solid white;
-    }
-    .btn-white:hover {
-      background: transparent;
-      color: white;
-    }
-
-    /* ========= FOOTER ========= */
+    /* ============ FOOTER ============ */
     footer {
-      background: #fff;
-      padding: 3rem 1.5rem;
-      border-top: 1px solid var(--border);
       text-align: center;
-      color: var(--text-light);
-      font-size: 0.9rem;
+      padding: 2.2rem 1.5rem 3rem;
+      font-size: 0.88rem;
+      color: var(--text-body);
+    }
+
+    footer a {
+      color: #64748b;
+      font-size: 0.82rem;
+    }
+
+    footer a:hover {
+      color: var(--primary);
+    }
+
+    /* ============ ANIMAÇÕES SCROLL ============ */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: 0.8s cubic-bezier(0.5, 0, 0, 1);
+    }
+    .reveal.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ============ RESPONSIVIDADE FINA ============ */
+    @media (max-width: 768px) {
+      .navbar-inner {
+        padding-inline: 0.9rem;
+        border-radius: 18px;
+      }
+
+      .page-shell {
+        margin-top: 80px;
+      }
+
+      h1.hero-title {
+        font-size: 2rem;
+      }
+
+      .hero-text {
+        font-size: 0.95rem;
+      }
+
+      .btn-hero {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .hero-subnote {
+        width: 100%;
+      }
+
+      .phone {
+        width: 250px;
+        transform: rotateX(8deg) rotateY(-10deg) rotateZ(2deg);
+      }
+
+      .section {
+        padding: 3.1rem 0;
+      }
+
+      .cta-wrapper {
+        border-radius: 1.7rem;
+        padding: 2.6rem 1.4rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero-grid {
+        gap: 2rem;
+      }
+
+      .phone {
+        width: 220px;
+        transform: none;
+      }
+
+      .app-screen {
+        border-radius: 22px;
+      }
+
+      .badge-top {
+        font-size: 0.74rem;
+      }
+
+      .hero-subnote {
+        font-size: 0.7rem;
+      }
+
+      .module-row {
+        margin-bottom: 3rem;
+      }
+
+      .glass-panel {
+        padding: 1.5rem;
+      }
     }
   </style>
 </head>
 <body>
 
-  <nav class="navbar">
-    <div class="shell nav-inner">
-      <div class="brand">
-        <div class="brand-logo">D</div>
-        Develoi
-      </div>
-      
-      <div class="nav-links">
-        <a href="#inicio">Início</a>
-        <a href="#solucoes">Soluções</a>
-        <a href="#sobre">Como funciona</a>
-      </div>
+  <div class="mesh-bg">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
 
-      <div class="nav-actions">
-        <button class="btn btn-ghost" onclick="window.open('https://salao.develoi.com/login')">Login</button>
-        <button class="btn btn-primary" onclick="window.open('https://wa.me/55')">Falar no WhatsApp</button>
+  <nav class="navbar" id="navbar">
+    <div class="navbar-inner">
+      <div class="brand-wrap">
+        <div class="brand">Develoi</div>
+        <div class="brand-sub">Gestão inteligente para beleza</div>
       </div>
-      
-      <button class="nav-toggle">☰</button>
+        <a href="https://salao.develoi.com" target="_blank" class="nav-btn">
+          Ir para o sistema &rarr;
+        </a>
     </div>
   </nav>
 
-  <main id="inicio" class="hero">
-    <div class="shell hero-grid">
-      <div>
-        <span class="tag-hero">Novo Painel 2.0</span>
-        <h1 class="hero-title">
-          Organize seu negócio com <span class="highlight">inteligência</span>.
-        </h1>
-        <p class="hero-desc">
-          Chega de planilhas complexas. A Develoi cria sistemas simples, bonitos e fáceis de usar para salões, clínicas e pequenas empresas.
-        </p>
-        <div class="hero-btns">
-          <a href="#solucoes" class="btn btn-primary">Ver Soluções</a>
-          <a href="#contato" class="btn btn-ghost">Entenda como funciona &rarr;</a>
-        </div>
-      </div>
+  <main class="page-shell">
+    <section class="hero container">
+      <div class="hero-grid">
+        <div class="hero-content">
+          <div class="badge-top">
+            <span class="badge-dot"></span>
+            Versão 2.0 ativa • Salões reais usando Develoi
+          </div>
+          
+          <h1 class="hero-title">
+            O sistema ideal para<br>
+            <span class="type-wrap"></span>
+          </h1>
+          
+          <p class="hero-text">
+            Sincronize sua agenda, organize o financeiro e encante seus clientes com o 
+            <strong>Salão Develoi</strong>. Tudo online, simples e com cara de app.
+          </p>
 
-      <div class="hero-visual">
-        <div class="blob"></div>
-        <div class="dash-mockup">
-          <div class="dash-header">
-            <div style="font-weight:600; color:var(--text-main);">Visão Geral</div>
-            <div style="font-size:0.85rem; color:var(--primary);">Hoje, 28 Nov</div>
+          <div class="hero-actions">
+            <a href="https://salao.develoi.com" class="btn-hero">
+              <span>⚡</span>
+              Começar agora
+            </a>
+            <span class="hero-subnote">
+              <strong>Sem instalação</strong> • Funciona em qualquer celular
+            </span>
           </div>
-          <div class="dash-stat-row">
-            <div class="stat-card">
-              <div class="stat-num">24</div>
-              <div class="stat-label">Agendamentos</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-num" style="color:var(--secondary);">R$ 1.2k</div>
-              <div class="stat-label">Faturamento</div>
-            </div>
-          </div>
-          <div style="margin-top:1.5rem;">
-            <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:0.5rem; color:var(--text-light);">
-              <span>Próximo cliente</span>
-              <span>14:00</span>
-            </div>
-            <div style="padding:0.75rem; background:var(--bg-surface); border-radius:0.5rem; display:flex; gap:0.5rem; align-items:center;">
-              <div style="width:32px; height:32px; background:#e0e7ff; border-radius:50%; display:grid; place-items:center; font-size:0.7rem;">👩</div>
-              <div>
-                <div style="font-weight:600; font-size:0.9rem; color:var(--text-main);">Fernanda Silva</div>
-                <div style="font-size:0.75rem; color:var(--text-light);">Corte + Hidratação</div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="phone-wrapper reveal">
+            <div class="phone">
+              <div class="app-screen">
+                <div class="app-topbar">
+                  <div class="app-status-dots">
+                    <div class="dot primary"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                  </div>
+                  <span>Develoi • Salão</span>
+                  <span>100%</span>
+                </div>
+
+                <div class="app-body">
+                  <div class="app-header-row">
+                    <div>
+                      <div class="app-h1">Hoje</div>
+                      <div class="app-sub">Olá, profissional 👋</div>
+                    </div>
+                    <div class="app-avatar"></div>
+                  </div>
+
+                  <div class="app-chip-row">
+                    <div class="app-chip">Agenda</div>
+                    <div class="app-chip">Financeiro</div>
+                    <div class="app-chip">Clientes</div>
+                  </div>
+
+                  <div class="app-card" style="animation-delay: 0.1s;">
+                    <div class="app-icon">📅</div>
+                    <div class="app-card-inner">
+                      <div class="app-card-title">Agenda cheia</div>
+                      <div class="app-card-sub">8 horários marcados hoje</div>
+                    </div>
+                  </div>
+
+                  <div class="app-card" style="animation-delay: 0.3s;">
+                    <div class="app-icon pink">💸</div>
+                    <div class="app-card-inner">
+                      <div class="app-card-title">Faturamento do dia</div>
+                      <div class="app-card-sub">R$ 890,00 (Dinheiro / Pix)</div>
+                    </div>
+                  </div>
+
+                  <div class="app-card" style="animation-delay: 0.5s;">
+                    <div class="app-icon green">✨</div>
+                    <div class="app-card-inner">
+                      <div class="app-card-title">Novos clientes</div>
+                      <div class="app-card-sub">3 cadastros essa semana</div>
+                    </div>
+                  </div>
+
+                  <div class="app-cta">
+                    Ver agenda completa
+                  </div>
+                </div>
+
+                <div class="app-bottom-nav">
+                  <div class="app-bottom-item active">
+                    <span>🏠</span>
+                    Início
+                  </div>
+                  <div class="app-bottom-item">
+                    <span>📆</span>
+                    Agenda
+                  </div>
+                  <div class="app-bottom-item">
+                    <span>📊</span>
+                    Caixa
+                  </div>
+                  <div class="app-bottom-item">
+                    <span>👤</span>
+                    Perfil
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+    </section>
+
+    <section class="section container">
+      <div class="text-center reveal">
+        <h2 class="section-title">Por que usar o Develoi?</h2>
+        <p class="section-desc">
+          Abandonar o caderno não precisa ser difícil. Criamos uma experiência com cara de aplicativo,
+          que funciona no seu ritmo e no celular que você já tem.
+        </p>
+      </div>
+
+      <div class="grid-features">
+        <div class="feature-card reveal">
+          <div class="f-icon">🗓️</div>
+          <h3>Agenda visual</h3>
+          <p style="color:var(--text-body);">
+            Veja sua semana inteira em uma tela. Arraste horários, bloqueie datas e confirme presenças em poucos toques.
+          </p>
+        </div>
+
+        <div class="feature-card reveal" style="transition-delay: 0.1s;">
+          <div class="f-icon">📊</div>
+          <h3>Financeiro real</h3>
+          <p style="color:var(--text-body);">
+            Nada de "acho que lucrei". Saiba cada centavo que entrou e saiu, com gráficos simples para quem não gosta de planilha.
+          </p>
+        </div>
+
+        <div class="feature-card reveal" style="transition-delay: 0.2s;">
+          <div class="f-icon">📱</div>
+          <h3>Link de agendamento</h3>
+          <p style="color:var(--text-body);">
+            Seu cliente agenda sozinho pelo link exclusivo do salão, 24 horas por dia, sem te chamar no WhatsApp toda hora.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="container section">
+      <div class="module-row reveal">
+        <div class="module-content">
+          <div class="module-label">Gestão de clientes</div>
+          <h2 style="font-size:1.9rem; margin:0.5rem 0 1rem;">Histórico na palma da mão</h2>
+          <p style="margin-bottom:1.4rem; color:var(--text-body);">
+            Nunca mais esqueça o que a cliente fez na última visita. Anote fórmulas de tinta, cortes preferidos e datas de aniversário.
+          </p>
+          <ul class="check-list">
+            <li><span class="check">✓</span> Ficha de anamnese digital</li>
+            <li><span class="check">✓</span> Histórico de serviços realizados</li>
+            <li><span class="check">✓</span> Aviso de aniversário automático</li>
+          </ul>
+        </div>
+        <div class="module-visual">
+          <div class="glass-panel">
+            <div style="font-weight:700; margin-bottom:10px; font-size:0.95rem;">Perfil da cliente</div>
+            <div style="display:flex; gap:10px; align-items:center; margin-bottom:15px;">
+              <div style="width:44px; height:44px; background:linear-gradient(135deg,#f472b6,#fb7185); border-radius:50%;"></div>
+              <div>
+                <div style="font-weight:600;">Mariana Souza</div>
+                <div style="font-size:0.8rem; color:#64748b;">Cliente desde 2021</div>
+              </div>
+            </div>
+            <div style="padding:12px; background:#f1f5f9; border-radius:8px; font-size:0.85rem; color:#475569; margin-bottom:12px;">
+              "Gosta de café sem açúcar. Última coloração: 7.1 Louro Cinza."
+            </div>
+            <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+              <span style="font-size:0.75rem; padding:4px 9px; border-radius:999px; background:#e0f2fe; color:#0369a1;">Coloração</span>
+              <span style="font-size:0.75rem; padding:4px 9px; border-radius:999px; background:#fee2e2; color:#b91c1c;">Luzes</span>
+              <span style="font-size:0.75rem; padding:4px 9px; border-radius:999px; background:#dcfce7; color:#166534;">Cronograma capilar</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="module-row reverse reveal">
+        <div class="module-visual">
+          <div class="glass-panel" style="text-align:center;">
+            <div style="font-size:2.3rem; font-weight:800; color:var(--primary);">R$ 4.250,00</div>
+            <div style="color:var(--text-body); font-size:0.9rem; margin-bottom:18px;">Receita da semana</div>
+            <div style="height:8px; width:100%; background:#e2e8f0; border-radius:99px; overflow:hidden; margin-bottom:16px;">
+              <div style="height:100%; width:75%; background:linear-gradient(90deg,#6366f1,#ec4899);"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#64748b; margin-bottom:10px;">
+              <span>Meta semanal</span>
+              <span>75% alcançada</span>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; font-size:0.8rem;">
+              <div style="background:#eef2ff; border-radius:12px; padding:8px 6px;">
+                <div style="font-weight:600; color:#4f46e5;">R$ 2.100</div>
+                <div style="color:#6b7280;">Pix</div>
+              </div>
+              <div style="background:#fef9c3; border-radius:12px; padding:8px 6px;">
+                <div style="font-weight:600; color:#a16207;">R$ 1.400</div>
+                <div style="color:#854d0e;">Crédito</div>
+              </div>
+              <div style="background:#ecfeff; border-radius:12px; padding:8px 6px;">
+                <div style="font-weight:600; color:#0e7490;">R$ 750</div>
+                <div style="color:#0369a1;">Dinheiro</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="module-content">
+          <div class="module-label secondary">Controle financeiro</div>
+          <h2 style="font-size:1.9rem; margin:0.5rem 0 1rem;">Seu dinheiro, organizado</h2>
+          <p style="margin-bottom:1.4rem; color:var(--text-body);">
+            Separe o dinheiro do salão do seu dinheiro pessoal. Lance comissões automaticamente e veja quanto realmente sobra no final do mês.
+          </p>
+          <ul class="check-list">
+            <li><span class="check">✓</span> Cálculo de comissões automático</li>
+            <li><span class="check">✓</span> Controle de despesas fixas</li>
+            <li><span class="check">✓</span> Relatórios de fechamento de caixa</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <div class="container">
+      <div class="cta-wrapper reveal">
+        <div class="cta-bg-effect"></div>
+        <h2>Modernize seu negócio hoje.</h2>
+        <p>O Develoi Salão já está ajudando profissionais a ganharem mais tempo livre e menos dor de cabeça. Descubra na prática.</p>
+        
+        <a href="https://salao.develoi.com" target="_blank" class="btn-hero" style="background:white; color:#020617; box-shadow:0 14px 34px rgba(15,23,42,0.4);">
+          Acessar salao.develoi.com
+        </a>
+      </div>
     </div>
   </main>
 
-  <section id="solucoes" class="section-bg">
-    <div class="shell">
-      <div class="center-header">
-        <span class="sub-tag">Nossos Módulos</span>
-        <h2 class="section-title">Tudo o que você precisa</h2>
-        <p style="color:var(--text-body);">Sistemas modulares. Você só usa e paga pelo que faz sentido para o seu momento.</p>
-      </div>
-
-      <div class="grid-3">
-        <div class="card">
-          <div class="card-icon">📅</div>
-          <h3>Agenda Inteligente</h3>
-          <p>Para salões e estéticas. Controle horários, envie lembretes automáticos e elimine os furos na agenda.</p>
-          <a href="#" class="card-link">Ver detalhes &rarr;</a>
-        </div>
-        <div class="card">
-          <div class="card-icon">💰</div>
-          <h3>Gestão Financeira</h3>
-          <p>Controle de caixa simples. Saiba exatamente quanto entrou, quanto saiu e qual o lucro real do mês.</p>
-          <a href="#" class="card-link">Ver detalhes &rarr;</a>
-        </div>
-        <div class="card">
-          <div class="card-icon">🧠</div>
-          <h3>Área Psicólogos</h3>
-          <p>Prontuários seguros, anotações de sessões e emissão de documentos. Tudo na nuvem e criptografado.</p>
-          <a href="#" class="card-link">Ver detalhes &rarr;</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="sobre">
-    <div class="shell split-grid">
-      <div>
-        <span class="sub-tag">Por que Develoi?</span>
-        <h2 class="section-title">Tecnologia que não atrapalha</h2>
-        <p style="margin-bottom:1.5rem; font-size:1.05rem;">
-          Muitos sistemas são difíceis e cheios de botões que você nunca usa. Nós fazemos o oposto: focamos no essencial.
-        </p>
-        <ul class="feature-list">
-          <li>
-            <div class="check-icon">✓</div>
-            <div><strong>Visual limpo:</strong> Qualquer pessoa aprende a usar em 10 minutos.</div>
-          </li>
-          <li>
-            <div class="check-icon">✓</div>
-            <div><strong>Acesso mobile:</strong> Funciona perfeito no celular ou tablet.</div>
-          </li>
-          <li>
-            <div class="check-icon">✓</div>
-            <div><strong>Sem instalação:</strong> Tudo online, sem ocupar memória do PC.</div>
-          </li>
-        </ul>
-      </div>
-      
-      <div class="stats-container">
-        <div style="margin-bottom:2rem; border-bottom:1px solid var(--border); padding-bottom:1.5rem;">
-          <div class="big-number">60%</div>
-          <div style="color:var(--text-body);">menos tempo gasto com burocracia semanal</div>
-        </div>
-        <div>
-          <div class="big-number" style="color:var(--secondary);">Zero</div>
-          <div style="color:var(--text-body);">custo com servidores ou manutenção técnica</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="contato">
-    <div class="shell">
-      <div class="cta-box">
-        <h2>Pronto para profissionalizar?</h2>
-        <p>Converse com a gente no WhatsApp e veja como a Develoi se adapta ao seu negócio.</p>
-        <button class="btn btn-white" onclick="window.open('https://wa.me/55')">Agendar demonstração</button>
-      </div>
-    </div>
-  </section>
-
   <footer>
-    <div class="shell">
-      <p>&copy; <span id="year"></span> Develoi • Sistemas Digitais.</p>
+    <div class="container">
+      <p>&copy; <span id="year"></span> Develoi Sistemas. Feito para crescer com você.</p>
+      <div style="margin-top:10px; font-size:0.8rem;">
+        <a href="#">Privacidade</a> • <a href="#">Termos</a> • <a href="https://salao.develoi.com">Login</a>
+      </div>
     </div>
   </footer>
 
   <script>
+    // 1. Atualizar Ano
     document.getElementById('year').textContent = new Date().getFullYear();
-    // Script simples para menu mobile (pode ser expandido depois)
-    const toggle = document.querySelector('.nav-toggle');
-    const links = document.querySelector('.nav-links');
-    toggle.addEventListener('click', () => {
-      links.style.display = links.style.display === 'flex' ? 'none' : 'flex';
-      links.style.flexDirection = 'column';
-      links.style.position = 'absolute';
-      links.style.top = '72px';
-      links.style.left = '0';
-      links.style.width = '100%';
-      links.style.background = 'white';
-      links.style.padding = '1rem';
-      links.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+
+    // 2. Efeito de Digitação
+    const words = ["sua Barbearia.", "seu Salão.", "sua Esmalteria.", "seu Estúdio de Beleza."];
+    let i = 0;
+    let timer;
+
+    function typeWriter() {
+      const heading = document.querySelector('.type-wrap');
+      if (!heading) return;
+
+      const word = words[i];
+      let j = 0;
+      let isDeleting = false;
+
+      function loop() {
+        heading.innerHTML = word.substring(0, j);
+        
+        if (!isDeleting && j < word.length) {
+          j++;
+          timer = setTimeout(loop, 100);
+        } else if (isDeleting && j > 0) {
+          j--;
+          timer = setTimeout(loop, 50);
+        } else {
+          if (!isDeleting) {
+            isDeleting = true;
+            timer = setTimeout(loop, 1600);
+          } else {
+            isDeleting = false;
+            i = (i + 1) % words.length;
+            setTimeout(typeWriter, 500);
+            return;
+          }
+        }
+      }
+      loop();
+    }
+    typeWriter();
+
+    // 3. Scroll Reveal
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('active');
+        }
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // 4. Navbar Background on Scroll
+    window.addEventListener('scroll', () => {
+      const nav = document.getElementById('navbar');
+      if (window.scrollY > 20) nav.classList.add('scrolled');
+      else nav.classList.remove('scrolled');
     });
   </script>
 </body>

@@ -460,7 +460,7 @@ function isActive($pageName)
         <!-- LOGO: prod = /dashboard | local = /karen_site/controle-salao/pages/dashboard.php -->
         <a href="<?php echo $isProd ? '/dashboard' : '/karen_site/controle-salao/pages/dashboard.php'; ?>" class="brand-logo">
             <img src="<?php echo $isProd ? '/img/logo-azul.png' : '/karen_site/controle-salao/img/logo-azul.png'; ?>" 
-                 alt="Logo Salão Top"
+                 alt="Logo Salão Develoi"
                  style="height:38px; width:auto; display:inline-block; vertical-align:middle;">
         </a>
     </div>

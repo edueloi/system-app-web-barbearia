@@ -419,7 +419,7 @@ unset($_SESSION['perfil_msg']);
                             <label>Nome do Estabelecimento</label>
                             <input type="text" name="estabelecimento" class="form-control"
                                    value="<?php echo htmlspecialchars($user['estabelecimento'] ?? ''); ?>"
-                                   placeholder="Ex: Salão Top Hair" required>
+                                   placeholder="Ex: Salão Develoi Hair" required>
                         </div>
                         <div class="form-group">
                             <label>Nome Completo</label>

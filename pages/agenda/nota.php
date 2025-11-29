@@ -7,6 +7,16 @@
 // ===============================================
 
 // Tenta carregar o Dompdf/Composer Autoload
+
+// 🔹 Descobre se está em produção (salao.develoi.com) ou local
+$isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+$notaUrl = $isProd ? '/nota' : '/karen_site/controle-salao/pages/agenda/nota.php';
+if ($isProd && strpos($_SERVER['REQUEST_URI'], '/nota.php') !== false) {
+    $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+    header("Location: {$notaUrl}?id={$id}");
+    exit;
+}
+
 $autoload_path = '../../vendor/autoload.php';
 if (!file_exists($autoload_path)) {
     // MENSAGEM DE ERRO CRÍTICA SE O AUTOLOAD NÃO FOR ENCONTRADO

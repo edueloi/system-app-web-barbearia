@@ -30,7 +30,7 @@ if (isset($_SESSION['recuperar_msg'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recuperar Senha - Salão Top</title>
+    <title>Recuperar Senha - Salão Develoi</title>
     <style>
         :root { /* ... (mesmas variáveis de estilo) ... */ --primary: #6366f1; --bg-body: #f1f5f9; --text-dark: #1e293b; --text-gray: #64748b; --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
@@ -48,7 +48,7 @@ if (isset($_SESSION['recuperar_msg'])) {
 <body>
 
 <div class="login-container">
-    <div class="logo">Salão Top</div>
+    <div class="logo">Salão Develoi</div>
     <p class="subtitle">Recuperação de Senha</p>
 
     <?php if ($mensagem): ?>
