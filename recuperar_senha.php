@@ -54,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             // 5. Corpo do e-mail (template bonito)
+
             $nomeUsuario = $user['nome'] ?? 'Cliente';
             $subject     = 'Recuperação de senha - Develoi Agenda';
             $year        = date('Y');
@@ -65,92 +66,102 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <title>{$subject}</title>
 </head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 0;">
+<body style="margin:0;padding:0;background:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;padding:32px 12px;">
         <tr>
             <td align="center">
 
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(15,23,42,.12);">
+                <!-- CARTÃO CENTRAL -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 18px 40px rgba(15,23,42,.45);">
                     
-                    <!-- HEADER COM LOGO -->
+                    <!-- HEADER -->
                     <tr>
-                        <td style="padding:24px 32px 18px 32px;background:linear-gradient(135deg,#6366f1,#ec4899);">
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                        <td style="padding:20px 26px 16px 26px;background:linear-gradient(135deg,#6366f1,#ec4899);">
+                            <table role="presentation" width="100%">
                                 <tr>
                                     <td align="left" style="vertical-align:middle;">
-                                        <img src="{$logoUrl}" alt="Develoi Agenda" style="display:block;width:44px;height:44px;border-radius:14px;">
+                                        <div style="display:inline-flex;align-items:center;gap:10px;">
+                                            <div style="width:40px;height:40px;border-radius:14px;background:rgba(15,23,42,.18);display:flex;align-items:center;justify-content:center;">
+                                                <img src="{$logoUrl}" alt="Develoi Agenda" style="display:block;width:26px;height:26px;object-fit:contain;">
+                                            </div>
+                                            <div style="font-size:13px;color:#e5e7eb;line-height:1.4;">
+                                                <strong style="display:block;color:#f9fafb;font-size:14px;">Develoi Agenda</strong>
+                                                <span style="opacity:.9;">Gestão inteligente para salões & barbearias</span>
+                                            </div>
+                                        </div>
                                     </td>
-                                    <td align="right" style="font-size:12px;color:#e5e7eb;font-weight:500;vertical-align:middle;">
-                                        Develoi Agenda<br>
-                                        <span style="opacity:.9;">Gestão inteligente para salões & barbearias</span>
+                                    <td align="right" style="vertical-align:middle;font-size:11px;color:#e5e7eb;opacity:.9;">
+                                        Segurança de acesso<br>
+                                        <span style="opacity:.9;">Link válido por 2 horas</span>
                                     </td>
                                 </tr>
                             </table>
                         </td>
                     </tr>
 
-                    <!-- CONTEÚDO PRINCIPAL -->
+                    <!-- CONTEÚDO -->
                     <tr>
-                        <td style="padding:24px 32px 8px 32px;">
-                            <p style="margin:0 0 10px 0;font-size:14px;color:#6b7280;">
+                        <td style="padding:24px 26px 8px 26px;">
+                            <p style="margin:0 0 8px 0;font-size:13px;color:#6b7280;">
                                 Olá, <strong style="color:#111827;">{$nomeUsuario}</strong> 👋
                             </p>
 
-                            <h1 style="margin:0 0 12px 0;font-size:20px;line-height:1.3;color:#111827;">
+                            <h1 style="margin:0 0 10px 0;font-size:20px;line-height:1.3;color:#111827;">
                                 Redefinição de senha
                             </h1>
 
-                            <p style="margin:0 0 10px 0;font-size:14px;line-height:1.6;color:#4b5563;">
+                            <p style="margin:0 0 10px 0;font-size:13px;line-height:1.6;color:#4b5563;">
                                 Recebemos uma solicitação para redefinir a sua senha no
                                 <strong>Develoi Agenda</strong>.
                             </p>
 
-                            <p style="margin:0 0 18px 0;font-size:14px;line-height:1.6;color:#4b5563;">
-                                Para criar uma nova senha, clique no botão abaixo.  
+                            <p style="margin:0 0 18px 0;font-size:13px;line-height:1.6;color:#4b5563;">
+                                Para continuar com segurança, clique no botão abaixo para criar uma nova senha.
                                 Este link é válido por <strong>2 horas</strong> e pode ser utilizado apenas uma vez.
                             </p>
 
                             <!-- BOTÃO -->
-                            <p style="text-align:center;margin:0 0 24px 0;">
+                            <p style="text-align:center;margin:0 0 22px 0;">
                                 <a href="{$link}"
-                                   style="display:inline-block;padding:12px 26px;border-radius:999px;
+                                   style="display:inline-block;padding:13px 28px;border-radius:999px;
                                           background:#111827;color:#ffffff;text-decoration:none;
-                                          font-size:14px;font-weight:600;">
+                                          font-size:14px;font-weight:600;letter-spacing:.01em;
+                                          box-shadow:0 12px 30px rgba(15,23,42,.45);">
                                     Redefinir minha senha
                                 </a>
                             </p>
 
-                            <!-- LINK EM TEXTO -->
-                            <p style="margin:0 0 8px 0;font-size:12px;line-height:1.6;color:#6b7280;">
+                            <!-- TEXTO DO LINK -->
+                            <p style="margin:0 0 8px 0;font-size:11px;line-height:1.6;color:#6b7280;">
                                 Se o botão acima não funcionar, copie e cole este link no seu navegador:
                             </p>
 
-                            <p style="margin:0 0 20px 0;font-size:12px;color:#4b5563;word-break:break-all;">
+                            <p style="margin:0 0 18px 0;font-size:11px;color:#4b5563;word-break:break-all;">
                                 <a href="{$link}" style="color:#4f46e5;text-decoration:none;">{$link}</a>
                             </p>
 
-                            <p style="margin:0;font-size:12px;line-height:1.6;color:#6b7280;">
-                                Se você <strong>não fez</strong> essa solicitação, pode ignorar este e-mail.
-                                Sua senha atual continuará válida.
+                            <p style="margin:0;font-size:11px;line-height:1.6;color:#6b7280;">
+                                Caso você <strong>não tenha solicitado</strong> esta recuperação, pode ignorar este e-mail.
+                                Sua senha atual continuará funcionando normalmente.
                             </p>
                         </td>
                     </tr>
 
-                    <!-- RODAPÉ / ASSINATURA -->
+                    <!-- RODAPÉ -->
                     <tr>
-                        <td style="padding:14px 32px 18px 32px;border-top:1px solid #e5e7eb;background:#f9fafb;">
-                            <p style="margin:0 0 4px 0;font-size:11px;color:#9ca3af;">
+                        <td style="padding:14px 26px 18px 26px;border-top:1px solid #e5e7eb;background:#f9fafb;">
+                            <p style="margin:0 0 4px 0;font-size:10px;color:#9ca3af;">
                                 Este é um e-mail automático, por favor <strong>não responda</strong>.
                             </p>
 
-                            <p style="margin:0 0 4px 0;font-size:11px;color:#9ca3af;">
-                                Em caso de dúvidas, fale com nossa equipe pelo e-mail
+                            <p style="margin:0 0 4px 0;font-size:10px;color:#9ca3af;">
+                                Suporte: 
                                 <a href="mailto:contato@salao.develoi.com" style="color:#4f46e5;text-decoration:none;">
                                     contato@salao.develoi.com
-                                </a>.
+                                </a>
                             </p>
 
-                            <p style="margin:6px 0 0 0;font-size:11px;color:#d1d5db;">
+                            <p style="margin:6px 0 0 0;font-size:10px;color:#d1d5db;">
                                 © {$year} Develoi Agenda — Gestão premium para salões, barbearias e estéticas.
                             </p>
                         </td>
