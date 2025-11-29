@@ -509,18 +509,24 @@ function isActive($pageName)
                     <div style="padding:12px 16px;color:#64748b;font-size:0.92rem;text-align:center;">Nenhuma nova notificação.</div>
                 <?php else: ?>
                     <?php foreach ($notificacoesLista as $notif): ?>
-                        <div class="dropdown-item" style="white-space:normal;line-height:1.4;gap:8px;">
+                        <div class="dropdown-item notif-item"
+                             data-id="<?php echo $notif['id']; ?>"
+                             style="white-space:normal;line-height:1.4;gap:8px;cursor:pointer;">
                             <span style="font-size:1.1em;"><i class="bi bi-info-circle"></i></span>
                             <div style="flex:1;">
-                                <div style="font-size:0.98em;font-weight:600;color:#111827;"><?php echo htmlspecialchars($notif['message']); ?></div>
+                                <div style="font-size:0.98em;font-weight:600;color:#111827;\"><?php echo htmlspecialchars($notif['message']); ?></div>
                                 <div style="font-size:0.78em;color:#64748b;margin-top:2px;">
                                     <?php echo date('d/m/Y H:i', strtotime($notif['created_at'])); ?>
                                     <?php if (!empty($notif['link'])): ?>
-                                        &nbsp; <a href="<?php echo htmlspecialchars($notif['link']); ?>" style="color:#6366f1;text-decoration:underline;font-size:0.85em;">Ver</a>
+                                        &nbsp;
+                                        <a href="<?php echo htmlspecialchars($notif['link']); ?>"
+                                           onclick="event.stopPropagation();"
+                                           style="color:#6366f1;text-decoration:underline;font-size:0.85em;">
+                                            Ver
+                                        </a>
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <a href="#" class="notif-mark-read" data-id="<?php echo $notif['id']; ?>" title="Marcar como lida" style="color:#22c55e;font-size:1.1em;margin-left:6px;"><i class="bi bi-check2-circle"></i></a>
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -638,23 +644,36 @@ function isActive($pageName)
             });
         }
 
-        // Marcar notificação como lida (AJAX)
-        document.querySelectorAll('.notif-mark-read').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
+        // Marcar notificação como lida (clicando na linha)
+        document.querySelectorAll('.notif-item').forEach(item => {
+            item.addEventListener('click', function () {
                 const notifId = this.getAttribute('data-id');
+                const row = this;
+
                 fetch('<?php echo $isProd ? "/notificacao_ler.php" : "/karen_site/controle-salao/pages/notificacao_ler.php"; ?>?id=' + notifId)
                     .then(() => {
-                        this.closest('.dropdown-item').style.opacity = 0.4;
-                        this.remove();
-                        // Opcional: atualizar badge
+                        // Remove a linha da lista
+                        row.remove();
+
+                        // Atualiza o badge do sino
                         const badge = document.getElementById('notif-badge');
                         if (badge) {
                             let n = parseInt(badge.textContent, 10) || 1;
                             n = Math.max(0, n - 1);
-                            if (n === 0) badge.remove();
-                            else badge.textContent = n;
+                            if (n === 0) {
+                                badge.remove();
+                                // Se quiser, mostra "nenhuma notificação"
+                                if (!document.querySelector('.notif-item')) {
+                                    notifDropdown.innerHTML += '<div style="padding:12px 16px;color:#64748b;font-size:0.92rem;text-align:center;">Nenhuma nova notificação.</div>';
+                                }
+                            } else {
+                                badge.textContent = n;
+                            }
                         }
+                    })
+                    .catch(() => {
+                        // Se der erro, você pode mostrar algo depois, se quiser
+                        alert('Não foi possível marcar a notificação como lida agora.');
                     });
             });
         });

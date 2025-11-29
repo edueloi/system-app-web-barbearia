@@ -211,10 +211,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $obs 
         ]); 
  
-        // Consumir estoque conforme cálculo vinculado ao serviço (usando servico_id direto) 
-        require_once __DIR__ . '/includes/estoque_helper.php'; 
-        consumirEstoquePorServico($pdo, $profissionalId, (int)$servicoId); 
- 
+        // ===============================
+        // CRIAR NOTIFICAÇÃO PARA O DONO
+        // ===============================
+        $mensagemNotif = sprintf(
+            'Novo agendamento de %s para %s em %s às %s.',
+            $nome,
+            $servicoNome,
+            date('d/m/Y', strtotime($data)),
+            date('H:i', strtotime($horario))
+        );
+
+        $linkNotif = $isProd
+            ? '/agenda'
+            : '/karen_site/controle-salao/pages/agenda/agenda.php';
+
+        $stmtNotif = $pdo->prepare("
+            INSERT INTO notifications (user_id, type, message, link, created_at, is_read)
+            VALUES (?, 'agendamento', ?, ?, datetime('now'), 0)
+        ");
+        $stmtNotif->execute([$profissionalId, $mensagemNotif, $linkNotif]);
+
+        // Consumir estoque conforme cálculo vinculado ao serviço (usando servico_id direto)
+        require_once __DIR__ . '/includes/estoque_helper.php';
+        consumirEstoquePorServico($pdo, $profissionalId, (int)$servicoId);
+
         // 🔹 Descobre se está em produção (salao.develoi.com) ou local
         $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
         $agendarUrl = $isProd
