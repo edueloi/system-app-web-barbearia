@@ -875,7 +875,7 @@ function renderCard($ag, $clientes) {
         // Ação: Status/Excluir
         document.getElementById('actCancel').href = base + '&status=Cancelado';
         document.getElementById('actDelete').onclick = () => { if(confirm('Tem certeza que deseja excluir?')) window.location.href = base + '&delete=1'; };
-        // Corrige o link para emitir nota, usando rota amigável em produção
+        // Corrige o link para emitir nota: em produção usa /nota?id=XX (com redirecionamento), local usa nota.php
         var isProd = window.location.hostname === 'salao.develoi.com';
         var notaUrl = isProd ? '/nota' : 'nota.php';
         document.getElementById('actNota').href = `${notaUrl}?id=${data.id}`;

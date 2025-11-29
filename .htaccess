@@ -1,3 +1,10 @@
+# ====== NOTA DE SERVIÇO ======
+# /nota ou /nota.php vão para pages/agenda/nota.php
+RewriteRule ^nota$ pages/agenda/nota.php [L]
+RewriteRule ^nota\.php$ pages/agenda/nota.php [L]
+# Redireciona /agenda/nota.php para /nota (URL amigável)
+RewriteCond %{THE_REQUEST} \s/agenda/nota\.php[?\s] [NC]
+RewriteRule ^agenda/nota\.php$ /nota [R=301,L]
 RewriteEngine On
 RewriteBase /
 
