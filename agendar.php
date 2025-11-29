@@ -214,6 +214,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // ===============================
         // CRIAR NOTIFICAÇÃO PARA O DONO
         // ===============================
+        // ID do agendamento recém-criado
+        $idAgendamento = $pdo->lastInsertId();
+
         $mensagemNotif = sprintf(
             'Novo agendamento de %s para %s em %s às %s.',
             $nome,
@@ -222,9 +225,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             date('H:i', strtotime($horario))
         );
 
-        $linkNotif = $isProd
+        // Base da agenda (prod vs local)
+        $agendaBase = $isProd
             ? '/agenda'
             : '/karen_site/controle-salao/pages/agenda/agenda.php';
+
+        // Link que vai no botão "Ver" -> abre a agenda no DIA certo e com o AGENDAMENTO destacado
+        $linkNotif = $agendaBase
+            . '?view=day'
+            . '&data=' . urlencode($data)
+            . '&focus_id=' . urlencode($idAgendamento);
 
         $stmtNotif = $pdo->prepare("
             INSERT INTO notifications (user_id, type, message, link, created_at, is_read)
