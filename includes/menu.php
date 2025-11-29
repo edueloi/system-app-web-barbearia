@@ -33,6 +33,14 @@ if (file_exists($dbFile1)) {
 }
 
 // Valores Padrão
+$notificacoesNaoLidas = 0;
+$notificacoesLista = [];
+if (isset($pdo) && isset($_SESSION['user_id'])) {
+    $stmtNotif = $pdo->prepare("SELECT id, type, message, link, created_at FROM notifications WHERE user_id = ? AND is_read = 0 ORDER BY created_at DESC LIMIT 10");
+    $stmtNotif->execute([$_SESSION['user_id']]);
+    $notificacoesLista = $stmtNotif->fetchAll(PDO::FETCH_ASSOC);
+    $notificacoesNaoLidas = count($notificacoesLista);
+}
 $userName  = 'Visitante';
 $userRole  = 'Profissional';
 $iniciais  = 'V';
@@ -483,9 +491,41 @@ function isActive($pageName)
         </button>
 
         <!-- Sino -->
-        <button class="icon-btn" type="button" aria-label="Notificações">
-            <i class="bi bi-bell"></i>
-        </button>
+
+        <div style="position:relative;">
+            <button class="icon-btn" id="notificBtn" type="button" aria-label="Notificações" style="position:relative;">
+                <i class="bi bi-bell"></i>
+                <?php if ($notificacoesNaoLidas > 0): ?>
+                    <span id="notif-badge" style="position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;font-size:0.7rem;padding:2px 6px;border-radius:999px;font-weight:700;min-width:18px;text-align:center;line-height:1;box-shadow:0 2px 6px #fca5a5;z-index:2;">
+                        <?php echo $notificacoesNaoLidas; ?>
+                    </span>
+                <?php endif; ?>
+            </button>
+            <div id="notifDropdown" class="user-dropdown" style="right:0;left:auto;width:320px;max-width:95vw;min-width:220px;">
+                <div style="padding:10px 12px;font-weight:600;border-bottom:1px solid #f1f5f9;font-size:0.95rem;margin-bottom:4px;">
+                    Notificações
+                </div>
+                <?php if ($notificacoesNaoLidas === 0): ?>
+                    <div style="padding:12px 16px;color:#64748b;font-size:0.92rem;text-align:center;">Nenhuma nova notificação.</div>
+                <?php else: ?>
+                    <?php foreach ($notificacoesLista as $notif): ?>
+                        <div class="dropdown-item" style="white-space:normal;line-height:1.4;gap:8px;">
+                            <span style="font-size:1.1em;"><i class="bi bi-info-circle"></i></span>
+                            <div style="flex:1;">
+                                <div style="font-size:0.98em;font-weight:600;color:#111827;"><?php echo htmlspecialchars($notif['message']); ?></div>
+                                <div style="font-size:0.78em;color:#64748b;margin-top:2px;">
+                                    <?php echo date('d/m/Y H:i', strtotime($notif['created_at'])); ?>
+                                    <?php if (!empty($notif['link'])): ?>
+                                        &nbsp; <a href="<?php echo htmlspecialchars($notif['link']); ?>" style="color:#6366f1;text-decoration:underline;font-size:0.85em;">Ver</a>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <a href="#" class="notif-mark-read" data-id="<?php echo $notif['id']; ?>" title="Marcar como lida" style="color:#22c55e;font-size:1.1em;margin-left:6px;"><i class="bi bi-check2-circle"></i></a>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
 
         <!-- Avatar + Dropdown -->
         <div style="position:relative;">
@@ -581,6 +621,43 @@ function isActive($pageName)
 </aside>
 
 <script>
+        // ==========================
+        // NOTIFICAÇÕES (Dropdown do Sino)
+        // ==========================
+        const notifBtn = document.getElementById('notificBtn');
+        const notifDropdown = document.getElementById('notifDropdown');
+        if (notifBtn && notifDropdown) {
+            notifBtn.onclick = (e) => {
+                e.stopPropagation();
+                notifDropdown.classList.toggle('active');
+            };
+            document.addEventListener('click', (e) => {
+                if (!notifDropdown.contains(e.target) && e.target !== notifBtn) {
+                    notifDropdown.classList.remove('active');
+                }
+            });
+        }
+
+        // Marcar notificação como lida (AJAX)
+        document.querySelectorAll('.notif-mark-read').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const notifId = this.getAttribute('data-id');
+                fetch('<?php echo $isProd ? "/notificacao_ler.php" : "/karen_site/controle-salao/pages/notificacao_ler.php"; ?>?id=' + notifId)
+                    .then(() => {
+                        this.closest('.dropdown-item').style.opacity = 0.4;
+                        this.remove();
+                        // Opcional: atualizar badge
+                        const badge = document.getElementById('notif-badge');
+                        if (badge) {
+                            let n = parseInt(badge.textContent, 10) || 1;
+                            n = Math.max(0, n - 1);
+                            if (n === 0) badge.remove();
+                            else badge.textContent = n;
+                        }
+                    });
+            });
+        });
     // ==========================
     // SIDEBAR
     // ==========================

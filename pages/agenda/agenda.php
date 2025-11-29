@@ -861,8 +861,10 @@ function renderCard($ag, $clientes) {
     // --- LÓGICA DO MENU DE AÇÕES ---
     function openActions(data) {
         document.getElementById('sheetClientName').innerText = data.cliente;
-        const base = `agenda.php?data=<?php echo $dataExibida; ?>&view=<?php echo $viewType; ?>&id=${data.id}`;
-        
+        var isProd = window.location.hostname === 'salao.develoi.com';
+        var agendaUrl = isProd ? '/agenda' : '/karen_site/controle-salao/pages/agenda/agenda.php';
+        const base = `${agendaUrl}?data=<?php echo $dataExibida; ?>&view=<?php echo $viewType; ?>&id=${data.id}`;
+
         // Ação: Confirmar
         document.getElementById('actConfirm').onclick = () => {
             if(data.tel) {
@@ -871,12 +873,11 @@ function renderCard($ag, $clientes) {
             }
             window.location.href = base + '&status=Confirmado';
         };
-        
+
         // Ação: Status/Excluir
         document.getElementById('actCancel').href = base + '&status=Cancelado';
         document.getElementById('actDelete').onclick = () => { if(confirm('Tem certeza que deseja excluir?')) window.location.href = base + '&delete=1'; };
         // Corrige o link para emitir nota: em produção usa /nota?id=XX (com redirecionamento), local usa nota.php
-        var isProd = window.location.hostname === 'salao.develoi.com';
         var notaUrl = isProd ? '/nota' : 'nota.php';
         document.getElementById('actNota').href = `${notaUrl}?id=${data.id}`;
         

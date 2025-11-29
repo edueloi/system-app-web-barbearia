@@ -16,8 +16,8 @@ if (!isset($pageTitle)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $pageTitle; ?></title>
-    <link rel="icon" type="image/png" href="<?= BASE_URL ?>img/logo-azul.png">
-    <link rel="shortcut icon" href="<?= BASE_URL ?>img/logo-azul.png" type="image/png">
+    <link rel="icon" type="image/png" href="<?php echo BASE_URL; ?>img/logo-azul.png">
+    <link rel="shortcut icon" href="<?php echo BASE_URL; ?>img/logo-azul.png" type="image/png">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 

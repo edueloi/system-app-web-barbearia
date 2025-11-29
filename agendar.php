@@ -228,17 +228,30 @@ $servicos = $stmt->fetchAll();
 <!DOCTYPE html> 
 <html lang="pt-br"> 
 <head> 
-    <meta charset="UTF-8"> 
-    <meta name="viewport" 
-          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> 
-    <title><?php echo htmlspecialchars($nomeEstabelecimento); ?> | Agendamento</title> 
- 
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" 
-          rel="stylesheet"> 
-    <link rel="stylesheet" 
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"> 
- 
-    <style> 
+        <meta charset="UTF-8"> 
+        <meta name="viewport" 
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> 
+        <title><?php echo htmlspecialchars($nomeEstabelecimento); ?> | Agendamento</title> 
+
+        <?php
+        // Favicon dinâmico conforme ambiente
+        $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+        if ($isProd) {
+          $faviconUrl = 'https://salao.develoi.com/img/logo-azul.png';
+        } else {
+          $host = $_SERVER['HTTP_HOST'];
+          $faviconUrl = "http://{$host}/karen_site/controle-salao/img/logo-azul.png";
+        }
+        ?>
+        <link rel="icon" type="image/png" href="<?php echo $faviconUrl; ?>">
+        <link rel="shortcut icon" href="<?php echo $faviconUrl; ?>" type="image/png">
+
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" 
+            rel="stylesheet"> 
+        <link rel="stylesheet" 
+            href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"> 
+
+        <style> 
         /* --- SISTEMA DE CORES DINÂMICO --- */ 
         :root { 
             /* PHP injeta a cor escolhida no painel de Configurações */ 
