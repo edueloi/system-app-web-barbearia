@@ -458,8 +458,19 @@ function isActive($pageName)
             <i class="bi bi-list"></i>
         </button>
         <!-- LOGO: prod = /dashboard | local = /karen_site/controle-salao/pages/dashboard.php -->
-        <a href="<?php echo $isProd ? '/dashboard' : '/karen_site/controle-salao/pages/dashboard.php'; ?>" class="brand-logo">
-            <img src="<?php echo $isProd ? '/img/logo-azul.png' : '/karen_site/controle-salao/img/logo-azul.png'; ?>" 
+        <?php
+        // Caminho absoluto para logo, igual favicon
+        if ($isProd) {
+            $logoUrl = 'https://salao.develoi.com/img/logo-azul.png';
+            $dashboardUrl = '/dashboard';
+        } else {
+            $host = $_SERVER['HTTP_HOST'];
+            $logoUrl = "http://{$host}/karen_site/controle-salao/img/logo-azul.png";
+            $dashboardUrl = '/karen_site/controle-salao/pages/dashboard.php';
+        }
+        ?>
+        <a href="<?php echo $dashboardUrl; ?>" class="brand-logo">
+            <img src="<?php echo $logoUrl; ?>" 
                  alt="Logo Salão Develoi"
                  style="height:38px; width:auto; display:inline-block; vertical-align:middle;">
         </a>
@@ -566,11 +577,7 @@ function isActive($pageName)
         </li>
     </ul>
 
-    <div class="sidebar-footer">
-        <a href="<?php echo $isProd ? '/logout.php' : '/karen_site/controle-salao/logout.php'; ?>" class="sidebar-link btn-logout">
-            <i class="bi bi-box-arrow-right"></i> Sair do Sistema
-        </a>
-    </div>
+    <!-- Rodapé do menu removido: botão Sair do Sistema -->
 </aside>
 
 <script>
