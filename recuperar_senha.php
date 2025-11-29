@@ -2,6 +2,7 @@
 // recuperar_senha.php
 
 include 'includes/db.php';
+include 'includes/mailer.php';
 
 // Inicia sessão para gerenciar mensagens
 if (session_status() === PHP_SESSION_NONE) {
@@ -30,28 +31,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user) {
             // 1. Gera um token único
             $token = bin2hex(random_bytes(50));
-            // 2. Define validade (ex: 1 hora a partir de agora)
-            $validade = date('Y-m-d H:i:s', strtotime('+1 hour'));
 
-            // 3. Salva no banco
-            $update = $pdo->prepare("UPDATE usuarios SET token_recuperacao = ?, token_validade = ? WHERE id = ?");
+            // 2. Define validade (2 horas a partir de agora)
+            $validade = date('Y-m-d H:i:s', strtotime('+2 hours'));
+
+            // 3. Salva no banco (sempre sobrescreve tokens antigos)
+            $update = $pdo->prepare("
+                UPDATE usuarios 
+                SET token_recuperacao = ?, token_validade = ? 
+                WHERE id = ?
+            ");
             $update->execute([$token, $validade, $user['id']]);
 
-            // 4. Link de recuperação (Simulação de envio)
-            // Na vida real, você usaria a função mail() ou PHPMailer aqui.
-            $link = "http://" . $_SERVER['HTTP_HOST'] . "/nova_senha.php?token=" . $token;
+            // 4. Monta o link de recuperação (ambiente prod x local)
+            if ($isProd) {
+                $link = "https://salao.develoi.com/nova_senha.php?token=" . urlencode($token);
+            } else {
+                $host = $_SERVER['HTTP_HOST'];
+                $link = "http://{$host}/karen_site/controle-salao/nova_senha.php?token=" . urlencode($token);
+            }
 
-            // Como não temos envio de e-mail configurado no exemplo, mostro uma mensagem de sucesso simulada
-            $mensagem = "Enviamos um link de recuperação para <b>$email</b>. Verifique sua caixa de entrada (e spam).";
-            $tipo_msg = 'sucesso';
-            
-            // Em produção, não mostre o link na tela, envie por email!
+            // 5. Corpo do e-mail
+            $nomeUsuario = $user['nome'] ?? 'Cliente';
+
+            $subject = 'Recuperação de senha - Develoi Agenda';
+
+            $htmlBody = "
+                <p>Olá, <strong>{$nomeUsuario}</strong>!</p>
+                <p>Recebemos uma solicitação para redefinir a sua senha no <strong>Develoi Agenda</strong>.</p>
+                <p>Clique no botão abaixo para criar uma nova senha. 
+                Este link é válido por <strong>2 horas</strong> e só pode ser utilizado uma vez.</p>
+                <p style=\"text-align:center; margin:30px 0;\">
+                    <a href=\"{$link}\" 
+                    style=\"background:#4f46e5;color:#fff;padding:12px 24px;
+                            border-radius:999px;text-decoration:none;font-weight:bold;\">
+                        Redefinir minha senha
+                    </a>
+                </p>
+                <p>Se o botão não funcionar, copie e cole este link no seu navegador:</p>
+                <p><a href=\"{$link}\">{$link}</a></p>
+                <hr>
+                <p>Se você não fez essa solicitação, pode ignorar este e-mail.</p>
+            ";
+
+            // 6. Envia o e-mail
+            $enviou = sendMailDeveloi($email, $nomeUsuario, $subject, $htmlBody);
+
+            // 7. Mensagem para a tela (não revela se e-mail existe ou não)
+            if ($enviou) {
+                $mensagem = "Se este e-mail estiver cadastrado, você receberá o link para redefinir sua senha em instantes.";
+                $tipo_msg = 'sucesso';
+            } else {
+                // opcional: mensagem genérica para não expor falha
+                $mensagem = "Se este e-mail estiver cadastrado, você receberá o link para redefinir sua senha.";
+                $tipo_msg = 'sucesso';
+            }
         } else {
-            // Por segurança, não dizemos se o e-mail não existe, para evitar enumeração de usuários.
-            // Ou dizemos algo genérico.
+            // Por segurança, mensagem genérica
             $mensagem = "Se este e-mail estiver cadastrado, você receberá as instruções.";
             $tipo_msg = 'sucesso';
         }
+
     }
 }
 ?>
