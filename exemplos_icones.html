@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exemplos de Ícones por Tipo de Estabelecimento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            font-size: 2rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .icon-wrapper {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: white;
+        }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #1f2937;
+        }
+        .card-emoji {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+        .card-code {
+            background: #f3f4f6;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-top: 12px;
+        }
+        .info-box {
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .info-box h2 {
+            margin-top: 0;
+            color: #667eea;
+            font-size: 1.3rem;
+        }
+        .info-box p {
+            color: #4b5563;
+            line-height: 1.6;
+        }
+        .emoji { font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Ícones por Tipo de Estabelecimento</h1>
+        
+        <div class="info-box">
+            <h2>📌 Como funciona</h2>
+            <p>
+                <strong>No Perfil:</strong> O profissional escolhe o tipo de estabelecimento (Barbearia, Salão, etc).<br>
+                <strong>No Agendamento:</strong> Os serviços sem foto mostram automaticamente o ícone correspondente ao tipo.<br>
+                <strong>Resultado:</strong> Interface personalizada e profissional para cada tipo de negócio! <span class="emoji">✨</span>
+            </p>
+        </div>
+
+        <div class="grid">
+            <!-- Salão de Beleza -->
+            <div class="card">
+                <div class="icon-wrapper">
+                    <i class="bi bi-scissors"></i>
+                </div>
+                <div class="card-emoji">💇</div>
+                <div class="card-title">Salão de Beleza</div>
+                <div class="card-code">bi-scissors</div>
+            </div>
+
+            <!-- Barbearia -->
+            <div class="card">
+                <div class="icon-wrapper">
+                    <i class="bi bi-brush"></i>
+                </div>
+                <div class="card-emoji">💈</div>
+                <div class="card-title">Barbearia</div>
+                <div class="card-code">bi-brush</div>
+            </div>
+
+            <!-- Nail Art -->
+            <div class="card">
+                <div class="icon-wrapper">
+                    <i class="bi bi-gem"></i>
+                </div>
+                <div class="card-emoji">💅</div>
+                <div class="card-title">Nail Art / Manicure</div>
+                <div class="card-code">bi-gem</div>
+            </div>
+
+            <!-- Estética -->
+            <div class="card">
+                <div class="icon-wrapper">
+                    <i class="bi bi-stars"></i>
+                </div>
+                <div class="card-emoji">✨</div>
+                <div class="card-title">Clínica de Estética</div>
+                <div class="card-code">bi-stars</div>
+            </div>
+
+            <!-- Spa -->
+            <div class="card">
+                <div class="icon-wrapper">
+                    <i class="bi bi-droplet-half"></i>
+                </div>
+                <div class="card-emoji">🧖</div>
+                <div class="card-title">Spa</div>
+                <div class="card-code">bi-droplet-half</div>
+            </div>
+
+            <!-- Studio -->
+            <div class="card">
+                <div class="icon-wrapper">
+                    <i class="bi bi-palette"></i>
+                </div>
+                <div class="card-emoji">🎨</div>
+                <div class="card-title">Studio de Beleza</div>
+                <div class="card-code">bi-palette</div>
+            </div>
+        </div>
+
+        <div class="info-box" style="margin-top: 30px;">
+            <h2>🚀 Implementação Completa</h2>
+            <p>
+                ✅ Campo adicionado no banco de dados<br>
+                ✅ Seleção no perfil do usuário<br>
+                ✅ Ícones dinâmicos no agendamento online<br>
+                ✅ Badge personalizado no perfil<br>
+                ✅ Migração SQL criada<br>
+                ✅ Documentação completa
+            </p>
+        </div>
+    </div>
+</body>
+</html>

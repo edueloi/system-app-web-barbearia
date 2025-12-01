@@ -33,6 +33,18 @@ $nomeEstabelecimento = !empty($profissional['estabelecimento']) ? $profissional[
 $nomeProfissional    = $profissional['nome']; 
 $telefone            = !empty($profissional['telefone']) ? $profissional['telefone'] : ''; 
 $biografia           = !empty($profissional['biografia']) ? $profissional['biografia'] : 'Agende seu horário com a gente!'; 
+$tipoEstabelecimento = !empty($profissional['tipo_estabelecimento']) ? $profissional['tipo_estabelecimento'] : 'Salão de Beleza';
+
+// --- MAPEAMENTO DE ÍCONES POR TIPO DE ESTABELECIMENTO ---
+$iconesEstabelecimento = [
+    'Salão de Beleza' => 'bi-scissors',
+    'Barbearia'       => 'bi-brush',
+    'Nail Art'        => 'bi-gem',
+    'Estética'        => 'bi-stars',
+    'Spa'             => 'bi-droplet-half',
+    'Studio'          => 'bi-palette'
+];
+$iconeServico = $iconesEstabelecimento[$tipoEstabelecimento] ?? 'bi-scissors'; 
  
 // Endereço Formatado 
 $enderecoCompleto = $profissional['endereco'] ?? ''; 
@@ -597,6 +609,7 @@ $servicos = $stmt->fetchAll();
             display: flex; 
             flex-direction: column; 
             position: relative;
+            padding-bottom: 70px; /* Espaço para o footer fixo */
         }
 
         /* Aurora Background */
@@ -1229,56 +1242,85 @@ $servicos = $stmt->fetchAll();
         } 
         @keyframes spin { to { transform:rotate(360deg); } }
 
-        /* Footer Develoi */
+        /* Footer Develoi - Fixo no rodapé */
         .footer-develoi {
-            background: rgba(255, 255, 255, 0.85);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(148,163,184,0.1);
-            padding: 24px 20px;
+            border-top: 1px solid rgba(148,163,184,0.15);
+            padding: 16px 20px;
             text-align: center;
-            margin-top: auto;
-            position: relative;
-            z-index: 10;
+            z-index: 999;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
         }
         
         .footer-content {
             max-width: 800px;
             margin: 0 auto;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
-            gap: 12px;
+            justify-content: center;
+            gap: 10px;
         }
         
         .footer-logo {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             text-decoration: none;
             font-family: 'Outfit', sans-serif;
             font-weight: 700;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
-            transition: all 0.3s ease;
-            padding: 8px 16px;
-            border-radius: 12px;
+            transition: all 0.25s ease;
+            padding: 6px 12px;
+            border-radius: 10px;
         }
         
         .footer-logo:hover {
             color: var(--brand-color);
-            background: rgba(79, 70, 229, 0.05);
-            transform: translateY(-2px);
+            background: rgba(79, 70, 229, 0.08);
+            transform: translateY(-1px);
         }
         
         .footer-logo img {
-            width: 24px;
-            height: 24px;
+            width: 20px;
+            height: 20px;
             object-fit: contain;
         }
         
         .footer-text {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: var(--text-muted);
+        }
+        
+        @media (max-width: 640px) {
+            .footer-develoi {
+                padding: 12px 16px;
+            }
+            
+            .footer-content {
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+            
+            .footer-text {
+                font-size: 0.65rem;
+            }
+            
+            .footer-logo {
+                font-size: 0.75rem;
+                padding: 4px 10px;
+            }
+            
+            .footer-logo img {
+                width: 18px;
+                height: 18px;
+            }
         }
         
         @media (min-width: 768px) {
@@ -2065,7 +2107,7 @@ $servicos = $stmt->fetchAll();
                                     <?php if (!empty($s['foto']) && file_exists(__DIR__ . '/' . $s['foto'])): ?>
                                         <img src="<?php echo htmlspecialchars($s['foto']); ?>" alt="<?php echo htmlspecialchars($s['nome']); ?>">
                                     <?php else: ?>
-                                        <i class="bi bi-scissors service-img-placeholder"></i>
+                                        <i class="bi <?php echo $iconeServico; ?> service-img-placeholder"></i>
                                     <?php endif; ?>
                                 </div>
                                 

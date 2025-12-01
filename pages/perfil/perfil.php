@@ -16,6 +16,7 @@ $userId = $_SESSION['user_id'];
 // --- 1. SALVAR DADOS (POST) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $estabelecimento = $_POST['estabelecimento'] ?? '';
+    $tipoEstabelecimento = $_POST['tipo_estabelecimento'] ?? 'Salão de Beleza';
     $nome            = $_POST['nome'] ?? '';
     $email           = $_POST['email'] ?? '';
     $telefone        = $_POST['telefone'] ?? '';
@@ -43,12 +44,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Atualizar no Banco
     $sql = "UPDATE usuarios SET 
-                estabelecimento=?, nome=?, email=?, telefone=?, foto=?, biografia=?, 
+                estabelecimento=?, tipo_estabelecimento=?, nome=?, email=?, telefone=?, foto=?, biografia=?, 
                 cep=?, endereco=?, numero=?, bairro=?, cidade=?, estado=? 
             WHERE id=?";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
-        $estabelecimento, $nome, $email, $telefone, $fotoPath, $bio,
+        $estabelecimento, $tipoEstabelecimento, $nome, $email, $telefone, $fotoPath, $bio,
         $cep, $endereco, $numero, $bairro, $cidade, $estado, $userId
     ]);
 
@@ -407,7 +408,19 @@ unset($_SESSION['perfil_msg']);
                     <div class="profile-subtitle">Essas informações aparecem para seus clientes.</div>
                     <div class="profile-meta-badges">
                         <span class="badge-soft"><i class="bi bi-person-badge"></i> Perfil profissional</span>
-                        <span class="badge-soft"><i class="bi bi-scissors"></i> Salão / Studio</span>
+                        <?php
+                        $tipoAtual = $user['tipo_estabelecimento'] ?? 'Salão de Beleza';
+                        $iconesTipo = [
+                            'Salão de Beleza' => '💇',
+                            'Barbearia' => '💈',
+                            'Nail Art' => '💅',
+                            'Estética' => '✨',
+                            'Spa' => '🧖',
+                            'Studio' => '🎨'
+                        ];
+                        $icone = $iconesTipo[$tipoAtual] ?? '💇';
+                        ?>
+                        <span class="badge-soft"><?php echo $icone; ?> <?php echo htmlspecialchars($tipoAtual); ?></span>
                     </div>
                 </div>
             </div>
@@ -424,6 +437,17 @@ unset($_SESSION['perfil_msg']);
                             <input type="text" name="estabelecimento" class="form-control"
                                    value="<?php echo htmlspecialchars($user['estabelecimento'] ?? ''); ?>"
                                    placeholder="Ex: Salão Develoi Hair" required>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Tipo de Estabelecimento</label>
+                            <select name="tipo_estabelecimento" class="form-control" required>
+                                <option value="Salão de Beleza" <?php echo ($user['tipo_estabelecimento'] ?? '') === 'Salão de Beleza' ? 'selected' : ''; ?>>💇 Salão de Beleza</option>
+                                <option value="Barbearia" <?php echo ($user['tipo_estabelecimento'] ?? '') === 'Barbearia' ? 'selected' : ''; ?>>💈 Barbearia</option>
+                                <option value="Nail Art" <?php echo ($user['tipo_estabelecimento'] ?? '') === 'Nail Art' ? 'selected' : ''; ?>>💅 Nail Art / Manicure</option>
+                                <option value="Estética" <?php echo ($user['tipo_estabelecimento'] ?? '') === 'Estética' ? 'selected' : ''; ?>>✨ Clínica de Estética</option>
+                                <option value="Spa" <?php echo ($user['tipo_estabelecimento'] ?? '') === 'Spa' ? 'selected' : ''; ?>>🧖 Spa</option>
+                                <option value="Studio" <?php echo ($user['tipo_estabelecimento'] ?? '') === 'Studio' ? 'selected' : ''; ?>>🎨 Studio de Beleza</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Nome Completo</label>
