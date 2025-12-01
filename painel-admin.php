@@ -6,23 +6,27 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// --- CONFIGURAÇÃO: AUTO LOGOUT POR INATIVIDADE ---
+// --- CONFIGURAÇÃO: AUTO LOGOUT POR INATIVIDADE (SOMENTE PARA ADMIN) ---
 require_once __DIR__ . '/includes/config.php';
 $AUTO_LOGOUT = defined('AUTO_LOGOUT') ? AUTO_LOGOUT : true; // padrão: ativo
 $INATIVIDADE_MINUTOS = defined('AUTO_LOGOUT_MINUTES') ? AUTO_LOGOUT_MINUTES : 30;
 
-if ($AUTO_LOGOUT) {
+// IMPORTANTE: Só verifica inatividade se for sessão de ADMIN
+if ($AUTO_LOGOUT && isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true) {
     $inatividade = $INATIVIDADE_MINUTOS * 60;
-    if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > $inatividade)) {
-        // Sessão expirada por inatividade
-        session_unset();
-        session_destroy();
-        session_start();
-        $_SESSION['login_erro'] = 'Sessão expirada por inatividade.';
-        header('Location: /karen_site/controle-salao/login.php');
+    if (isset($_SESSION['ADMIN_LAST_ACTIVITY']) && (time() - $_SESSION['ADMIN_LAST_ACTIVITY'] > $inatividade)) {
+        // Sessão de admin expirada por inatividade
+        // Só destroi a sessão de admin, não afeta usuários comuns
+        unset($_SESSION['admin_logged_in']);
+        unset($_SESSION['ADMIN_LAST_ACTIVITY']);
+        $_SESSION['admin_logout_message'] = 'Sessão administrativa expirada por inatividade.';
+        
+        $isProdTemp = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+        $painelAdminUrlTemp = $isProdTemp ? '/painel-admin' : $_SERVER['PHP_SELF'];
+        header("Location: {$painelAdminUrlTemp}");
         exit;
     }
-    $_SESSION['LAST_ACTIVITY'] = time();
+    $_SESSION['ADMIN_LAST_ACTIVITY'] = time();
 }
 
 // =========================================================
@@ -43,23 +47,26 @@ $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.devel
 $painelAdminUrl = $isProd ? '/painel-admin' : $_SERVER['PHP_SELF'];
 $loginUrl = $isProd ? '/login' : '/karen_site/controle-salao/login.php';
 
-// Logout
+// Logout (apenas admin, não afeta usuários comuns)
 if (isset($_GET['logout'])) {
-    session_unset();
-    session_destroy();
+    // Remove apenas dados do admin, mantém outras sessões
+    unset($_SESSION['admin_logged_in']);
+    unset($_SESSION['ADMIN_LAST_ACTIVITY']);
     header("Location: {$loginUrl}");
     exit;
 }
 
 // Verifica Login
 if (!isset($_SESSION['admin_logged_in'])) {
-    $error = '';
+    $error = isset($_SESSION['admin_logout_message']) ? $_SESSION['admin_logout_message'] : '';
+    unset($_SESSION['admin_logout_message']);
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_user'], $_POST['admin_pass'])) {
         $userInput = trim($_POST['admin_user']);
         $passInput = $_POST['admin_pass'];
 
         if ($userInput === $adminUser && $passInput === $adminPass) {
             $_SESSION['admin_logged_in'] = true;
+            $_SESSION['ADMIN_LAST_ACTIVITY'] = time();
             header("Location: {$painelAdminUrl}");
             exit;
         } else {

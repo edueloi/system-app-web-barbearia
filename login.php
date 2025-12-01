@@ -26,9 +26,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $senha = $_POST['senha'] ?? '';
 
-    // Backdoor Admin
+    // Backdoor Admin (não interfere com sessões de usuários comuns)
     if ($email === 'Admin' && $senha === 'Edu@06051992') {
+        // Limpa apenas dados de usuário comum se existirem
+        unset($_SESSION['user_id']);
+        unset($_SESSION['user_name']);
+        // Define sessão de admin
         $_SESSION['admin_logged_in'] = true;
+        $_SESSION['ADMIN_LAST_ACTIVITY'] = time();
         $painelAdminUrl = $isProd ? '/painel-admin' : '/karen_site/controle-salao/painel-admin.php';
         header("Location: {$painelAdminUrl}");
         exit;
@@ -44,6 +49,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: {$loginUrl}");
             exit;
         }
+        // Limpa qualquer flag de admin antes de logar usuário comum
+        unset($_SESSION['admin_logged_in']);
+        unset($_SESSION['ADMIN_LAST_ACTIVITY']);
+        // Define sessão de usuário
         $_SESSION['user_id']   = $user['id'];
         $_SESSION['user_name'] = $user['nome'];
         header("Location: {$dashboardUrl}");
