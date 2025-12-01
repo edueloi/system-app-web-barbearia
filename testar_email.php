@@ -1,89 +1,128 @@
 <?php
-// testar_email.php - Script para testar envio de email
-
-require_once __DIR__ . '/includes/db.php';
+// testar_email.php - Teste simplificado de SMTP
 require_once __DIR__ . '/includes/mailer.php';
 
-// Pega dados do primeiro usuário
-$stmt = $pdo->query("SELECT * FROM usuarios LIMIT 1");
-$usuario = $stmt->fetch();
+echo "<!DOCTYPE html>";
+echo "<html><head><meta charset='UTF-8'>";
+echo "<title>Teste de Email - Salão Develoi</title>";
+echo "<style>
+    body { font-family: Arial, sans-serif; padding: 40px; background: #f3f4f6; }
+    .box { background: white; padding: 30px; border-radius: 12px; max-width: 800px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .success { color: #10b981; font-weight: bold; }
+    .error { color: #ef4444; font-weight: bold; }
+    pre { background: #1e293b; color: #e2e8f0; padding: 15px; border-radius: 8px; overflow: auto; font-size: 12px; }
+    .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }
+</style></head><body>";
 
-if (!$usuario) {
-    die('Nenhum usuário encontrado no banco');
-}
+echo "<div class='box'>";
+echo "<h1>🧪 Teste de Envio SMTP</h1>";
+echo "<p><strong>Horário:</strong> " . date('d/m/Y H:i:s') . "</p>";
 
-echo "<h2>Teste de Envio de Email</h2>";
-echo "<p><strong>Nome:</strong> " . htmlspecialchars($usuario['nome']) . "</p>";
-echo "<p><strong>Email:</strong> " . htmlspecialchars($usuario['email'] ?? 'NÃO CADASTRADO') . "</p>";
+// 🔹 COLOQUE SEU EMAIL REAL AQUI
+$emailTeste = 'edueloi.ee@gmail.com';
 
-if (empty($usuario['email'])) {
-    die('<p style="color:red;"><strong>ERRO:</strong> Este usuário não tem email cadastrado no banco de dados!</p>
-         <p>Acesse o <a href="pages/perfil/perfil.php">perfil</a> e cadastre um email válido.</p>');
-}
+echo "<p><strong>Destinatário:</strong> $emailTeste</p>";
+echo "<hr>";
 
-// Template simples de teste
-$emailHTML = '
+// Template HTML simples
+$htmlBody = '
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="UTF-8">
-    <title>Teste de Email</title>
-</head>
+<head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:40px;font-family:Arial,sans-serif;background:#f3f4f6;">
     <div style="max-width:600px;margin:0 auto;background:white;padding:30px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
-        <h1 style="color:#6366f1;margin:0 0 20px;">🧪 Email de Teste</h1>
-        <p style="color:#475569;font-size:16px;line-height:1.6;">
-            Olá <strong>' . htmlspecialchars($usuario['nome']) . '</strong>,
+        <h1 style="color:#6366f1;">🧪 Teste de SMTP</h1>
+        <p style="color:#475569;font-size:16px;">
+            Este é um email de teste enviado em <strong>' . date('d/m/Y H:i:s') . '</strong>
         </p>
-        <p style="color:#475569;font-size:16px;line-height:1.6;">
-            Este é um email de teste do sistema <strong>Salão Develoi</strong>.
-        </p>
-        <p style="color:#475569;font-size:16px;line-height:1.6;">
-            Se você recebeu este email, significa que o sistema de envio está funcionando corretamente! ✅
+        <p style="color:#475569;font-size:16px;">
+            Se você recebeu este email, o sistema <strong>Salão Develoi</strong> está funcionando! ✅
         </p>
         <div style="margin:30px 0;padding:20px;background:#eef2ff;border-left:4px solid #6366f1;border-radius:8px;">
             <p style="margin:0;color:#4f46e5;font-size:14px;">
                 <strong>📧 Configurações SMTP:</strong><br>
-                Servidor: salao.develoi.com<br>
+                Host: mail.salao.develoi.com<br>
                 Porta: 465 (SSL)<br>
                 Remetente: contato@salao.develoi.com
             </p>
         </div>
-        <hr style="border:none;border-top:1px solid #e5e7eb;margin:30px 0;">
-        <p style="color:#94a3b8;font-size:12px;text-align:center;margin:0;">
+        <hr>
+        <p style="color:#94a3b8;font-size:12px;text-align:center;">
             <strong>Email automático - Não responder</strong><br>
-            Enviado de <a href="https://salao.develoi.com" style="color:#6366f1;">salao.develoi.com</a>
+            Sistema Salão Develoi
         </p>
     </div>
 </body>
 </html>';
 
-echo "<h3>🚀 Enviando email de teste...</h3>";
+echo "<h2>📤 Enviando email de teste...</h2>";
 
 try {
-    $enviou = sendMailDeveloi(
-        $usuario['email'],
-        $usuario['nome'],
-        '🧪 Teste - Sistema Salão Develoi',
-        $emailHTML
+    $resultado = sendMailDeveloi(
+        $emailTeste,
+        'Teste Develoi',
+        '🧪 Teste SMTP - ' . date('H:i:s'),
+        $htmlBody
     );
     
-    if ($enviou) {
-        echo '<p style="color:green;font-size:18px;"><strong>✅ EMAIL ENVIADO COM SUCESSO!</strong></p>';
-        echo '<p>Verifique a caixa de entrada de: <strong>' . htmlspecialchars($usuario['email']) . '</strong></p>';
-        echo '<p style="color:#f59e0b;">⚠️ Não esqueça de verificar a pasta de SPAM/LIXO ELETRÔNICO</p>';
+    if ($resultado) {
+        echo "<div style='background:#d1fae5;color:#065f46;padding:20px;border-radius:8px;margin:20px 0;'>";
+        echo "<h3 class='success'>✅ EMAIL ENVIADO COM SUCESSO!</h3>";
+        echo "<p><strong>Para:</strong> $emailTeste</p>";
+        echo "<p><strong>Horário:</strong> " . date('H:i:s') . "</p>";
+        echo "</div>";
+        
+        echo "<div class='warning'>";
+        echo "<h4>⚠️ IMPORTANTE - Verifique:</h4>";
+        echo "<ul>";
+        echo "<li>Caixa de entrada principal</li>";
+        echo "<li>Pasta <strong>SPAM / LIXO ELETRÔNICO</strong></li>";
+        echo "<li>Pasta <strong>PROMOÇÕES</strong> (Gmail)</li>";
+        echo "<li>Pasta <strong>ATUALIZAÇÕES</strong> (Gmail)</li>";
+        echo "<li>Pode demorar alguns minutos para chegar</li>";
+        echo "</ul>";
+        echo "</div>";
+        
     } else {
-        echo '<p style="color:red;font-size:18px;"><strong>❌ FALHA NO ENVIO</strong></p>';
-        echo '<p>O email não pôde ser enviado. Verifique os logs de erro.</p>';
+        echo "<div style='background:#fee2e2;color:#991b1b;padding:20px;border-radius:8px;margin:20px 0;'>";
+        echo "<h3 class='error'>❌ FALHA AO ENVIAR EMAIL</h3>";
+        echo "<p>O PHPMailer retornou <strong>false</strong>.</p>";
+        echo "<p>Verifique o <strong>error_log</strong> no cPanel para ver os detalhes.</p>";
+        echo "</div>";
     }
     
 } catch (Exception $e) {
-    echo '<p style="color:red;font-size:18px;"><strong>❌ ERRO:</strong></p>';
-    echo '<pre style="background:#fee;padding:15px;border-radius:8px;overflow:auto;">';
-    echo htmlspecialchars($e->getMessage());
-    echo '</pre>';
+    echo "<div style='background:#fee2e2;color:#991b1b;padding:20px;border-radius:8px;margin:20px 0;'>";
+    echo "<h3 class='error'>❌ EXCEPTION CAPTURADA</h3>";
+    echo "<p><strong>Mensagem:</strong></p>";
+    echo "<pre>" . htmlspecialchars($e->getMessage()) . "</pre>";
+    echo "</div>";
 }
 
-echo '<hr style="margin:30px 0;">';
-echo '<p><a href="agendar.php?user=' . $usuario['id'] . '" style="color:#6366f1;">← Voltar para agendamento</a></p>';
+echo "<hr style='margin:30px 0;'>";
+echo "<h3>🔍 Próximos Passos:</h3>";
+echo "<ol>";
+echo "<li>Se mostrou <strong class='success'>✅ SUCESSO</strong> mas o email não chegou:
+    <ul>
+        <li>Verifique TODAS as pastas do Gmail (SPAM principalmente)</li>
+        <li>Aguarde alguns minutos (pode demorar)</li>
+        <li>Veja o <code>error_log</code> no cPanel para logs do SMTP</li>
+    </ul>
+</li>";
+echo "<li>Se mostrou <strong class='error'>❌ FALHA</strong>:
+    <ul>
+        <li>Abra o <code>error_log</code> no cPanel</li>
+        <li>Procure por <code>SMTP DEBUG</code> ou <code>Exception</code></li>
+        <li>Verifique se Host/Porta/Senha estão corretos</li>
+    </ul>
+</li>";
+echo "</ol>";
+
+echo "<hr style='margin:30px 0;'>";
+echo "<p style='text-align:center;'>";
+echo "<a href='.' style='color:#6366f1;font-weight:bold;'>← Voltar para o sistema</a>";
+echo "</p>";
+
+echo "</div>";
+echo "</body></html>";
 ?>

@@ -7,17 +7,16 @@
 $dbPath = 'includes/db.php'; 
 if (!file_exists($dbPath)) $dbPath = '../../includes/db.php'; 
 require_once $dbPath; 
+
+// 🔹 Detecta ambiente (prod vs local) - DECLARADO NO INÍCIO
+$isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
  
 // ID do Profissional (Pega da URL) 
 $profissionalId = isset($_GET['user']) ? (int)$_GET['user'] : 0; 
  
-// Se não tiver ID, tenta pegar o primeiro usuário (Fallback) 
+// Se não tiver ID na URL, retorna erro
 if ($profissionalId <= 0) { 
-    $stmtFirst = $pdo->query("SELECT id FROM usuarios LIMIT 1"); 
-    $profissionalId = $stmtFirst->fetchColumn(); 
-    if (!$profissionalId) { 
-        die('<div style="font-family:sans-serif;text-align:center;padding:50px;">Sistema indisponível.</div>'); 
-    } 
+    die('<div style="font-family:sans-serif;text-align:center;padding:50px;color:#ef4444;">❌ Link inválido. Use o link completo de agendamento.</div>'); 
 } 
  
 // Busca dados COMPLETOS do profissional/estabelecimento 
@@ -25,7 +24,9 @@ $stmtProf = $pdo->prepare("SELECT * FROM usuarios WHERE id = ? LIMIT 1");
 $stmtProf->execute([$profissionalId]); 
 $profissional = $stmtProf->fetch(); 
  
-if (!$profissional) die('Profissional não encontrado.'); 
+if (!$profissional) {
+    die('<div style="font-family:sans-serif;text-align:center;padding:50px;color:#ef4444;">❌ Profissional não encontrado.</div>');
+} 
  
 // --- LÓGICA DE EXIBIÇÃO (Negócio vs Profissional) --- 
 $nomeEstabelecimento = !empty($profissional['estabelecimento']) ? $profissional['estabelecimento'] : $profissional['nome']; 
@@ -506,8 +507,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         require_once __DIR__ . '/includes/estoque_helper.php';
         consumirEstoquePorServico($pdo, $profissionalId, (int)$servicoId);
 
-        // 🔹 Descobre se está em produção (salao.develoi.com) ou local
-        $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+        // 🔹 Usa a variável $isProd já declarada no topo
         $agendarUrl = $isProd
             ? '/agendar'
             : '/karen_site/controle-salao/agendar.php';
@@ -541,8 +541,7 @@ $servicos = $stmt->fetchAll();
         <title><?php echo htmlspecialchars($nomeEstabelecimento); ?> | Agendamento</title> 
 
         <?php
-        // Favicon dinâmico conforme ambiente
-        $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+        // Favicon dinâmico conforme ambiente (usa variável já declarada)
         if ($isProd) {
           $faviconUrl = 'https://salao.develoi.com/img/logo-azul.png';
         } else {

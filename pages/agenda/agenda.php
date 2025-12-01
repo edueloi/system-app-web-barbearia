@@ -6,7 +6,12 @@ require_once __DIR__ . '/../../includes/config.php';
 // 1. CONFIGURAÇÃO E SESSÃO
 // =========================================================
 if (session_status() === PHP_SESSION_NONE) session_start();
-if (!isset($_SESSION['user_id'])) $_SESSION['user_id'] = 1;
+if (!isset($_SESSION['user_id'])) {
+    // Redireciona para login se não estiver logado
+    $isProdTemp = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+    header('Location: ' . ($isProdTemp ? '/login' : '../../login.php'));
+    exit;
+}
 $userId = $_SESSION['user_id'];
 
 // Tenta incluir o DB com verificação de caminho
@@ -37,8 +42,8 @@ $nomeEstabelecimento = $userInfo['estabelecimento'] ?? 'Meu Salão';
 
 // Link de agendamento online
 $linkAgendamento = $isProd 
-    ? "https://salao.develoi.com/agendar.php?id={$userId}"
-    : "http://localhost/karen_site/controle-salao/agendar.php?id={$userId}";
+    ? "https://salao.develoi.com/agendar?user={$userId}"
+    : "http://localhost/karen_site/controle-salao/agendar.php?user={$userId}";
 
 // Função Auxiliar de Redirecionamento
 function redirect($data, $view) {
