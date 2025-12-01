@@ -25,13 +25,37 @@ if (!isset($_POST['id']) || empty($_POST['id'])) {
 $agendamentoId = (int)$_POST['id'];
 
 try {
-    // Atualizar status para Confirmado
+    // Primeiro, verificar se o agendamento existe e pertence ao usuário
+    $checkStmt = $pdo->prepare("
+        SELECT status FROM agendamentos 
+        WHERE id = ? AND user_id = ?
+    ");
+    $checkStmt->execute([$agendamentoId, $userId]);
+    $agendamento = $checkStmt->fetch();
+    
+    if (!$agendamento) {
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Agendamento não encontrado'
+        ]);
+        exit;
+    }
+    
+    // Se já estiver confirmado, retorna sucesso mesmo assim
+    if ($agendamento['status'] === 'Confirmado') {
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Agendamento já estava confirmado'
+        ]);
+        exit;
+    }
+    
+    // Atualizar status para Confirmado (sem verificar status anterior)
     $stmt = $pdo->prepare("
         UPDATE agendamentos 
         SET status = 'Confirmado' 
         WHERE id = ? 
-        AND user_id = ? 
-        AND status = 'Pendente'
+        AND user_id = ?
     ");
     
     $stmt->execute([$agendamentoId, $userId]);
@@ -45,7 +69,7 @@ try {
     } else {
         echo json_encode([
             'success' => false, 
-            'message' => 'Agendamento não encontrado ou já foi confirmado'
+            'message' => 'Erro ao confirmar agendamento'
         ]);
     }
     

@@ -1960,7 +1960,7 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
                             <strong>Valor:</strong> R$ <?php echo number_format($pend['valor'], 2, ',', '.'); ?>
                         </div>
                         <div class="pendente-actions">
-                            <button class="btn-confirmar" onclick="confirmarAgendamento(<?php echo $pend['id']; ?>)">
+                            <button class="btn-confirmar" onclick="confirmarAgendamento(<?php echo $pend['id']; ?>, true, event)">
                                 <i class="bi bi-check-circle-fill"></i>
                                 Confirmar Apenas
                             </button>
@@ -1977,7 +1977,7 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
                                 ?>" 
                                    class="btn-whats-pendente" 
                                    target="_blank"
-                                   onclick="confirmarAgendamento(<?php echo $pend['id']; ?>, false)">
+                                   onclick="confirmarAgendamento(<?php echo $pend['id']; ?>, false, event)">
                                     <i class="bi bi-whatsapp"></i>
                                     Confirmar + WhatsApp
                                 </a>
@@ -2169,7 +2169,7 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
     // ============================
     // CONFIRMAÇÃO DE AGENDAMENTOS
     // ============================
-    function confirmarAgendamento(agendamentoId, recarregar = true) {
+    function confirmarAgendamento(agendamentoId, recarregar = true, event = null) {
         // Envia requisição AJAX para confirmar
         fetch('<?php echo $isProd ? '/api/confirmar_agendamento.php' : '/karen_site/controle-salao/api/confirmar_agendamento.php'; ?>', {
             method: 'POST',
@@ -2182,7 +2182,7 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         .then(data => {
             if (data.success) {
                 // Feedback visual
-                const item = event.target.closest('.pendente-item');
+                const item = event ? event.target.closest('.pendente-item') : null;
                 if (item) {
                     item.style.background = 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)';
                     item.style.borderColor = '#6ee7b7';
