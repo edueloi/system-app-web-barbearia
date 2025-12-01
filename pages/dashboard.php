@@ -35,18 +35,25 @@ include '../includes/db.php';
 // 3. LÓGICA: CONSULTAS NO BANCO
 // =========================================================
 
-// Datas
+// Datas - Filtros personalizados
 $hoje        = date('Y-m-d');
 $mesAtual    = date('m');
+$anoAtual    = date('Y');
 $nomeUsuario = 'Profissional';
 
-// --- BUSCA NOME DO USUÁRIO ---
-$stmt = $pdo->prepare("SELECT nome FROM usuarios WHERE id = ?");
+// Filtros de período (GET)
+$dataInicio = $_GET['data_inicio'] ?? date('Y-m-01'); // Primeiro dia do mês atual
+$dataFim    = $_GET['data_fim'] ?? date('Y-m-t');     // Último dia do mês atual
+$mesFiltro  = $_GET['mes_aniversario'] ?? $mesAtual;
+
+// --- BUSCA NOME DO USUÁRIO E ESTABELECIMENTO ---
+$stmt = $pdo->prepare("SELECT nome, estabelecimento FROM usuarios WHERE id = ?");
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
 if ($user && !empty($user['nome'])) {
     $nomeUsuario = explode(' ', $user['nome'])[0]; // Primeiro nome
 }
+$nomeEstabelecimento = $user['estabelecimento'] ?? 'Nosso Salão';
 
 // --- 1. Agendamentos de Hoje (Próximos Clientes) ---
 $stmt = $pdo->prepare("
@@ -73,6 +80,23 @@ $stmtFat->execute([
     ':hoje'   => $hoje
 ]);
 $faturamentoHoje = $stmtFat->fetchColumn() ?: 0;
+
+// --- 2B. Faturamento do Período Filtrado ---
+$stmtFatPeriodo = $pdo->prepare("
+    SELECT SUM(valor), COUNT(id)
+      FROM agendamentos
+     WHERE user_id = :userId
+       AND data_agendamento BETWEEN :dataInicio AND :dataFim
+       AND status != 'Cancelado'
+");
+$stmtFatPeriodo->execute([
+    ':userId' => $userId,
+    ':dataInicio' => $dataInicio,
+    ':dataFim' => $dataFim
+]);
+$resultPeriodo = $stmtFatPeriodo->fetch();
+$faturamentoPeriodo = $resultPeriodo['SUM(valor)'] ?: 0;
+$totalAgendamentosPeriodo = $resultPeriodo['COUNT(id)'] ?: 0;
 
 // --- 3. Total de Clientes ---
 $totalClientes = $pdo->query("
@@ -135,7 +159,7 @@ $stmtAniv = $pdo->prepare("
 ");
 $stmtAniv->execute([
     ':userId' => $userId,
-    ':mes'    => $mesAtual
+    ':mes'    => str_pad($mesFiltro, 2, '0', STR_PAD_LEFT)
 ]);
 $aniversariantes = $stmtAniv->fetchAll();
 
@@ -226,9 +250,27 @@ $aniversariantes = $stmtAniv->fetchAll();
     /* Cards de resumo */
     .stats-summary {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 10px;
         margin-bottom: 16px;
+    }
+
+    @media (min-width: 1024px) {
+        .stats-summary {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .stats-summary {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .stats-summary {
+            grid-template-columns: 1fr;
+        }
     }
 
     .stat-box {
@@ -609,6 +651,370 @@ $aniversariantes = $stmtAniv->fetchAll();
             padding: 8px 4px 6px;
         }
     }
+
+    /* ============================
+       FILTROS E GRÁFICOS
+       ============================ */
+    .filters-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: var(--dash-radius-lg);
+        padding: 16px 18px;
+        margin-bottom: 18px;
+        box-shadow: 0 10px 30px rgba(102,126,234,0.3);
+        color: white;
+    }
+
+    .filters-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .filters-title {
+        font-size: 1.05rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: -0.01em;
+    }
+
+    .filters-icon {
+        font-size: 1.3rem;
+    }
+
+    .filters-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+        align-items: end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .filter-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        opacity: 0.95;
+    }
+
+    .filter-input {
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 2px solid rgba(255,255,255,0.3);
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(10px);
+        color: white;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+
+    .filter-input:focus {
+        outline: none;
+        border-color: rgba(255,255,255,0.8);
+        background: rgba(255,255,255,0.25);
+    }
+
+    .filter-input::placeholder {
+        color: rgba(255,255,255,0.6);
+    }
+
+    .filter-input option {
+        background: #4f46e5;
+        color: white;
+    }
+
+    .btn-filter {
+        padding: 10px 20px;
+        border-radius: 12px;
+        border: none;
+        background: white;
+        color: #667eea;
+        font-weight: 800;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .btn-filter:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    }
+
+    .btn-filter:active {
+        transform: scale(0.98);
+    }
+
+    .btn-filter i {
+        font-size: 1.1rem;
+    }
+
+    @media (max-width: 640px) {
+        .filters-form {
+            grid-template-columns: 1fr;
+        }
+        .btn-filter {
+            width: 100%;
+        }
+    }
+
+    /* Modal de Mensagem de Aniversário */
+    .message-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15,23,42,0.7);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(8px);
+        animation: fadeIn 0.25s ease-out;
+    }
+
+    .message-modal.active {
+        display: flex;
+    }
+
+    .message-box {
+        background: #ffffff;
+        padding: 28px;
+        border-radius: 24px;
+        width: 92%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 25px 50px rgba(15,23,42,0.4);
+        animation: modalSlideUp 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes modalSlideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .message-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid #f1f5f9;
+    }
+
+    .message-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        margin: 0;
+        color: var(--text-dark);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .message-title i {
+        font-size: 1.5rem;
+        color: #f59e0b;
+    }
+
+    .message-close {
+        background: #f1f5f9;
+        border: none;
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        cursor: pointer;
+        color: #64748b;
+        font-size: 1.3rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .message-close:hover {
+        background: #e2e8f0;
+        transform: rotate(90deg);
+    }
+
+    .message-preview {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border: 2px solid #86efac;
+    }
+
+    .message-preview-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #166534;
+        margin-bottom: 10px;
+    }
+
+    .message-content {
+        font-size: 1rem;
+        line-height: 1.6;
+        color: #0f172a;
+        white-space: pre-wrap;
+    }
+
+    .message-info {
+        background: #eff6ff;
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: start;
+        gap: 10px;
+        border: 1px solid #bfdbfe;
+    }
+
+    .message-info i {
+        font-size: 1.2rem;
+        color: #2563eb;
+        margin-top: 2px;
+    }
+
+    .message-info-text {
+        font-size: 0.85rem;
+        color: #1e40af;
+        line-height: 1.5;
+    }
+
+    .message-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-copy-message {
+        flex: 1;
+        padding: 14px 20px;
+        border-radius: 12px;
+        border: none;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+    }
+
+    .btn-copy-message:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(16,185,129,0.4);
+    }
+
+    .btn-copy-message:active {
+        transform: scale(0.98);
+    }
+
+    .btn-copy-message i {
+        font-size: 1.1rem;
+    }
+
+    .btn-whatsapp {
+        flex: 1;
+        padding: 14px 20px;
+        border-radius: 12px;
+        border: none;
+        background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+        color: white;
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(37,211,102,0.3);
+        text-decoration: none;
+    }
+
+    .btn-whatsapp:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(37,211,102,0.4);
+        color: white;
+    }
+
+    .btn-whatsapp:active {
+        transform: scale(0.98);
+    }
+
+    .btn-whatsapp i {
+        font-size: 1.2rem;
+    }
+
+    .btn-send-birthday {
+        padding: 6px 12px;
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+        border-radius: 999px;
+        border: none;
+        font-size: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 4px 12px rgba(245,158,11,0.3);
+    }
+
+    .btn-send-birthday:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(245,158,11,0.4);
+    }
+
+    .btn-send-birthday:active {
+        transform: scale(0.95);
+    }
+
+    .btn-send-birthday i {
+        font-size: 0.9rem;
+    }
+
+    @media (max-width: 640px) {
+        .message-box {
+            width: 100%;
+            max-width: 100%;
+            border-radius: 24px 24px 0 0;
+            margin: 0;
+            padding: 20px;
+        }
+        .message-actions {
+            flex-direction: column;
+        }
+    }
 </style>
 
 <main class="app-dashboard-wrapper">
@@ -629,6 +1035,40 @@ $aniversariantes = $stmtAniv->fetchAll();
         </div>
     </div>
 
+    <!-- Filtros de Período -->
+    <div class="filters-card">
+        <div class="filters-header">
+            <i class="bi bi-funnel-fill filters-icon"></i>
+            <h2 class="filters-title">Filtrar Faturamento por Período</h2>
+        </div>
+        <form method="GET" class="filters-form">
+            <div class="filter-group">
+                <label class="filter-label">Data Início</label>
+                <input type="date" name="data_inicio" class="filter-input" value="<?php echo htmlspecialchars($dataInicio); ?>" required>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Data Fim</label>
+                <input type="date" name="data_fim" class="filter-input" value="<?php echo htmlspecialchars($dataFim); ?>" required>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Aniversários</label>
+                <select name="mes_aniversario" class="filter-input">
+                    <?php foreach ($mesNomes as $num => $nome): ?>
+                        <option value="<?php echo $num; ?>" <?php echo ($num == $mesFiltro) ? 'selected' : ''; ?>>
+                            <?php echo $nome; ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="filter-group">
+                <button type="submit" class="btn-filter">
+                    <i class="bi bi-search"></i>
+                    Aplicar Filtros
+                </button>
+            </div>
+        </form>
+    </div>
+
     <!-- Cards de Resumo -->
     <div class="stats-summary">
         <div class="stat-box">
@@ -638,6 +1078,20 @@ $aniversariantes = $stmtAniv->fetchAll();
             </p>
             <span class="stat-chip">
                 <i class="bi bi-graph-up"></i> Dia em andamento
+            </span>
+        </div>
+        <div class="stat-box" style="border: 2px solid #8b5cf6;">
+            <span class="stat-label">
+                Faturamento do período
+                <small style="display:block; margin-top:2px; font-size:0.7rem; opacity:0.8;">
+                    <?php echo date('d/m/Y', strtotime($dataInicio)); ?> até <?php echo date('d/m/Y', strtotime($dataFim)); ?>
+                </small>
+            </span>
+            <p class="stat-value" style="color:#8b5cf6;">
+                R$ <?php echo number_format($faturamentoPeriodo, 2, ',', '.'); ?>
+            </p>
+            <span class="stat-chip" style="background:#f3e8ff;color:#6b21a8;">
+                <i class="bi bi-calendar-range"></i> <?php echo (int)$totalAgendamentosPeriodo; ?> agendamentos
             </span>
         </div>
         <div class="stat-box">
@@ -840,7 +1294,9 @@ $aniversariantes = $stmtAniv->fetchAll();
             <div class="recent-section">
                 <div class="section-header">
                     <div>
-                        <h3 class="section-title">Aniversariantes de <?php echo htmlspecialchars($nomeMesAtual); ?></h3>
+                        <h3 class="section-title">
+                            Aniversariantes de <?php echo htmlspecialchars($mesNomes[str_pad($mesFiltro, 2, '0', STR_PAD_LEFT)]); ?>
+                        </h3>
                         <p class="section-sub">Mande um parabéns especial e fidelize ainda mais.</p>
                     </div>
                     <a href="<?php echo $isProd ? '/clientes' : '/karen_site/controle-salao/pages/clientes/clientes.php'; ?>" class="btn-action">
@@ -856,24 +1312,26 @@ $aniversariantes = $stmtAniv->fetchAll();
                                 <th>Cliente</th>
                                 <th>Telefone</th>
                                 <th>Idade</th>
+                                <th>Ação</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (!empty($aniversariantes)): ?>
                                 <?php foreach ($aniversariantes as $cli): ?>
+                                    <?php
+                                    $dia = '-';
+                                    $idadeLabel = '-';
+                                    $idade = 0;
+                                    if (!empty($cli['data_nascimento'])) {
+                                        $nasc = new DateTime($cli['data_nascimento']);
+                                        $dia = $nasc->format('d/m');
+                                        $hojeDt = new DateTime('today');
+                                        $idade = $hojeDt->diff($nasc)->y;
+                                        $idadeLabel = $idade . ' anos';
+                                    }
+                                    ?>
                                     <tr>
                                         <td data-label="Dia">
-                                            <?php
-                                            $dia = '-';
-                                            $idadeLabel = '-';
-                                            if (!empty($cli['data_nascimento'])) {
-                                                $nasc = new DateTime($cli['data_nascimento']);
-                                                $dia = $nasc->format('d/m');
-                                                $hojeDt = new DateTime('today');
-                                                $idade = $hojeDt->diff($nasc)->y;
-                                                $idadeLabel = $idade . ' anos';
-                                            }
-                                            ?>
                                             <span class="birthday-day"><?php echo $dia; ?></span>
                                         </td>
                                         <td data-label="Cliente"><?php echo htmlspecialchars($cli['nome']); ?></td>
@@ -881,11 +1339,17 @@ $aniversariantes = $stmtAniv->fetchAll();
                                         <td data-label="Idade">
                                             <span class="birthday-age"><?php echo $idadeLabel; ?></span>
                                         </td>
+                                        <td data-label="Ação">
+                                            <button class="btn-send-birthday" onclick="abrirMensagemAniversario('<?php echo htmlspecialchars(addslashes($cli['nome'])); ?>', '<?php echo htmlspecialchars($cli['telefone'] ?? ''); ?>', <?php echo $idade; ?>)">
+                                                <i class="bi bi-send-fill"></i>
+                                                Enviar Parabéns
+                                            </button>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="4" class="empty-row">
+                                    <td colspan="5" class="empty-row">
                                         Nenhum aniversariante cadastrado para este mês.
                                     </td>
                                 </tr>
@@ -901,5 +1365,123 @@ $aniversariantes = $stmtAniv->fetchAll();
     </div><!-- .dashboard-panels -->
 
 </main>
+
+<!-- Modal de Mensagem de Aniversário -->
+<div class="message-modal" id="messageModal">
+    <div class="message-box">
+        <div class="message-header">
+            <h3 class="message-title">
+                <i class="bi bi-gift-fill"></i>
+                Mensagem de Aniversário
+            </h3>
+            <button class="message-close" onclick="fecharMensagem()">&times;</button>
+        </div>
+
+        <div class="message-preview">
+            <div class="message-preview-label">MENSAGEM GERADA AUTOMATICAMENTE</div>
+            <div class="message-content" id="messageContent"></div>
+        </div>
+
+        <div class="message-info">
+            <i class="bi bi-info-circle-fill"></i>
+            <div class="message-info-text">
+                Copie a mensagem ou envie diretamente pelo WhatsApp. Personalize como desejar para criar uma conexão ainda mais especial com seu cliente!
+            </div>
+        </div>
+
+        <div class="message-actions">
+            <button class="btn-copy-message" onclick="copiarMensagem()">
+                <i class="bi bi-clipboard-check-fill"></i>
+                Copiar Mensagem
+            </button>
+            <a href="#" id="whatsappLink" class="btn-whatsapp" target="_blank">
+                <i class="bi bi-whatsapp"></i>
+                Abrir WhatsApp
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const nomeEstabelecimento = <?php echo json_encode($nomeEstabelecimento); ?>;
+    let mensagemAtual = '';
+
+    function abrirMensagemAniversario(nomeCliente, telefone, idade) {
+        // Gerar mensagem personalizada
+        const primeiroNome = nomeCliente.split(' ')[0];
+        
+        const mensagens = [
+            `🎉🎂 Parabéns, ${primeiroNome}! 🎂🎉\n\n` +
+            `Hoje é um dia especial e a equipe do ${nomeEstabelecimento} não poderia deixar passar em branco! ` +
+            `Desejamos que seus ${idade} anos sejam repletos de alegrias, saúde e muitas conquistas.\n\n` +
+            `Como presente, queremos te ver ainda mais linda(o)! Entre em contato e agende um horário especial. ` +
+            `Temos uma surpresa esperando por você! 💇‍♀️✨\n\n` +
+            `Com carinho,\n${nomeEstabelecimento} 💜`,
+            
+            `🎊 Feliz Aniversário, ${primeiroNome}! 🎊\n\n` +
+            `A equipe do ${nomeEstabelecimento} deseja que este novo ciclo de ${idade} anos seja incrível! ` +
+            `Que você continue sendo essa pessoa maravilhosa que alegra nosso salão.\n\n` +
+            `Preparamos algo especial para você! Agende seu horário e venha celebrar conosco. ` +
+            `Você merece todo o carinho e cuidado! 💅✨\n\n` +
+            `Beijos da equipe ${nomeEstabelecimento}! 💕`,
+            
+            `🎈 ${primeiroNome}, hoje é seu dia! 🎈\n\n` +
+            `Parabéns pelos seus ${idade} anos! A família ${nomeEstabelecimento} está em festa para comemorar ` +
+            `com você essa data tão especial.\n\n` +
+            `Que tal se presentear com aquele visual que você sempre quis? Agende agora e aproveite ` +
+            `nossa surpresa de aniversário exclusiva para você! 🎁💇‍♀️\n\n` +
+            `Estamos te esperando!\n${nomeEstabelecimento} 🌟`
+        ];
+        
+        // Escolher mensagem aleatória
+        mensagemAtual = mensagens[Math.floor(Math.random() * mensagens.length)];
+        
+        // Exibir no modal
+        document.getElementById('messageContent').innerText = mensagemAtual;
+        
+        // Configurar link do WhatsApp
+        const telefoneFormatado = telefone.replace(/\D/g, ''); // Remove caracteres não numéricos
+        const whatsappUrl = `https://wa.me/55${telefoneFormatado}?text=${encodeURIComponent(mensagemAtual)}`;
+        document.getElementById('whatsappLink').href = whatsappUrl;
+        
+        // Abrir modal
+        document.getElementById('messageModal').classList.add('active');
+    }
+
+    function fecharMensagem() {
+        document.getElementById('messageModal').classList.remove('active');
+    }
+
+    function copiarMensagem() {
+        navigator.clipboard.writeText(mensagemAtual).then(() => {
+            // Feedback visual
+            const btn = event.target.closest('.btn-copy-message');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Copiado!';
+            btn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            }, 2000);
+        }).catch(err => {
+            alert('Erro ao copiar. Tente selecionar e copiar manualmente.');
+        });
+    }
+
+    // Fechar modal ao clicar fora
+    document.getElementById('messageModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            fecharMensagem();
+        }
+    });
+
+    // Atalho ESC para fechar
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            fecharMensagem();
+        }
+    });
+</script>
 
 <?php include '../includes/footer.php'; ?>
