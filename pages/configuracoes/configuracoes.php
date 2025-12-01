@@ -91,11 +91,17 @@ if (isset($_GET['download_backup'])) {
 }
 
 // Link Público
-$protocol  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
-$host      = $_SERVER['HTTP_HOST'];
-$scriptDir = dirname($_SERVER['PHP_SELF']);
-$appRoot   = rtrim(dirname(dirname($scriptDir)), '/');
-$linkFinal = $protocol . '://' . $host . $appRoot . '/agendar.php?user=' . $userId;
+$isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+
+if ($isProd) {
+    // Produção: usa rota amigável
+    $linkFinal = 'https://salao.develoi.com/agendar?user=' . $userId;
+} else {
+    // Local: usa caminho completo
+    $protocol  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+    $host      = $_SERVER['HTTP_HOST'];
+    $linkFinal = $protocol . '://' . $host . '/karen_site/controle-salao/agendar.php?user=' . $userId;
+}
 
 // Cor atual
 $stmt = $pdo->prepare("SELECT cor_tema FROM usuarios WHERE id = ?");

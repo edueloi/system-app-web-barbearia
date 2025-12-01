@@ -580,7 +580,49 @@ foreach ($todosServicos as $s) {
         <meta charset="UTF-8"> 
         <meta name="viewport" 
             content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> 
-        <title><?php echo htmlspecialchars($nomeEstabelecimento); ?> | Agendamento</title> 
+        <title><?php echo htmlspecialchars($nomeEstabelecimento); ?> - Agende Online | <?php echo htmlspecialchars($tipoEstabelecimento); ?></title>
+        
+        <!-- SEO Meta Tags -->
+        <meta name="description" content="Agende seu horário online no <?php echo htmlspecialchars($nomeEstabelecimento); ?>. <?php echo htmlspecialchars($biografia); ?> Agendamento fácil e rápido com confirmação instantânea.">
+        <meta name="keywords" content="<?php echo htmlspecialchars($nomeEstabelecimento); ?>, agendar online, <?php echo htmlspecialchars($tipoEstabelecimento); ?>, agendamento, beleza, <?php echo !empty($profissional['bairro']) ? htmlspecialchars($profissional['bairro']) : ''; ?>, <?php echo !empty($profissional['cidade']) ? htmlspecialchars($profissional['cidade']) : ''; ?>">
+        <meta name="author" content="<?php echo htmlspecialchars($nomeEstabelecimento); ?>">
+        <meta name="robots" content="index, follow">
+        <meta name="theme-color" content="<?php echo $corPersonalizada; ?>">
+        
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website">
+        <meta property="og:title" content="<?php echo htmlspecialchars($nomeEstabelecimento); ?> - Agende Online">
+        <meta property="og:description" content="<?php echo htmlspecialchars($biografia); ?> Agende seu horário de forma rápida e fácil.">
+        <?php if ($temFoto): ?>
+        <meta property="og:image" content="<?php echo $isProd ? 'https://salao.develoi.com' : 'http://'.$_SERVER['HTTP_HOST'].'/karen_site/controle-salao'; ?><?php echo htmlspecialchars($fotoPerfil); ?>">
+        <?php endif; ?>
+        <meta property="og:url" content="<?php echo $isProd ? 'https://salao.develoi.com/agendar?user=' : 'http://'.$_SERVER['HTTP_HOST'].'/karen_site/controle-salao/agendar.php?user='; ?><?php echo $profissionalId; ?>">
+        
+        <!-- Twitter -->
+        <meta property="twitter:card" content="summary_large_image">
+        <meta property="twitter:title" content="<?php echo htmlspecialchars($nomeEstabelecimento); ?> - Agende Online">
+        <meta property="twitter:description" content="<?php echo htmlspecialchars($biografia); ?>">
+        <?php if ($temFoto): ?>
+        <meta property="twitter:image" content="<?php echo $isProd ? 'https://salao.develoi.com' : 'http://'.$_SERVER['HTTP_HOST'].'/karen_site/controle-salao'; ?><?php echo htmlspecialchars($fotoPerfil); ?>">
+        <?php endif; ?>
+        
+        <!-- Canonical URL -->
+        <link rel="canonical" href="<?php echo $isProd ? 'https://salao.develoi.com/agendar?user=' : 'http://'.$_SERVER['HTTP_HOST'].'/karen_site/controle-salao/agendar.php?user='; ?><?php echo $profissionalId; ?>">
+        
+        <!-- Schema.org para Google -->
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "LocalBusiness",
+          "name": "<?php echo htmlspecialchars($nomeEstabelecimento); ?>",
+          "description": "<?php echo htmlspecialchars($biografia); ?>",
+          <?php if ($temFoto): ?>"image": "<?php echo $isProd ? 'https://salao.develoi.com' : 'http://'.$_SERVER['HTTP_HOST'].'/karen_site/controle-salao'; ?><?php echo htmlspecialchars($fotoPerfil); ?>",<?php endif; ?>
+          <?php if ($telefone): ?>"telephone": "<?php echo htmlspecialchars($telefone); ?>",<?php endif; ?>
+          <?php if ($enderecoCompleto): ?>"address": "<?php echo htmlspecialchars($enderecoCompleto); ?>",<?php endif; ?>
+          "priceRange": "$$",
+          "url": "<?php echo $isProd ? 'https://salao.develoi.com/agendar?user=' : 'http://'.$_SERVER['HTTP_HOST'].'/karen_site/controle-salao/agendar.php?user='; ?><?php echo $profissionalId; ?>"
+        }
+        </script> 
 
         <?php
         // Favicon dinâmico conforme ambiente (usa variável já declarada)
@@ -2215,10 +2257,18 @@ foreach ($todosServicos as $s) {
  
     <div class="main-content"> 
         <?php if ($sucesso): ?> 
-            <div style="text-align:center; padding:50px 20px;"> 
-                <div style="width:100px; height:100px; margin:0 auto 30px; background:linear-gradient(135deg, #dcfce7, #bbf7d0); border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 20px 60px rgba(16, 185, 129, 0.3);">
-                    <i class="bi bi-check-circle-fill" 
-                       style="font-size:3.5rem; color:#10b981;"></i>
+            <div style="text-align:center; padding:50px 20px;">
+                <!-- Logo/Foto do Estabelecimento -->
+                <div style="width:120px; height:120px; margin:0 auto 24px; background:white; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 20px 60px rgba(16, 185, 129, 0.3); border:5px solid #10b981; overflow:hidden;">
+                    <?php if ($temFoto): ?>
+                        <img src="<?php echo htmlspecialchars($fotoPerfil); ?>" 
+                             style="width:100%;height:100%;object-fit:cover;"
+                             alt="<?php echo htmlspecialchars($nomeEstabelecimento); ?>">
+                    <?php else: ?>
+                        <img src="img/logo-D.png" 
+                             style="width:70%;height:70%;object-fit:contain;"
+                             alt="Develoi">
+                    <?php endif; ?>
                 </div>
                 <h2 class="card-title" style="color:#10b981; margin-bottom:16px;">Agendamento Confirmado!</h2> 
                 <div style="background:rgba(16, 185, 129, 0.08); padding:20px; border-radius:20px; margin-bottom:30px; border:1px solid rgba(16, 185, 129, 0.2);">
@@ -2250,13 +2300,7 @@ foreach ($todosServicos as $s) {
                     "Aguardo a confirmação. Obrigado! 😊"
                 );
                 ?>
-                <?php if ($whats): ?>
-                    <a href="https://wa.me/<?php echo $whats; ?>?text=<?php echo $msg; ?>" 
-                       target="_blank" class="btn-action" style="background:linear-gradient(135deg, #25d366, #128C7E); color:white; margin-bottom:14px;"> 
-                        <i class="bi bi-whatsapp"></i> Confirmar pelo WhatsApp 
-                    </a> 
-                <?php endif; ?> 
-                <a href="?user=<?php echo $profissionalId; ?>" class="btn-action" style="background:linear-gradient(135deg, var(--brand-color), var(--brand-dark));"> 
+                <a href="?user=<?php echo $profissionalId; ?>" class="btn-action" style="background:linear-gradient(135deg, var(--brand-color), var(--brand-dark)); margin-bottom:14px;"> 
                     <i class="bi bi-arrow-clockwise"></i> Agendar Novamente 
                 </a> 
             </div> 
@@ -2503,7 +2547,7 @@ foreach ($todosServicos as $s) {
  
 <script>
     const PROF_ID = <?php echo $profissionalId; ?>;
-    const CURRENT_PAGE = "<?php echo basename($_SERVER['PHP_SELF']); ?>";
+    const CURRENT_PAGE = <?php echo json_encode($isProd ? '/agendar' : '/karen_site/controle-salao/agendar.php'); ?>;
     let selectedServices = [];
     let currentServiceDuration = 0;
 

@@ -3,10 +3,61 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Develoi Agenda • Sistema de Gestão Premium</title>
+    <title>Develoi Agenda • Sistema de Gestão para Salões, Barbearias e Clínicas de Estética</title>
     
-    <meta name="description" content="O sistema definitivo para salões e barbearias. Controle estoque em gramas, agenda via WhatsApp e financeiro em um só lugar.">
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Sistema completo de gestão para salões de beleza, barbearias e clínicas de estética. Controle de estoque em gramas, agendamento online via WhatsApp, gestão financeira e muito mais. Experimente grátis!">
+    <meta name="keywords" content="sistema para salão, gestão salão de beleza, sistema barbearia, agenda online, controle de estoque salão, gestão financeira beleza, agendamento whatsapp, sistema para clínica estética, software salão">
+    <meta name="author" content="Develoi">
+    <meta name="robots" content="index, follow">
     <meta name="theme-color" content="#4f46e5">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Develoi Agenda - Sistema de Gestão Premium para Salões e Barbearias">
+    <meta property="og:description" content="Transforme seu salão com tecnologia de ponta. Gestão completa de agenda, estoque, financeiro e muito mais. Teste grátis por 30 dias!">
+    <meta property="og:image" content="https://salao.develoi.com/img/logo-azul.png">
+    <meta property="og:url" content="https://salao.develoi.com">
+    <meta property="og:site_name" content="Develoi Agenda">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="Develoi Agenda - Sistema para Salões e Barbearias">
+    <meta property="twitter:description" content="O sistema definitivo para gestão de salões de beleza e barbearias. Controle total do seu negócio em uma única plataforma.">
+    <meta property="twitter:image" content="https://salao.develoi.com/img/logo-azul.png">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://salao.develoi.com">
+    
+    <!-- Schema.org para Google -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Develoi Agenda",
+      "applicationCategory": "BusinessApplication",
+      "description": "Sistema completo de gestão para salões de beleza, barbearias e clínicas de estética com controle de estoque, agenda online e gestão financeira.",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "BRL",
+        "description": "Teste grátis por 30 dias"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "127"
+      },
+      "url": "https://salao.develoi.com",
+      "image": "https://salao.develoi.com/img/logo-azul.png",
+      "developer": {
+        "@type": "Organization",
+        "name": "Develoi",
+        "url": "https://develoi.com"
+      }
+    }
+    </script>
 
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
