@@ -771,7 +771,7 @@ foreach ($todosServicos as $s) {
             100% { transform: translate(40px, -40px); }
         } 
  
-        .app-container { display: grid; grid-template-columns: 1fr; min-height: 100vh; } 
+        .app-container { margin-bottom: 20px; display: grid; grid-template-columns: 1fr; min-height: 100vh; } 
  
         .sidebar { 
             background: rgba(255, 255, 255, 0.85);
@@ -2630,11 +2630,6 @@ foreach ($todosServicos as $s) {
                             </div> 
                         <?php endif; ?> 
                     </div>
-
-                    <button type="button" class="btn-action" onclick="continuarParaHorario()" id="btnContinuar" disabled style="opacity: 0.5">
-                        <span id="btnContinuarText">Selecione um serviço</span>
-                        <i class="bi bi-arrow-right"></i>
-                    </button>
                 </div> 
  
                 <div class="step-screen" id="step2"> 
@@ -2659,11 +2654,6 @@ foreach ($todosServicos as $s) {
                          style="display:none; text-align:center; color:#ef4444; margin-top:20px;"> 
                         Sem horários livres nesta data. 
                     </div>
-
-                    <button type="button" class="btn-action" onclick="confirmarHorario()" id="btnConfirmarHorario" disabled style="opacity: 0.5; margin-top: 20px;">
-                        <span>Confirmar Horário</span>
-                        <i class="bi bi-arrow-right"></i>
-                    </button>
                 </div> 
  
                 <div class="step-screen" id="step3"> 
@@ -2708,10 +2698,6 @@ foreach ($todosServicos as $s) {
                         <label class="form-label">Observação (Opcional)</label> 
                         <textarea name="cliente_obs" class="form-control" rows="2"></textarea> 
                     </div> 
- 
-                    <button type="submit" id="btnConfirmar" class="btn-action" disabled style="opacity: 0.5"> 
-                        Confirmar Agendamento 
-                    </button> 
                 </div> 
             </form> 
         <?php endif; ?> 
@@ -2733,6 +2719,8 @@ foreach ($todosServicos as $s) {
             setTimeout(() => {
                 document.getElementById('splashScreen').style.display = 'none';
             }, 2600);
+            // Assim que carregar a página (modo agendamento), garante que footer está correto
+            configureFooterForStep(1);
         <?php endif; ?>
     });
 
@@ -2746,6 +2734,52 @@ foreach ($todosServicos as $s) {
 
     function abrirConsulta() {
         document.getElementById('consultaModal').classList.add('active');
+    }
+
+    function configureFooterForStep(step) {
+        const footerAction     = document.getElementById('footerAction');
+        const footerActionBtn  = document.getElementById('footerActionButton');
+        const footerActionText = document.getElementById('footerActionText');
+
+        if (!footerAction || !footerActionBtn || !footerActionText) return;
+
+        // Sempre começa escondido
+        footerAction.style.display = 'none';
+        footerActionBtn.disabled = true;
+
+        if (step === 1) {
+            // Só mostra se tiver pelo menos 1 serviço
+            if (selectedServices.length === 0) return;
+
+            footerAction.style.display = 'flex';
+            footerActionBtn.disabled   = false;
+            footerActionBtn.onclick    = continuarParaHorario;
+            footerActionText.innerText = selectedServices.length === 1
+                ? 'Continuar com 1 serviço'
+                : `Continuar com ${selectedServices.length} serviços`;
+
+        } else if (step === 2) {
+            const horarioSelecionado = document.getElementById('inHorario').value;
+            if (!horarioSelecionado) return;
+
+            footerAction.style.display = 'flex';
+            footerActionBtn.disabled   = false;
+            footerActionBtn.onclick    = confirmarHorario;
+            footerActionText.innerText = 'Confirmar Horário';
+
+        } else if (step === 3) {
+            footerAction.style.display = 'flex';
+            // Habilita/desabilita de acordo com validateForm()
+            footerActionBtn.onclick = function () {
+                const form = document.getElementById('agendaForm');
+                if (form && startSubmit()) {
+                    form.submit();
+                }
+            };
+            footerActionText.innerText = 'Confirmar Agendamento';
+            // Deixa o estado correto conforme os campos
+            footerActionBtn.disabled = !validateForm(true);
+        }
     }
 
     function fecharConsulta() {
@@ -2907,36 +2941,7 @@ foreach ($todosServicos as $s) {
             if (index + 1 < step) el.classList.add('done');
         });
 
-        // controla visibilidade do botão no rodapé
-        const footerAction = document.getElementById('footerAction');
-        const footerActionBtn = document.getElementById('footerActionButton');
-        const footerActionText = document.getElementById('footerActionText');
-        
-        if (footerAction && footerActionBtn && footerActionText) {
-            if (step === 1 && selectedServices.length > 0) {
-                // Passo 1: Botão "Continuar com X serviços"
-                footerAction.style.display = 'flex';
-                footerActionBtn.onclick = continuarParaHorario;
-                footerActionText.innerText = selectedServices.length === 1
-                    ? 'Continuar com 1 serviço'
-                    : `Continuar com ${selectedServices.length} serviços`;
-            } else if (step === 2) {
-                // Passo 2: Botão "Confirmar Horário"
-                const horarioSelecionado = document.getElementById('inHorario').value;
-                if (horarioSelecionado) {
-                    footerAction.style.display = 'flex';
-                    footerActionBtn.onclick = confirmarHorario;
-                    footerActionText.innerText = 'Confirmar Horário';
-                } else {
-                    footerAction.style.display = 'none';
-                }
-            } else if (step === 3) {
-                // Passo 3: Esconde o botão (usa o botão do formulário)
-                footerAction.style.display = 'none';
-            } else {
-                footerAction.style.display = 'none';
-            }
-        }
+        configureFooterForStep(step);
     }
 
     function selectService(el, id, nome, preco, duracao) {
@@ -2957,36 +2962,22 @@ foreach ($todosServicos as $s) {
 
     function updateSummary() {
         const summary = document.getElementById('bookingSummary');
-        const btnText = document.getElementById('btnContinuarText');
-        const btnContinuar = document.getElementById('btnContinuar');
-
-        const footerAction     = document.getElementById('footerAction');
-        const footerActionBtn  = document.getElementById('footerActionButton');
-        const footerActionText = document.getElementById('footerActionText');
         
         if (selectedServices.length === 0) {
             summary.style.display = 'none';
-            if (btnText) btnText.innerText = 'Selecione um serviço';
-            if (btnContinuar) {
-                btnContinuar.disabled = true;
-                btnContinuar.style.opacity = '0.5';
-            }
-
-            // some o botão do rodapé
-            if (footerAction) footerAction.style.display = 'none';
-            if (footerActionBtn) footerActionBtn.disabled = true;
 
             // Esconde badge
             const badge = document.getElementById('selectedBadge');
             if (badge) badge.style.display = 'none';
+
+            // Atualiza footer se estiver no passo 1
+            if (document.getElementById('step1').classList.contains('active')) {
+                configureFooterForStep(1);
+            }
             return;
         }
 
         summary.style.display = 'block';
-        if (btnContinuar) {
-            btnContinuar.disabled = false;
-            btnContinuar.style.opacity = '1';
-        }
         
         const totalPreco = selectedServices.reduce((sum, s) => sum + s.preco, 0);
         currentServiceDuration = selectedServices.reduce((sum, s) => sum + s.duracao, 0);
@@ -2998,25 +2989,15 @@ foreach ($todosServicos as $s) {
             ? selectedServices[0].nome 
             : `${selectedServices.length} serviços`;
         
-        if (btnText) {
-            btnText.innerText = selectedServices.length === 1 
-                ? 'Continuar com 1 serviço'
-                : `Continuar com ${selectedServices.length} serviços`;
-        }
-        
         document.getElementById('sumServico').innerText = nomesServicos;
         document.getElementById('sumPreco').innerText = 'R$ ' + totalPreco.toFixed(2).replace('.', ',');
-        
-        // Atualiza botão do rodapé
-        if (footerAction && footerActionBtn && footerActionText) {
-            footerAction.style.display = 'flex';
-            footerActionBtn.disabled = false;
-            footerActionText.innerText = selectedServices.length === 1
-                ? 'Continuar com 1 serviço'
-                : `Continuar com ${selectedServices.length} serviços`;
-        }
 
-        // Atualiza badge flutuante
+        // Limpa data/hora ao trocar serviços
+        document.getElementById('inData').value = '';
+        document.getElementById('inHorario').value = '';
+        document.getElementById('sumDataHora').innerText = '';
+
+        // Badge flutuante
         const badge = document.getElementById('selectedBadge');
         const badgeCount = document.getElementById('selectedCount');
         if (badge && badgeCount) {
@@ -3024,10 +3005,11 @@ foreach ($todosServicos as $s) {
             badge.style.display = 'flex';
             badge.style.animation = 'bounceIn 0.5s ease-out';
         }
-        
-        document.getElementById('inData').value = '';
-        document.getElementById('inHorario').value = '';
-        document.getElementById('sumDataHora').innerText = '';
+
+        // Atualiza footer (se estiver no passo 1)
+        if (document.getElementById('step1').classList.contains('active')) {
+            configureFooterForStep(1);
+        }
     }
 
     function continuarParaHorario() {
@@ -3045,22 +3027,21 @@ foreach ($todosServicos as $s) {
         const loader = document.getElementById('loadingTimes');
         const container = document.getElementById('timesContainer');
         const noTimes = document.getElementById('noTimesMsg');
-        const btnConfirmarHorario = document.getElementById('btnConfirmarHorario');
 
         container.innerHTML = '';
         noTimes.style.display = 'none';
         loader.style.display = 'block';
-        if (btnConfirmarHorario) {
-            btnConfirmarHorario.disabled = true;
-            btnConfirmarHorario.style.opacity = '0.5';
-        }
+
+        // Limpa horário selecionado
+        document.getElementById('inHorario').value = '';
+        document.getElementById('sumDataHora').innerText = '';
+        configureFooterForStep(2);
 
         fetch(`${CURRENT_PAGE}?user=${PROF_ID}&action=buscar_horarios&data=${dateVal}&duracao=${currentServiceDuration}`)
             .then(res => res.json())
             .then(slots => {
                 loader.style.display = 'none';
 
-                // Filtrar horários passados se a data for hoje
                 const selectedDate = new Date(dateVal + 'T00:00:00');
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -3070,11 +3051,11 @@ foreach ($todosServicos as $s) {
                     const now = new Date();
                     const currentHour = now.getHours();
                     const currentMinute = now.getMinutes();
+                    const currentMinutes = currentHour * 60 + currentMinute;
                     
                     availableSlots = slots.filter(time => {
                         const [hour, minute] = time.split(':').map(Number);
                         const slotMinutes = hour * 60 + minute;
-                        const currentMinutes = currentHour * 60 + currentMinute;
                         return slotMinutes > currentMinutes;
                     });
                 }
@@ -3103,22 +3084,8 @@ foreach ($todosServicos as $s) {
         const [y, m, d] = dateVal.split('-');
         document.getElementById('sumDataHora').innerText = `${d}/${m}/${y} às ${time}`;
 
-        // Habilitar botão confirmar horário
-        const btnConfirmarHorario = document.getElementById('btnConfirmarHorario');
-        if (btnConfirmarHorario) {
-            btnConfirmarHorario.disabled = false;
-            btnConfirmarHorario.style.opacity = '1';
-        }
-
-        // Mostrar botão no rodapé
-        const footerAction = document.getElementById('footerAction');
-        const footerActionBtn = document.getElementById('footerActionButton');
-        const footerActionText = document.getElementById('footerActionText');
-        if (footerAction && footerActionBtn && footerActionText) {
-            footerAction.style.display = 'flex';
-            footerActionBtn.onclick = confirmarHorario;
-            footerActionText.innerText = 'Confirmar Horário';
-        }
+        // Atualiza footer para passo 2 (agora com horário válido)
+        configureFooterForStep(2);
     }
 
     function confirmarHorario() {
@@ -3130,14 +3097,10 @@ foreach ($todosServicos as $s) {
             return;
         }
         
-        // Validar se a data/hora não é passada (apenas para data de HOJE)
         const [year, month, day] = dateVal.split('-').map(Number);
         const [hour, minute] = timeVal.split(':').map(Number);
-        
         const selectedDateTime = new Date(year, month - 1, day, hour, minute);
         const now = new Date();
-        
-        // Apenas valida se for HOJE
         const selectedDate = new Date(year, month - 1, day);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -3148,19 +3111,13 @@ foreach ($todosServicos as $s) {
                 'Horário Inválido', 
                 `Não é possível agendar para ${day.toString().padStart(2,'0')}/${month.toString().padStart(2,'0')}/${year} às ${timeVal} pois este horário já passou. Por favor, escolha um horário futuro.`
             );
-            // Limpar seleção
             document.querySelectorAll('.time-slot').forEach(t => t.classList.remove('selected'));
             document.getElementById('inHorario').value = '';
             document.getElementById('sumDataHora').innerText = '';
-            const btnConfirmarHorario = document.getElementById('btnConfirmarHorario');
-            if (btnConfirmarHorario) {
-                btnConfirmarHorario.disabled = true;
-                btnConfirmarHorario.style.opacity = '0.5';
-            }
+            configureFooterForStep(2);
             return;
         }
         
-        // Horário válido, avançar para próxima etapa
         goToStep(3);
     }
     
@@ -3174,22 +3131,23 @@ foreach ($todosServicos as $s) {
         document.getElementById('errorModal').classList.remove('active');
     }
 
-    function validateForm() {
+    function validateForm(onlyReturn = false) {
         const telInput = document.getElementById('telInput');
         const nomeInput = document.getElementById('nomeInput');
-        const btn = document.getElementById('btnConfirmar');
-        
         const tel = telInput.value.replace(/\D/g, '');
         const nome = nomeInput.value.trim();
-        
-        // Habilita botão se telefone (10+ dígitos) e nome estiverem preenchidos
-        if (tel.length >= 10 && nome.length >= 3) {
-            btn.disabled = false;
-            btn.style.opacity = '1';
-        } else {
-            btn.disabled = true;
-            btn.style.opacity = '0.5';
+
+        const valido = tel.length >= 10 && nome.length >= 3;
+
+        // Só mexe no botão do footer se estiver no passo 3
+        if (!onlyReturn && document.getElementById('step3').classList.contains('active')) {
+            const footerBtn = document.getElementById('footerActionButton');
+            if (footerBtn) {
+                footerBtn.disabled = !valido;
+            }
         }
+
+        return valido;
     }
 
     function checkClient() {
@@ -3237,12 +3195,16 @@ foreach ($todosServicos as $s) {
     }
 
     function startSubmit() {
-        const btn = document.getElementById('btnConfirmar');
-        if (btn.disabled) return false;
+        // usado tanto no onsubmit do form quanto no botão do footer
+        if (!validateForm(true)) return false;
 
-        btn.innerHTML = '<span class="loading-spinner"></span> Processando...';
-        btn.disabled = true;
-        return true;
+        const footerBtn = document.getElementById('footerActionButton');
+        if (footerBtn) {
+            footerBtn.innerHTML = '<span class="loading-spinner"></span> Processando...';
+            footerBtn.disabled = true;
+        }
+
+        return true; // deixa o submit seguir em frente
     }
 
     function maskPhone(i) {
