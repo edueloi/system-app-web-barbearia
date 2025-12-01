@@ -409,6 +409,271 @@ function isActive($pageName)
         animation: slideUp 0.2s ease;
     }
 
+    /* ==========================
+       NOTIFICAÇÕES MODERNAS
+       ========================== */
+    .notif-dropdown {
+        position: absolute;
+        top: 50px;
+        right: 0;
+        width: 420px;
+        max-width: 95vw;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25);
+        border: 1px solid #e2e8f0;
+        display: none;
+        flex-direction: column;
+        z-index: 2000;
+        overflow: hidden;
+    }
+
+    .notif-dropdown.active {
+        display: flex;
+        animation: slideUpNotif 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .notif-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .notif-count {
+        background: linear-gradient(135deg, #6366f1, #818cf8);
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 999px;
+        min-width: 24px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    }
+
+    .notif-list {
+        max-height: 480px;
+        overflow-y: auto;
+        padding: 8px;
+    }
+
+    .notif-list::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .notif-list::-webkit-scrollbar-track {
+        background: #f8fafc;
+    }
+
+    .notif-list::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+    }
+
+    .notif-list::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    .notif-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 24px;
+        text-align: center;
+        color: #64748b;
+    }
+
+    .notif-empty p {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 4px;
+    }
+
+    .notif-empty span {
+        font-size: 0.9rem;
+        color: #94a3b8;
+    }
+
+    .notif-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 8px;
+        display: flex;
+        gap: 12px;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .notif-card::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: linear-gradient(180deg, #6366f1, #818cf8);
+        opacity: 0;
+        transition: opacity 0.25s;
+    }
+
+    .notif-card:hover {
+        border-color: #c7d2fe;
+        background: linear-gradient(135deg, #fafbff, #f8fafc);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.12);
+    }
+
+    .notif-card:hover::before {
+        opacity: 1;
+    }
+
+    .notif-card:active {
+        transform: scale(0.98);
+    }
+
+    .notif-icon {
+        flex-shrink: 0;
+        width: 42px;
+        height: 42px;
+        background: linear-gradient(135deg, #dbeafe, #ede9fe);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: #6366f1;
+    }
+
+    .notif-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .notif-message {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #1e293b;
+        line-height: 1.5;
+        margin-bottom: 6px;
+        word-wrap: break-word;
+    }
+
+    .notif-time {
+        font-size: 0.8rem;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .notif-time i {
+        font-size: 0.75rem;
+    }
+
+    .notif-link {
+        color: #6366f1;
+        text-decoration: none;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: 8px;
+        transition: color 0.2s;
+    }
+
+    .notif-link:hover {
+        color: #4f46e5;
+        text-decoration: underline;
+    }
+
+    .notif-dismiss {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        background: transparent;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        transition: all 0.2s;
+        font-size: 0.85rem;
+    }
+
+    .notif-dismiss:hover {
+        background: #fee2e2;
+        color: #ef4444;
+        transform: rotate(90deg);
+    }
+
+    @keyframes slideUpNotif {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes notifFadeOut {
+        from {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+    }
+
+    .notif-card.removing {
+        animation: notifFadeOut 0.3s forwards;
+    }
+
+    @media (max-width: 480px) {
+        .notif-dropdown {
+            width: 100vw;
+            max-width: 100vw;
+            left: 0;
+            right: 0;
+            border-radius: 16px 16px 0 0;
+            top: 60px;
+        }
+
+        .notif-card {
+            padding: 12px;
+        }
+
+        .notif-icon {
+            width: 38px;
+            height: 38px;
+            font-size: 1.1rem;
+        }
+
+        .notif-message {
+            font-size: 0.9rem;
+        }
+
+        .notif-time {
+            font-size: 0.75rem;
+        }
+    }
+
     .dropdown-item {
         padding: 9px 11px;
         border-radius: 8px;
@@ -490,8 +755,7 @@ function isActive($pageName)
             <i class="bi bi-arrows-fullscreen" id="fullscreenIcon"></i>
         </button>
 
-        <!-- Sino -->
-
+        <!-- Sino de Notificações -->
         <div style="position:relative;">
             <button class="icon-btn" id="notificBtn" type="button" aria-label="Notificações" style="position:relative;">
                 <i class="bi bi-bell"></i>
@@ -501,35 +765,55 @@ function isActive($pageName)
                     </span>
                 <?php endif; ?>
             </button>
-            <div id="notifDropdown" class="user-dropdown" style="right:0;left:auto;width:320px;max-width:95vw;min-width:220px;">
-                <div style="padding:10px 12px;font-weight:600;border-bottom:1px solid #f1f5f9;font-size:0.95rem;margin-bottom:4px;">
-                    Notificações
+            
+            <!-- Dropdown Moderno de Notificações -->
+            <div id="notifDropdown" class="notif-dropdown">
+                <div class="notif-header">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <i class="bi bi-bell-fill" style="color:#6366f1;font-size:1.1rem;"></i>
+                        <span style="font-weight:700;font-size:1.05rem;color:#1e293b;">Notificações</span>
+                    </div>
+                    <span id="notif-count" class="notif-count">
+                        <?php echo $notificacoesNaoLidas; ?>
+                    </span>
                 </div>
-                <?php if ($notificacoesNaoLidas === 0): ?>
-                    <div style="padding:12px 16px;color:#64748b;font-size:0.92rem;text-align:center;">Nenhuma nova notificação.</div>
-                <?php else: ?>
-                    <?php foreach ($notificacoesLista as $notif): ?>
-                        <div class="dropdown-item notif-item"
-                             data-id="<?php echo $notif['id']; ?>"
-                             style="white-space:normal;line-height:1.4;gap:8px;cursor:pointer;">
-                            <span style="font-size:1.1em;"><i class="bi bi-info-circle"></i></span>
-                            <div style="flex:1;">
-                                <div style="font-size:0.98em;font-weight:600;color:#111827;\"><?php echo htmlspecialchars($notif['message']); ?></div>
-                                <div style="font-size:0.78em;color:#64748b;margin-top:2px;">
-                                    <?php echo date('d/m/Y H:i', strtotime($notif['created_at'])); ?>
-                                    <?php if (!empty($notif['link'])): ?>
-                                        &nbsp;
-                                        <a href="<?php echo htmlspecialchars($notif['link']); ?>"
-                                           onclick="event.stopPropagation();"
-                                           style="color:#6366f1;text-decoration:underline;font-size:0.85em;">
-                                            Ver
-                                        </a>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
+                
+                <div class="notif-list" id="notifList">
+                    <?php if ($notificacoesNaoLidas === 0): ?>
+                        <div class="notif-empty">
+                            <i class="bi bi-check-circle" style="font-size:2.5rem;color:#10b981;margin-bottom:8px;"></i>
+                            <p>Tudo em dia!</p>
+                            <span>Nenhuma notificação nova</span>
                         </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+                    <?php else: ?>
+                        <?php foreach ($notificacoesLista as $notif): ?>
+                            <div class="notif-card" data-id="<?php echo $notif['id']; ?>">
+                                <div class="notif-icon">
+                                    <i class="bi bi-info-circle-fill"></i>
+                                </div>
+                                <div class="notif-content">
+                                    <div class="notif-message">
+                                        <?php echo htmlspecialchars($notif['message']); ?>
+                                    </div>
+                                    <div class="notif-time">
+                                        <i class="bi bi-clock"></i>
+                                        <?php echo date('d/m/Y H:i', strtotime($notif['created_at'])); ?>
+                                        <?php if (!empty($notif['link'])): ?>
+                                            <a href="<?php echo htmlspecialchars($notif['link']); ?>" 
+                                               class="notif-link"
+                                               onclick="event.stopPropagation();">
+                                                <i class="bi bi-box-arrow-up-right"></i> Ver detalhes
+                                            </a>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <button class="notif-dismiss" onclick="dismissNotification(<?php echo $notif['id']; ?>, event)">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
 
@@ -628,15 +912,21 @@ function isActive($pageName)
 
 <script>
         // ==========================
-        // NOTIFICAÇÕES (Dropdown do Sino)
+        // NOTIFICAÇÕES MODERNAS
         // ==========================
         const notifBtn = document.getElementById('notificBtn');
         const notifDropdown = document.getElementById('notifDropdown');
+        const notifList = document.getElementById('notifList');
+        const notifBadge = document.getElementById('notif-badge');
+        const notifCount = document.getElementById('notif-count');
+
+        // Toggle dropdown do sino
         if (notifBtn && notifDropdown) {
             notifBtn.onclick = (e) => {
                 e.stopPropagation();
                 notifDropdown.classList.toggle('active');
             };
+            
             document.addEventListener('click', (e) => {
                 if (!notifDropdown.contains(e.target) && e.target !== notifBtn) {
                     notifDropdown.classList.remove('active');
@@ -644,39 +934,83 @@ function isActive($pageName)
             });
         }
 
-        // Marcar notificação como lida (clicando na linha)
-        document.querySelectorAll('.notif-item').forEach(item => {
-            item.addEventListener('click', function () {
+        // Função para dispensar notificação (botão X)
+        function dismissNotification(notifId, event) {
+            event.stopPropagation();
+            const card = document.querySelector(`.notif-card[data-id="${notifId}"]`);
+            if (!card) return;
+
+            // Adiciona animação de saída
+            card.classList.add('removing');
+
+            // Chama o backend para marcar como lida
+            fetch('<?php echo $isProd ? "/pages/notificacao_ler.php" : "/karen_site/controle-salao/pages/notificacao_ler.php"; ?>?id=' + notifId)
+                .then(() => {
+                    setTimeout(() => {
+                        card.remove();
+                        updateNotificationCount();
+                    }, 300); // Tempo da animação
+                })
+                .catch(() => {
+                    card.classList.remove('removing');
+                    alert('Erro ao marcar como lida. Tente novamente.');
+                });
+        }
+
+        // Clique no card inteiro também marca como lido
+        document.querySelectorAll('.notif-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                // Se clicou no botão dismiss ou no link, não faz nada
+                if (e.target.closest('.notif-dismiss') || e.target.closest('.notif-link')) {
+                    return;
+                }
+
                 const notifId = this.getAttribute('data-id');
-                const row = this;
+                this.classList.add('removing');
 
-                fetch('<?php echo $isProd ? "/notificacao_ler.php" : "/karen_site/controle-salao/pages/notificacao_ler.php"; ?>?id=' + notifId)
+                fetch('<?php echo $isProd ? "/pages/notificacao_ler.php" : "/karen_site/controle-salao/pages/notificacao_ler.php"; ?>?id=' + notifId)
                     .then(() => {
-                        // Remove a linha da lista
-                        row.remove();
-
-                        // Atualiza o badge do sino
-                        const badge = document.getElementById('notif-badge');
-                        if (badge) {
-                            let n = parseInt(badge.textContent, 10) || 1;
-                            n = Math.max(0, n - 1);
-                            if (n === 0) {
-                                badge.remove();
-                                // Se quiser, mostra "nenhuma notificação"
-                                if (!document.querySelector('.notif-item')) {
-                                    notifDropdown.innerHTML += '<div style="padding:12px 16px;color:#64748b;font-size:0.92rem;text-align:center;">Nenhuma nova notificação.</div>';
-                                }
-                            } else {
-                                badge.textContent = n;
-                            }
-                        }
+                        setTimeout(() => {
+                            this.remove();
+                            updateNotificationCount();
+                        }, 300);
                     })
                     .catch(() => {
-                        // Se der erro, você pode mostrar algo depois, se quiser
-                        alert('Não foi possível marcar a notificação como lida agora.');
+                        this.classList.remove('removing');
+                        alert('Erro ao marcar como lida. Tente novamente.');
                     });
             });
         });
+
+        // Atualiza contador e badge
+        function updateNotificationCount() {
+            const remaining = document.querySelectorAll('.notif-card').length;
+
+            // Atualiza contador no header do dropdown
+            if (notifCount) {
+                notifCount.textContent = remaining;
+            }
+
+            // Atualiza ou remove badge do sino
+            if (notifBadge) {
+                if (remaining === 0) {
+                    notifBadge.remove();
+                } else {
+                    notifBadge.textContent = remaining;
+                }
+            }
+
+            // Se não tiver mais notificações, mostra estado vazio
+            if (remaining === 0 && notifList) {
+                notifList.innerHTML = `
+                    <div class="notif-empty">
+                        <i class="bi bi-check-circle" style="font-size:2.5rem;color:#10b981;margin-bottom:8px;"></i>
+                        <p>Tudo em dia!</p>
+                        <span>Nenhuma notificação nova</span>
+                    </div>
+                `;
+            }
+        }
     // ==========================
     // SIDEBAR
     // ==========================
