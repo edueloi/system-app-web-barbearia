@@ -115,60 +115,72 @@ include '../../includes/menu.php';
     :root {
         --primary: #6366f1;
         --primary-hover: #4f46e5;
-        --bg-page: #f8fafc;
+        --primary-light: #eef2ff;
+        --bg-page: #f1f5f9;
         --text-dark: #0f172a;
         --text-gray: #64748b;
+        --text-light: #94a3b8;
         --border-soft: #e2e8f0;
-        --shadow-soft: 0 12px 30px rgba(15,23,42,0.10);
+        --shadow-card: 0 1px 3px rgba(15,23,42,0.08), 0 8px 24px rgba(15,23,42,0.06);
+        --shadow-hover: 0 4px 12px rgba(15,23,42,0.10), 0 16px 40px rgba(15,23,42,0.08);
+        --radius-xl: 24px;
         --radius-lg: 20px;
-        --radius-md: 14px;
+        --radius-md: 16px;
+        --radius-sm: 12px;
         --radius-pill: 999px;
     }
 
     body {
-        font-family: 'Inter', sans-serif;
-        font-size: 14px; /* menor, cara de app */
-        background-color: var(--bg-page);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 14px;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        min-height: 100vh;
     }
 
     .main-content {
         width: 100%;
-        max-width: 960px;
+        max-width: 1100px;
         margin: 0 auto;
-        padding: 16px 14px 90px 14px;
+        padding: 24px 16px 100px 16px;
         box-sizing: border-box;
     }
 
     @media (min-width: 768px) {
         .main-content {
-            padding-inline: 20px;
+            padding: 32px 24px 100px 24px;
         }
     }
 
     .config-header {
-        margin: 6px 0 18px 0;
+        margin: 0 0 28px 0;
+        text-align: left;
     }
     .config-header h2 {
-        margin: 0;
-        font-size: 1.25rem;
-        font-weight: 700;
+        margin: 0 0 8px 0;
+        font-size: 2rem;
+        font-weight: 800;
         color: var(--text-dark);
-        letter-spacing: -0.01em;
+        letter-spacing: -0.02em;
+        background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
     .config-header p {
-        margin: 4px 0 0 0;
+        margin: 0;
         color: var(--text-gray);
-        font-size: 0.86rem;
+        font-size: 0.95rem;
+        line-height: 1.5;
     }
 
     .config-grid {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 16px;
+        gap: 20px;
     }
     @media(min-width: 900px) {
         .config-grid {
-            grid-template-columns: 2fr 1.3fr;
+            grid-template-columns: 1.8fr 1fr;
             align-items: flex-start;
         }
         .card-full {
@@ -178,298 +190,460 @@ include '../../includes/menu.php';
 
     .card {
         background: #ffffff;
-        border-radius: 22px;
-        padding: 18px 16px 18px 16px;
-        box-shadow: var(--shadow-soft);
-        border: 1px solid #f1f5f9;
+        border-radius: var(--radius-xl);
+        padding: 28px 24px;
+        box-shadow: var(--shadow-card);
+        border: 1px solid rgba(241,245,249,0.8);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
     }
-    @media (min-width: 768px) {
-        .card {
-            padding: 20px 20px 18px 20px;
-        }
+    
+    .card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary) 0%, #ec4899 100%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .card:hover {
+        box-shadow: var(--shadow-hover);
+        transform: translateY(-2px);
+        border-color: rgba(99,102,241,0.2);
+    }
+    
+    .card:hover::before {
+        opacity: 1;
     }
 
     .card-title {
-        margin-top: 0;
+        margin: 0 0 12px 0;
         display: flex;
         align-items: center;
-        gap: 9px;
+        gap: 12px;
         color: var(--text-dark);
-        font-size: 0.98rem;
+        font-size: 1.15rem;
         font-weight: 700;
+        letter-spacing: -0.01em;
     }
     .card-title i {
-        font-size: 1.05rem;
+        font-size: 1.25rem;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
     }
     .card-desc {
         color: var(--text-gray);
-        font-size: 0.86rem;
-        margin-bottom: 14px;
-        line-height: 1.5;
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+        line-height: 1.65;
     }
 
-    .form-group { margin-bottom: 11px; }
+    .form-group { 
+        margin-bottom: 18px; 
+    }
     .form-label {
         display: block;
-        margin-bottom: 4px;
+        margin-bottom: 8px;
         font-weight: 600;
-        font-size: 0.8rem;
-        color: #475569;
+        font-size: 0.85rem;
+        color: #334155;
+        letter-spacing: -0.01em;
     }
     .form-control {
         width: 100%;
-        padding: 9px 11px;
-        border: 1px solid #e2e8f0;
+        padding: 12px 16px;
+        border: 2px solid #e2e8f0;
         border-radius: var(--radius-md);
         box-sizing: border-box;
-        font-size: 0.88rem;
+        font-size: 0.92rem;
         background: #f8fafc;
-        transition: 0.15s;
+        transition: all 0.2s ease;
+        font-family: inherit;
     }
     .form-control:focus {
         border-color: var(--primary);
         outline: none;
         background: #ffffff;
-        box-shadow: 0 0 0 2px rgba(99,102,241,0.16);
+        box-shadow: 0 0 0 4px rgba(99,102,241,0.1);
+        transform: translateY(-1px);
+    }
+    .form-control:hover {
+        border-color: #cbd5e1;
     }
 
     .btn-primary {
-        background: var(--primary);
+        background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
         color: white;
         border: none;
-        padding: 10px 18px;
+        padding: 14px 24px;
         border-radius: var(--radius-pill);
         cursor: pointer;
-        font-weight: 600;
+        font-weight: 700;
         width: 100%;
-        transition: 0.18s;
-        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        font-size: 0.95rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 7px;
-        box-shadow: 0 10px 22px rgba(99,102,241,0.35);
+        gap: 10px;
+        box-shadow: 0 4px 16px rgba(99,102,241,0.3), 0 12px 32px rgba(99,102,241,0.2);
         letter-spacing: 0.01em;
+        position: relative;
+        overflow: hidden;
+    }
+    .btn-primary::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s ease;
+    }
+    .btn-primary:hover::before {
+        left: 100%;
     }
     .btn-primary i {
-        font-size: 1rem;
+        font-size: 1.1rem;
     }
     .btn-primary:hover {
-        background: var(--primary-hover);
-        transform: translateY(-1px);
+        background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99,102,241,0.4), 0 16px 40px rgba(99,102,241,0.25);
     }
     .btn-primary:active {
-        transform: translateY(1px) scale(0.98);
-        box-shadow: 0 6px 16px rgba(79,70,229,0.4);
+        transform: translateY(0) scale(0.98);
+        box-shadow: 0 2px 8px rgba(79,70,229,0.3);
     }
 
     /* Alertas */
     .alert {
-        padding: 9px 11px;
-        border-radius: 999px;
-        margin-bottom: 14px;
-        font-size: 0.8rem;
-        display: inline-flex;
+        padding: 16px 20px;
+        border-radius: var(--radius-md);
+        margin-bottom: 24px;
+        font-size: 0.9rem;
+        display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 12px;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        animation: slideDown 0.3s ease;
+    }
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .alert i {
+        font-size: 1.2rem;
     }
     .alert.success {
-        background: #dcfce7;
+        background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
         color: #166534;
-        border: 1px solid #bbf7d0;
+        border: 2px solid #86efac;
     }
     .alert.error {
-        background: #fee2e2;
+        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
         color: #991b1b;
-        border: 1px solid #fecaca;
+        border: 2px solid #fca5a5;
     }
 
     /* Color Picker + Paletas */
     .color-picker-wrapper {
         display: flex;
         align-items: center;
-        gap: 10px;
-        border: 1px solid #e2e8f0;
-        padding: 8px 9px;
-        border-radius: 16px;
-        margin-bottom: 9px;
-        background: #ffffff;
+        gap: 16px;
+        border: 2px solid #e2e8f0;
+        padding: 16px;
+        border-radius: var(--radius-lg);
+        margin-bottom: 24px;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.03);
+        transition: all 0.3s ease;
+    }
+    .color-picker-wrapper:hover {
+        border-color: var(--primary);
+        box-shadow: 0 4px 12px rgba(99,102,241,0.15);
     }
     input[type="color"] {
-        border: none;
-        width: 40px;
-        height: 40px;
+        border: 3px solid #e2e8f0;
+        width: 56px;
+        height: 56px;
         cursor: pointer;
         background: transparent;
         padding: 0;
+        border-radius: var(--radius-md);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    input[type="color"]:hover {
+        transform: scale(1.05);
+        border-color: var(--primary);
     }
     .preview-area {
         flex: 1;
         min-width: 0;
     }
     .preview-label {
-        font-size: 0.76rem;
+        font-size: 0.8rem;
+        font-weight: 600;
         color: #64748b;
-        margin-bottom: 3px;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
     .preview-btn {
-        padding: 7px 16px;
-        border-radius: 999px;
+        padding: 10px 20px;
+        border-radius: var(--radius-pill);
         color: white;
-        font-weight: 600;
+        font-weight: 700;
         border: none;
-        font-size: 0.8rem;
+        font-size: 0.9rem;
         pointer-events: none;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        box-shadow: 0 8px 18px rgba(15,23,42,0.25);
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(15,23,42,0.2), 0 8px 24px rgba(15,23,42,0.15);
         white-space: nowrap;
+        transition: all 0.3s ease;
     }
 
     .hex-helper {
-        font-size: 0.74rem;
+        font-size: 0.8rem;
         color: #94a3b8;
-        margin-top: 3px;
+        margin-top: 8px;
+        font-weight: 500;
+    }
+    .hex-helper code {
+        background: #f1f5f9;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-family: 'Courier New', monospace;
+        color: var(--primary);
+        font-weight: 700;
     }
 
     .theme-palettes-title {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: #475569;
-        margin: 9px 0 4px 0;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #334155;
+        margin: 16px 0 12px 0;
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
         justify-content: space-between;
         flex-wrap: wrap;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
     .theme-palettes-title span {
-        font-size: 0.72rem;
+        font-size: 0.75rem;
         font-weight: 500;
-        color: #9ca3af;
+        color: #94a3b8;
+        text-transform: none;
+        letter-spacing: normal;
     }
 
     .theme-grid-wrapper {
         overflow-x: auto;
-        padding-bottom: 3px;
+        padding-bottom: 8px;
+        margin-bottom: 8px;
     }
 
     .theme-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
-        gap: 8px;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
         min-width: 260px;
     }
 
     .theme-card {
-        border-radius: 14px;
-        border: 1px solid #e2e8f0;
-        padding: 7px 8px;
+        border-radius: var(--radius-md);
+        border: 2px solid #e2e8f0;
+        padding: 14px 12px;
         cursor: pointer;
-        transition: 0.18s;
-        background: #f9fafb;
+        transition: all 0.3s ease;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 8px;
+        position: relative;
+        overflow: hidden;
+    }
+    .theme-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--primary) 0%, #ec4899 100%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .theme-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        border-color: var(--primary);
+    }
+    .theme-card:hover::before {
+        opacity: 1;
     }
     .theme-card-header {
         display: flex;
-        align-items: center;
-        gap: 6px;
+        align-items: flex-start;
+        gap: 10px;
     }
     .theme-dot {
-        width: 16px;
-        height: 16px;
-        border-radius: 999px;
-        border: 2px solid #e5e7eb;
-        box-shadow: 0 0 0 1px rgba(15,23,42,0.12);
+        width: 24px;
+        height: 24px;
+        border-radius: 8px;
+        border: 3px solid #e5e7eb;
+        box-shadow: 0 2px 8px rgba(15,23,42,0.15);
         flex-shrink: 0;
+        transition: all 0.3s ease;
+    }
+    .theme-card:hover .theme-dot {
+        transform: rotate(360deg);
+        border-color: white;
     }
     .theme-name {
-        font-size: 0.78rem;
-        font-weight: 600;
+        font-size: 0.85rem;
+        font-weight: 700;
         color: #0f172a;
+        line-height: 1.3;
     }
     .theme-meta {
-        font-size: 0.72rem;
-        color: #6b7280;
+        font-size: 0.75rem;
+        color: #64748b;
+        line-height: 1.4;
+        margin-top: 2px;
     }
 
     .theme-swatches {
         display: flex;
-        gap: 4px;
-        margin-top: 3px;
+        gap: 6px;
+        margin-top: 6px;
     }
     .theme-swatch {
-        width: 14px;
-        height: 14px;
-        border-radius: 999px;
-        border: 1px solid rgba(15,23,42,0.08);
+        width: 18px;
+        height: 18px;
+        border-radius: 6px;
+        border: 2px solid rgba(255,255,255,0.8);
         flex-shrink: 0;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        transition: all 0.3s ease;
+    }
+    .theme-card:hover .theme-swatch {
+        transform: scale(1.1);
     }
 
     .theme-preview-bar {
-        height: 6px;
+        height: 8px;
         border-radius: 999px;
         background: #e5e7eb;
         overflow: hidden;
         position: relative;
-        margin-top: 3px;
+        margin-top: 6px;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
     }
     .theme-preview-bar-inner {
         position: absolute;
         inset: 0;
         border-radius: inherit;
-        background: linear-gradient(90deg, rgba(15,23,42,0.10), rgba(15,23,42,0.22));
+        background: linear-gradient(90deg, rgba(15,23,42,0.15), rgba(15,23,42,0.3));
         mix-blend-mode: multiply;
     }
 
     .theme-card.active {
-        border-color: #6366f1;
-        background: #eef2ff;
-        box-shadow: 0 0 0 1px rgba(99,102,241,0.45);
+        border-color: var(--primary);
+        background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.2), 0 8px 24px rgba(99,102,241,0.25);
+        transform: translateY(-4px);
+    }
+    .theme-card.active::before {
+        opacity: 1;
+    }
+    .theme-card.active .theme-name {
+        color: var(--primary);
     }
 
     /* Download / link */
     .btn-download {
-        background: #0f172a;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
         color: white;
         text-decoration: none;
-        padding: 10px 18px;
+        padding: 14px 24px;
         border-radius: var(--radius-pill);
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        font-weight: 600;
-        transition: 0.18s;
-        font-size: 0.9rem;
-        box-shadow: 0 10px 20px rgba(15,23,42,0.4);
+        gap: 10px;
+        font-weight: 700;
+        transition: all 0.3s ease;
+        font-size: 0.95rem;
+        box-shadow: 0 4px 16px rgba(15,23,42,0.3), 0 12px 32px rgba(15,23,42,0.2);
+        position: relative;
+        overflow: hidden;
+    }
+    .btn-download::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s ease;
+    }
+    .btn-download:hover::before {
+        left: 100%;
     }
     .btn-download:hover {
-        background: #111827;
-        transform: translateY(-1px);
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(15,23,42,0.4), 0 16px 40px rgba(15,23,42,0.25);
+    }
+    .btn-download i {
+        font-size: 1.1rem;
     }
 
     .copy-box {
         display: flex;
-        gap: 8px;
+        gap: 10px;
+        align-items: stretch;
     }
     .btn-copy {
-        background: #e0e7ff;
-        color: #4f46e5;
-        border: none;
-        padding: 0 16px;
-        border-radius: 12px;
+        background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+        color: var(--primary);
+        border: 2px solid #c7d2fe;
+        padding: 12px 20px;
+        border-radius: var(--radius-md);
         cursor: pointer;
-        font-weight: 600;
-        font-size: 0.8rem;
+        font-weight: 700;
+        font-size: 0.85rem;
         white-space: nowrap;
-        transition: 0.15s;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(99,102,241,0.15);
     }
     .btn-copy:hover {
-        background: #c7d2fe;
+        background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(99,102,241,0.25);
+        border-color: var(--primary);
+    }
+    .btn-copy:active {
+        transform: translateY(0) scale(0.98);
     }
 
     @media (max-width: 640px) {
@@ -479,8 +653,48 @@ include '../../includes/menu.php';
         .btn-copy {
             width: 100%;
             text-align: center;
-            padding: 9px 0;
+            padding: 12px 0;
         }
+    }
+    
+    /* Divider decorativo */
+    .section-divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+        margin: 32px 0;
+    }
+    
+    /* Botão encurtar link */
+    .btn-shorten {
+        width: 100%;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: 2px dashed #cbd5e1;
+        color: #64748b;
+        padding: 12px 20px;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
+    .btn-shorten:hover {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(99,102,241,0.15);
+    }
+    .btn-shorten:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+    .btn-shorten i {
+        font-size: 1rem;
     }
 </style>
 
@@ -725,9 +939,9 @@ include '../../includes/menu.php';
                 <i class="bi bi-share-fill" style="color:#6366f1;"></i>
                 Link para Clientes
             </h3>
-            <p class="card-desc">Envie este link para seus clientes agendarem sozinhos online.</p>
+            <p class="card-desc">Compartilhe este link para que seus clientes possam agendar online de forma autônoma.</p>
 
-            <label class="form-label">Link público de agendamento</label>
+            <label class="form-label">📋 Link público de agendamento</label>
             <div class="copy-box">
                 <input
                     type="text"
@@ -735,34 +949,70 @@ include '../../includes/menu.php';
                     value="<?php echo htmlspecialchars($linkFinal); ?>"
                     id="linkInput"
                     readonly
+                    style="flex: 1; font-family: 'Courier New', monospace; font-size: 0.85rem;"
                 >
-                <button class="btn-copy" type="button" onclick="copiarLink()">Copiar</button>
+                <button class="btn-copy" type="button" onclick="copiarLink()">
+                    <i class="bi bi-clipboard"></i> Copiar
+                </button>
+            </div>
+            
+            <div style="margin-top: 12px;">
+                <button type="button" class="btn-shorten" onclick="encurtarLink()" id="btnShorten">
+                    <i class="bi bi-scissors"></i>
+                    <span id="shortenText">Gerar link encurtado</span>
+                </button>
+            </div>
+            
+            <div id="shortLinkResult" style="display: none; margin-top: 12px;">
+                <label class="form-label">🔗 Link encurtado (mais fácil de compartilhar)</label>
+                <div class="copy-box">
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="shortLinkInput"
+                        readonly
+                        style="flex: 1; font-family: 'Courier New', monospace; font-size: 0.85rem;"
+                    >
+                    <button class="btn-copy" type="button" onclick="copiarLinkEncurtado()">
+                        <i class="bi bi-clipboard"></i> Copiar
+                    </button>
+                </div>
+            </div>
+            
+            <div style="margin-top: 16px; padding: 12px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: var(--radius-md); border: 2px solid #86efac;">
+                <div style="display: flex; align-items: center; gap: 8px; color: #166534; font-size: 0.85rem; font-weight: 600;">
+                    <i class="bi bi-lightbulb-fill"></i>
+                    <span>Dica profissional</span>
+                </div>
+                <p style="margin: 6px 0 0 0; color: #15803d; font-size: 0.8rem; line-height: 1.5;">
+                    Adicione este link no Instagram, WhatsApp ou em sua bio para receber agendamentos 24/7.
+                </p>
             </div>
         </div>
 
         <div class="card">
             <h3 class="card-title">
                 <i class="bi bi-shield-lock-fill" style="color:#10b981;"></i>
-                Alterar Senha
+                Segurança da Conta
             </h3>
-            <p class="card-desc">Mantenha sua conta segura atualizando a senha periodicamente.</p>
+            <p class="card-desc">Mantenha sua conta protegida atualizando sua senha regularmente.</p>
 
             <form method="POST">
                 <input type="hidden" name="acao" value="nova_senha">
                 <div class="form-group">
-                    <label class="form-label">Senha atual</label>
-                    <input type="password" name="senha_atual" class="form-control" required>
+                    <label class="form-label">🔒 Senha atual</label>
+                    <input type="password" name="senha_atual" class="form-control" required placeholder="Digite sua senha atual">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Nova senha</label>
-                    <input type="password" name="nova_senha" class="form-control" required placeholder="Min. 6 caracteres">
+                    <label class="form-label">🔑 Nova senha</label>
+                    <input type="password" name="nova_senha" class="form-control" required placeholder="Mínimo 6 caracteres">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Confirmar nova senha</label>
-                    <input type="password" name="confirmar_senha" class="form-control" required>
+                    <label class="form-label">✅ Confirmar nova senha</label>
+                    <input type="password" name="confirmar_senha" class="form-control" required placeholder="Digite novamente">
                 </div>
-                <button type="submit" class="btn-primary" style="background:#0f172a;">
-                    <i class="bi bi-key-fill"></i>
+                <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 16px rgba(16,185,129,0.3), 0 12px 32px rgba(16,185,129,0.2);">
+                    <i class="bi bi-shield-check"></i>
                     Atualizar senha
                 </button>
             </form>
@@ -770,11 +1020,22 @@ include '../../includes/menu.php';
 
         <div class="card">
             <h3 class="card-title">
-                <i class="bi bi-database-down" style="color:#f59e0b;"></i>
-                Backup
+                <i class="bi bi-database-fill" style="color:#f59e0b;"></i>
+                Backup de Dados
             </h3>
-            <p class="card-desc">Faça o download de uma cópia do banco de dados com seus agendamentos, clientes e informações.</p>
-            <a href="?download_backup=1" class="btn-download">
+            <p class="card-desc">Baixe uma cópia completa do seu banco de dados incluindo agendamentos, clientes e todas as configurações.</p>
+            
+            <div style="margin-bottom: 16px; padding: 12px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: var(--radius-md); border: 2px solid #fbbf24;">
+                <div style="display: flex; align-items: center; gap: 8px; color: #92400e; font-size: 0.85rem; font-weight: 600;">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span>Importante</span>
+                </div>
+                <p style="margin: 6px 0 0 0; color: #b45309; font-size: 0.8rem; line-height: 1.5;">
+                    Realize backups semanais para garantir a segurança dos seus dados.
+                </p>
+            </div>
+            
+            <a href="?download_backup=1" class="btn-download" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); box-shadow: 0 4px 16px rgba(245,158,11,0.3), 0 12px 32px rgba(245,158,11,0.2);">
                 <i class="bi bi-download"></i> Baixar banco de dados
             </a>
         </div>
@@ -805,10 +1066,89 @@ include '../../includes/menu.php';
         copyText.setSelectionRange(0, 99999);
         navigator.clipboard.writeText(copyText.value);
 
-        const btn = document.querySelector('.btn-copy');
+        const btn = event.target.closest('.btn-copy');
         if (btn) {
-            btn.innerText = 'Copiado!';
-            setTimeout(() => { btn.innerText = 'Copiar'; }, 2000);
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Copiado!';
+            setTimeout(() => { btn.innerHTML = originalHTML; }, 2000);
+        }
+    }
+    
+    function copiarLinkEncurtado() {
+        var copyText = document.getElementById("shortLinkInput");
+        if (!copyText) return;
+
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(copyText.value);
+
+        const btn = event.target.closest('.btn-copy');
+        if (btn) {
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Copiado!';
+            setTimeout(() => { btn.innerHTML = originalHTML; }, 2000);
+        }
+    }
+    
+    async function encurtarLink() {
+        const linkOriginal = document.getElementById('linkInput').value;
+        const btnShorten = document.getElementById('btnShorten');
+        const shortenText = document.getElementById('shortenText');
+        const shortLinkResult = document.getElementById('shortLinkResult');
+        const shortLinkInput = document.getElementById('shortLinkInput');
+        
+        // Desabilita o botão
+        btnShorten.disabled = true;
+        shortenText.innerHTML = '<i class="bi bi-hourglass-split"></i> Gerando...';
+        
+        try {
+            // Tenta primeiro com TinyURL (mais confiável via GET)
+            let response = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(linkOriginal)}`);
+            
+            if (!response.ok) {
+                // Fallback para v.gd
+                response = await fetch(`https://v.gd/create.php?format=simple&url=${encodeURIComponent(linkOriginal)}`);
+            }
+            
+            if (response.ok) {
+                const shortUrl = await response.text();
+                
+                // Verifica se não é uma mensagem de erro
+                if (shortUrl.includes('Error') || shortUrl.includes('error') || shortUrl.length > 100) {
+                    throw new Error('Resposta inválida');
+                }
+                
+                // Exibe o resultado
+                shortLinkInput.value = shortUrl.trim();
+                shortLinkResult.style.display = 'block';
+                
+                // Atualiza o botão
+                btnShorten.style.background = 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)';
+                btnShorten.style.borderColor = '#86efac';
+                btnShorten.style.color = '#166534';
+                shortenText.innerHTML = '<i class="bi bi-check-circle-fill"></i> Link encurtado gerado!';
+                
+                // Scroll suave até o resultado
+                setTimeout(() => {
+                    shortLinkResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            } else {
+                throw new Error('Erro ao encurtar link');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            shortenText.innerHTML = '<i class="bi bi-exclamation-circle"></i> Erro ao encurtar';
+            btnShorten.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+            btnShorten.style.borderColor = '#fca5a5';
+            btnShorten.style.color = '#991b1b';
+            
+            setTimeout(() => {
+                btnShorten.disabled = false;
+                btnShorten.style.background = '';
+                btnShorten.style.borderColor = '';
+                btnShorten.style.color = '';
+                shortenText.innerHTML = '<i class="bi bi-scissors"></i> Gerar link encurtado';
+            }, 3000);
         }
     }
 
