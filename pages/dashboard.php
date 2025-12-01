@@ -47,13 +47,105 @@ $dataFim    = $_GET['data_fim'] ?? date('Y-m-t');     // Último dia do mês atu
 $mesFiltro  = $_GET['mes_aniversario'] ?? $mesAtual;
 
 // --- BUSCA NOME DO USUÁRIO E ESTABELECIMENTO ---
-$stmt = $pdo->prepare("SELECT nome, estabelecimento FROM usuarios WHERE id = ?");
+$stmt = $pdo->prepare("SELECT nome, estabelecimento, is_vitalicio, data_expiracao FROM usuarios WHERE id = ?");
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
 if ($user && !empty($user['nome'])) {
     $nomeUsuario = explode(' ', $user['nome'])[0]; // Primeiro nome
 }
 $nomeEstabelecimento = $user['estabelecimento'] ?? 'Nosso Salão';
+
+// --- CÁLCULO DA LICENÇA ---
+$isVitalicio = $user['is_vitalicio'] ?? 0;
+$dataExpiracao = $user['data_expiracao'] ?? null;
+$diasRestantes = null;
+$statusLicenca = 'ativo'; // ativo, alerta, critico, expirado
+$corLicenca = '#10b981'; // verde padrão
+$mostrarNotificacao = false;
+$mensagemNotificacao = '';
+$tipoLicenca = 'Período de Teste';
+
+if ($isVitalicio) {
+    $tipoLicenca = 'Vitalício';
+    $statusLicenca = 'vitalicio';
+    $corLicenca = '#8b5cf6'; // roxo para vitalício
+} elseif (!empty($dataExpiracao)) {
+    $dataExp = new DateTime($dataExpiracao);
+    $dataHoje = new DateTime();
+    $diff = $dataHoje->diff($dataExp);
+    
+    if ($dataHoje > $dataExp) {
+        // Expirado
+        $statusLicenca = 'expirado';
+        $corLicenca = '#ef4444';
+        $diasRestantes = 0;
+        $mostrarNotificacao = true;
+        $mensagemNotificacao = 'Sua licença expirou! Entre em contato para renovar.';
+    } else {
+        $diasRestantes = $diff->days;
+        
+        if ($diasRestantes <= 1) {
+            $statusLicenca = 'critico';
+            $corLicenca = '#ef4444'; // vermelho
+            $mostrarNotificacao = true;
+            $mensagemNotificacao = $diasRestantes == 0 
+                ? 'Sua licença expira HOJE! Renove agora para não perder o acesso.' 
+                : 'Sua licença expira AMANHÃ! Renove o quanto antes.';
+        } elseif ($diasRestantes <= 2) {
+            $statusLicenca = 'critico';
+            $corLicenca = '#ef4444';
+            $mostrarNotificacao = true;
+            $mensagemNotificacao = "Faltam apenas {$diasRestantes} dias para sua licença expirar!";
+        } elseif ($diasRestantes <= 5) {
+            $statusLicenca = 'critico';
+            $corLicenca = '#ef4444';
+        } elseif ($diasRestantes <= 15) {
+            $statusLicenca = 'alerta';
+            $corLicenca = '#f59e0b'; // laranja
+        }
+    }
+}
+
+// --- CRIAR NOTIFICAÇÃO DE LICENÇA NO BANCO ---
+if (!$isVitalicio && $diasRestantes !== null && $diasRestantes <= 15) {
+    // Verifica se já existe notificação para hoje sobre a licença
+    $checkNotif = $pdo->prepare("
+        SELECT id FROM notificacoes 
+        WHERE usuario_id = ? 
+        AND tipo = 'licenca_expiracao'
+        AND DATE(criado_em) = ?
+        LIMIT 1
+    ");
+    $checkNotif->execute([$userId, $hoje]);
+    
+    // Se não existir, cria uma nova
+    if (!$checkNotif->fetch()) {
+        $mensagemNotif = '';
+        $iconeNotif = 'bi-exclamation-triangle-fill';
+        
+        if ($diasRestantes == 0) {
+            $mensagemNotif = 'Sua licença expira HOJE! Renove agora para não perder o acesso.';
+        } elseif ($diasRestantes == 1) {
+            $mensagemNotif = 'Sua licença expira AMANHÃ! Renove o quanto antes.';
+        } elseif ($diasRestantes <= 2) {
+            $mensagemNotif = "Faltam apenas {$diasRestantes} dias para sua licença expirar!";
+        } elseif ($diasRestantes <= 5) {
+            $mensagemNotif = "Sua licença expira em {$diasRestantes} dias. Renove para garantir acesso contínuo.";
+        } elseif ($diasRestantes <= 15) {
+            $mensagemNotif = "Sua licença expira em {$diasRestantes} dias. Planeje sua renovação.";
+        }
+        
+        try {
+            $insertNotif = $pdo->prepare("
+                INSERT INTO notificacoes (usuario_id, tipo, mensagem, icone, link, criado_em)
+                VALUES (?, 'licenca_expiracao', ?, ?, 'https://wa.me/5511999999999', NOW())
+            ");
+            $insertNotif->execute([$userId, $mensagemNotif, $iconeNotif]);
+        } catch (Exception $e) {
+            // Tabela de notificações pode não existir ainda, silencioso
+        }
+    }
+}
 
 // --- 1. Agendamentos de Hoje (Próximos Clientes) ---
 $stmt = $pdo->prepare("
@@ -1589,6 +1681,173 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
             flex-direction: column;
         }
     }
+
+    /* Animação Pulse para botão crítico */
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+            box-shadow: 0 4px 16px #ef444460;
+        }
+        50% {
+            transform: scale(1.05);
+            box-shadow: 0 6px 24px #ef444480;
+        }
+    }
+
+    /* Modal de Notificação de Licença */
+    .license-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        padding: 20px;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .license-modal-content {
+        background: #fff;
+        border-radius: 24px;
+        max-width: 480px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.4s ease-out;
+        overflow: hidden;
+    }
+
+    .license-modal-header {
+        padding: 32px 32px 24px;
+        text-align: center;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .license-modal-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 20px;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4);
+        animation: iconPulse 2s infinite;
+    }
+
+    @keyframes iconPulse {
+        0%, 100% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.1);
+        }
+    }
+
+    .license-modal-icon i {
+        font-size: 40px;
+        color: #fff;
+    }
+
+    .license-modal-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0 0 8px;
+        letter-spacing: -0.02em;
+    }
+
+    .license-modal-subtitle {
+        font-size: 1rem;
+        color: #64748b;
+        margin: 0;
+        font-weight: 500;
+    }
+
+    .license-modal-body {
+        padding: 24px 32px 32px;
+    }
+
+    .license-modal-message {
+        background: #fef2f2;
+        border-left: 4px solid #ef4444;
+        padding: 16px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+    }
+
+    .license-modal-message p {
+        margin: 0;
+        color: #991b1b;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        line-height: 1.6;
+    }
+
+    .license-modal-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    .license-modal-btn {
+        flex: 1;
+        padding: 14px 24px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.9375rem;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .license-modal-btn-primary {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+
+    .license-modal-btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5);
+    }
+
+    .license-modal-btn-secondary {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .license-modal-btn-secondary:hover {
+        background: #e2e8f0;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(30px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
 </style>
 
 <main class="app-dashboard-wrapper">
@@ -1608,6 +1867,67 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
             <span><?php echo date('d/m/Y'); ?></span>
         </div>
     </div>
+
+    <!-- Card de Licença -->
+    <?php if (!$isVitalicio): ?>
+    <div class="license-card" style="background: linear-gradient(135deg, <?php echo $corLicenca; ?>15 0%, <?php echo $corLicenca; ?>08 100%); border: 2px solid <?php echo $corLicenca; ?>40; border-radius: 16px; padding: 20px; margin-bottom: 24px; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: <?php echo $corLicenca; ?>10; border-radius: 50%;"></div>
+        <div style="position: relative; z-index: 1;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                <div style="flex: 1; min-width: 200px;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <div style="width: 48px; height: 48px; background: <?php echo $corLicenca; ?>; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px <?php echo $corLicenca; ?>40;">
+                            <i class="bi bi-shield-check" style="font-size: 24px; color: #fff;"></i>
+                        </div>
+                        <div>
+                            <h3 style="margin: 0; font-size: 1.125rem; font-weight: 700; color: var(--dash-text);">Status da Licença</h3>
+                            <p style="margin: 0; font-size: 0.875rem; color: var(--dash-text-light); font-weight: 500;"><?php echo $tipoLicenca; ?></p>
+                        </div>
+                    </div>
+                    
+                    <?php if ($statusLicenca == 'expirado'): ?>
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #fee2e2; border-radius: 10px; border-left: 4px solid #ef4444;">
+                            <i class="bi bi-exclamation-triangle-fill" style="color: #dc2626; font-size: 20px;"></i>
+                            <span style="color: #991b1b; font-weight: 600; font-size: 0.9375rem;">Licença Expirada</span>
+                        </div>
+                    <?php elseif ($diasRestantes !== null): ?>
+                        <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;">
+                            <span style="font-size: 2.5rem; font-weight: 800; color: <?php echo $corLicenca; ?>; line-height: 1;">
+                                <?php echo $diasRestantes; ?>
+                            </span>
+                            <span style="font-size: 1rem; font-weight: 600; color: var(--dash-text-light);">
+                                <?php echo $diasRestantes == 1 ? 'dia restante' : 'dias restantes'; ?>
+                            </span>
+                        </div>
+                        <p style="margin: 0; font-size: 0.8125rem; color: var(--dash-text-light);">
+                            Expira em: <strong style="color: var(--dash-text);"><?php echo date('d/m/Y', strtotime($dataExpiracao)); ?></strong>
+                        </p>
+                    <?php endif; ?>
+                </div>
+                
+                <?php if ($statusLicenca != 'expirado'): ?>
+                <div style="text-align: right;">
+                    <a href="https://wa.me/5511999999999?text=Olá! Gostaria de renovar minha licença" 
+                       target="_blank"
+                       style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: <?php echo $corLicenca; ?>; color: #fff; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 0.9375rem; box-shadow: 0 4px 12px <?php echo $corLicenca; ?>40; transition: all 0.3s ease;">
+                        <i class="bi bi-whatsapp" style="font-size: 18px;"></i>
+                        <span>Renovar Licença</span>
+                    </a>
+                </div>
+                <?php else: ?>
+                <div style="text-align: right;">
+                    <a href="https://wa.me/5511999999999?text=Olá! Minha licença expirou, preciso reativar" 
+                       target="_blank"
+                       style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; background: #ef4444; color: #fff; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 1rem; box-shadow: 0 4px 16px #ef444460; animation: pulse 2s infinite;">
+                        <i class="bi bi-exclamation-circle-fill" style="font-size: 20px;"></i>
+                        <span>Reativar Agora</span>
+                    </a>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- Filtros de Período -->
     <div class="filters-card">
@@ -2210,5 +2530,81 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         });
     }
 </script>
+
+<!-- Modal de Notificação de Licença -->
+<?php if ($mostrarNotificacao): ?>
+<div class="license-modal" id="licenseModal">
+    <div class="license-modal-content">
+        <div class="license-modal-header">
+            <div class="license-modal-icon">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <h2 class="license-modal-title">⚠️ Atenção: Licença Expirando</h2>
+            <p class="license-modal-subtitle">Ação necessária para manter seu acesso</p>
+        </div>
+        <div class="license-modal-body">
+            <div class="license-modal-message">
+                <p><?php echo htmlspecialchars($mensagemNotificacao); ?></p>
+            </div>
+            <div class="license-modal-actions">
+                <button class="license-modal-btn license-modal-btn-secondary" onclick="fecharModalLicenca()">
+                    Entendi
+                </button>
+                <a href="https://wa.me/5511999999999?text=<?php echo urlencode('Olá! Preciso renovar minha licença. ' . $mensagemNotificacao); ?>" 
+                   target="_blank"
+                   class="license-modal-btn license-modal-btn-primary"
+                   style="text-decoration: none;">
+                    <i class="bi bi-whatsapp"></i>
+                    <span>Renovar Agora</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Fecha o modal de licença
+    function fecharModalLicenca() {
+        const modal = document.getElementById('licenseModal');
+        if (modal) {
+            modal.style.animation = 'fadeOut 0.3s ease-out';
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+        // Salva no localStorage para não mostrar novamente hoje
+        localStorage.setItem('licenseModalShown_<?php echo $userId; ?>_<?php echo date('Y-m-d'); ?>', 'true');
+    }
+
+    // Verifica se já mostrou hoje
+    document.addEventListener('DOMContentLoaded', function() {
+        const modalShownToday = localStorage.getItem('licenseModalShown_<?php echo $userId; ?>_<?php echo date('Y-m-d'); ?>');
+        if (modalShownToday === 'true') {
+            const modal = document.getElementById('licenseModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+    });
+
+    // Fecha ao clicar fora do modal
+    document.getElementById('licenseModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            fecharModalLicenca();
+        }
+    });
+</script>
+
+<style>
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+        }
+        to {
+            opacity: 0;
+        }
+    }
+</style>
+<?php endif; ?>
 
 <?php include '../includes/footer.php'; ?>
