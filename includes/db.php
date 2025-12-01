@@ -184,7 +184,13 @@ try {
     try { $pdo->exec("ALTER TABLE servicos ADD COLUMN calculo_servico_id INTEGER"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE calculo_servico_materiais ADD COLUMN produto_id INTEGER"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN tamanho_embalagem REAL DEFAULT 0"); } catch (Exception $e) {} 
-    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN cor_tema TEXT DEFAULT '#4f46e5'"); } catch (Exception $e) {} 
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN cor_tema TEXT DEFAULT '#4f46e5'"); } catch (Exception $e) {}
+    
+    // Campos de pacotes (quantidade de sessões e desconto)
+    try { $pdo->exec("ALTER TABLE servicos ADD COLUMN qtd_sessoes INTEGER DEFAULT 1"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE servicos ADD COLUMN desconto_tipo TEXT DEFAULT 'percentual'"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE servicos ADD COLUMN desconto_valor REAL DEFAULT 0.00"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE servicos ADD COLUMN preco_original REAL DEFAULT 0.00"); } catch (Exception $e) {} 
 
     // Clientes 
     try { $pdo->exec("ALTER TABLE clientes ADD COLUMN cpf TEXT"); } catch (Exception $e) {} 
