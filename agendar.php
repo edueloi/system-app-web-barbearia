@@ -540,10 +540,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } 
 } 
  
-// Serviços 
+// Serviços, Pacotes e Itens
 $stmt = $pdo->prepare("SELECT * FROM servicos WHERE user_id = ? ORDER BY nome ASC"); 
 $stmt->execute([$profissionalId]); 
-$servicos = $stmt->fetchAll(); 
+$todosServicos = $stmt->fetchAll();
+
+// Mapeia todos os serviços por ID para consulta rápida
+$servicosPorId = [];
+foreach ($todosServicos as $s) {
+    $servicosPorId[$s['id']] = $s;
+}
+
+// Separa em duas listas: Pacotes e Serviços Únicos
+$pacotes = [];
+$servicosUnicos = [];
+
+foreach ($todosServicos as $s) {
+    if ($s['tipo'] === 'pacote') {
+        $itens = [];
+        if (!empty($s['itens_pacote'])) {
+            $ids = explode(',', $s['itens_pacote']);
+            foreach ($ids as $id) {
+                if (isset($servicosPorId[trim($id)])) {
+                    $itens[] = $servicosPorId[trim($id)];
+                }
+            }
+        }
+        $s['itens_detalhados'] = $itens; // Adiciona os detalhes dos itens ao pacote
+        $pacotes[] = $s;
+    } else {
+        $servicosUnicos[] = $s;
+    }
+}
+ 
 ?> 
 <!DOCTYPE html> 
 <html lang="pt-br"> 
@@ -2014,7 +2043,15 @@ $servicos = $stmt->fetchAll();
     <!-- Splash Screen -->
     <div class="splash-screen" id="splashScreen">
         <div class="splash-logo">
-            <?php echo $iniciais; ?>
+            <?php if ($temFoto): ?>
+                <img src="<?php echo htmlspecialchars($fotoPerfil); ?>" 
+                     style="width:100%;height:100%;object-fit:cover;border-radius:50%;"
+                     alt="<?php echo htmlspecialchars($nomeEstabelecimento); ?>">
+            <?php else: ?>
+                <img src="img/logo-D.png" 
+                     style="width:70%;height:70%;object-fit:contain;"
+                     alt="Develoi">
+            <?php endif; ?>
         </div>
         <div class="splash-text"><?php echo htmlspecialchars($nomeEstabelecimento); ?></div>
         <div class="splash-spinner"></div>
@@ -2251,42 +2288,126 @@ $servicos = $stmt->fetchAll();
                     <p class="card-subtitle">O que vamos fazer hoje?</p> 
  
                     <div> 
-                        <?php foreach ($servicos as $s): ?> 
-                            <?php
-                                $caminhoFotoServico = !empty($s['foto']) ? __DIR__ . '/' . ltrim($s['foto'], '/') : '';
-                                $temFotoServico = !empty($s['foto']) && file_exists($caminhoFotoServico);
-                            ?>
-                            <div class="service-card <?php echo $temFotoServico ? '' : 'no-image'; ?>"
-                                 onclick="selectService(this, '<?php echo $s['id']; ?>', '<?php echo $s['nome']; ?>', '<?php echo $s['preco']; ?>', '<?php echo $s['duracao']; ?>')"> 
+                        <?php if (!empty($pacotes)): ?>
+                            <h3 style="font-family: 'Outfit', sans-serif; margin-bottom: 15px; margin-top: 25px; font-size: 1.3rem; color: var(--text-main);">Nossos Pacotes</h3>
+                            <?php foreach ($pacotes as $s): ?>
+                                <?php
+                                    $caminhoFotoServico = !empty($s['foto']) ? __DIR__ . '/' . ltrim($s['foto'], '/') : '';
+                                    $temFotoServico = !empty($s['foto']) && file_exists($caminhoFotoServico);
+                                    
+                                    // Calcula o preço original somando os itens do pacote
+                                    $precoOriginalPacote = 0;
+                                    if (!empty($s['itens_detalhados'])) {
+                                        foreach ($s['itens_detalhados'] as $item) {
+                                            $precoOriginalPacote += floatval($item['preco']);
+                                        }
+                                    }
+                                    
+                                    // Se não houver preco_original no banco, usa o calculado
+                                    if (empty($s['preco_original']) || $s['preco_original'] == 0) {
+                                        $precoOriginalExibir = $precoOriginalPacote;
+                                    } else {
+                                        $precoOriginalExibir = floatval($s['preco_original']);
+                                    }
+                                    
+                                    $precoFinal = floatval($s['preco']);
+                                    $temDesconto = $precoOriginalExibir > $precoFinal;
+                                    $economia = $precoOriginalExibir - $precoFinal;
+                                    $percentualDesconto = $precoOriginalExibir > 0 ? (($economia / $precoOriginalExibir) * 100) : 0;
+                                ?>
+                                <div class="service-card <?php echo $temFotoServico ? '' : 'no-image'; ?>"
+                                     onclick="selectService(this, '<?php echo $s['id']; ?>', '<?php echo $s['nome']; ?>', '<?php echo $s['preco']; ?>', '<?php echo $s['duracao']; ?>')"> 
 
-                                <?php if ($temFotoServico): ?>
-                                    <div class="service-img">
-                                        <img src="<?php echo htmlspecialchars($s['foto']); ?>"
-                                             alt="<?php echo htmlspecialchars($s['nome']); ?>">
-                                    </div>
-                                <?php endif; ?>
-
-                                <div class="service-content">
-                                    <h3 class="service-title"><?php echo htmlspecialchars($s['nome']); ?></h3>
-                                    <?php if (!empty($s['observacao'])): ?>
-                                        <div class="service-description"><?php echo htmlspecialchars($s['observacao']); ?></div>
+                                    <?php if ($temFotoServico): ?>
+                                        <div class="service-img">
+                                            <img src="<?php echo htmlspecialchars($s['foto']); ?>"
+                                                 alt="<?php echo htmlspecialchars($s['nome']); ?>">
+                                        </div>
                                     <?php endif; ?>
-                                    <span class="service-duration">
-                                        <i class="bi bi-clock"></i>
-                                        <?php echo $s['duracao']; ?> min
-                                    </span>
-                                </div>
-                                
-                                <div class="service-price-wrapper">
-                                    <div class="service-price"> 
-                                        R$ <?php echo number_format($s['preco'], 2, ',', '.'); ?> 
+
+                                    <div class="service-content">
+                                        <h3 class="service-title"><?php echo htmlspecialchars($s['nome']); ?></h3>
+                                        <?php if (!empty($s['itens_detalhados'])): ?>
+                                            <div class="service-description" style="font-size: 0.8rem; color: var(--text-muted);">
+                                                Inclui: 
+                                                <?php 
+                                                    $nomesItens = array_map(function($item) {
+                                                        return htmlspecialchars($item['nome']);
+                                                    }, $s['itens_detalhados']);
+                                                    echo implode(', ', $nomesItens);
+                                                ?>
+                                            </div>
+                                        <?php elseif (!empty($s['observacao'])): ?>
+                                            <div class="service-description"><?php echo htmlspecialchars($s['observacao']); ?></div>
+                                        <?php endif; ?>
+                                        <span class="service-duration">
+                                            <i class="bi bi-clock"></i>
+                                            <?php echo $s['duracao']; ?> min
+                                        </span>
                                     </div>
-                                </div>
-                                
-                            </div> 
-                        <?php endforeach; ?> 
+                                    
+                                    <div class="service-price-wrapper">
+                                        <?php if ($temDesconto): ?>
+                                            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                                                <div style="font-size: 0.85rem; color: #94a3b8; text-decoration: line-through;">
+                                                    R$ <?php echo number_format($precoOriginalExibir, 2, ',', '.'); ?>
+                                                </div>
+                                                <div class="service-price"> 
+                                                    R$ <?php echo number_format($precoFinal, 2, ',', '.'); ?> 
+                                                </div>
+                                                <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 8px;">
+                                                    <?php echo round($percentualDesconto); ?>% OFF
+                                                </div>
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="service-price"> 
+                                                R$ <?php echo number_format($precoFinal, 2, ',', '.'); ?> 
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div> 
+                            <?php endforeach; ?> 
+                        <?php endif; ?>
+
+                        <?php if (!empty($servicosUnicos)): ?>
+                            <h3 style="font-family: 'Outfit', sans-serif; margin-bottom: 15px; margin-top: 25px; font-size: 1.3rem; color: var(--text-main);">Serviços Individuais</h3>
+                            <?php foreach ($servicosUnicos as $s): ?> 
+                                <?php
+                                    $caminhoFotoServico = !empty($s['foto']) ? __DIR__ . '/' . ltrim($s['foto'], '/') : '';
+                                    $temFotoServico = !empty($s['foto']) && file_exists($caminhoFotoServico);
+                                ?>
+                                <div class="service-card <?php echo $temFotoServico ? '' : 'no-image'; ?>"
+                                     onclick="selectService(this, '<?php echo $s['id']; ?>', '<?php echo $s['nome']; ?>', '<?php echo $s['preco']; ?>', '<?php echo $s['duracao']; ?>')"> 
+
+                                    <?php if ($temFotoServico): ?>
+                                        <div class="service-img">
+                                            <img src="<?php echo htmlspecialchars($s['foto']); ?>"
+                                                 alt="<?php echo htmlspecialchars($s['nome']); ?>">
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <div class="service-content">
+                                        <h3 class="service-title"><?php echo htmlspecialchars($s['nome']); ?></h3>
+                                        <?php if (!empty($s['observacao'])): ?>
+                                            <div class="service-description"><?php echo htmlspecialchars($s['observacao']); ?></div>
+                                        <?php endif; ?>
+                                        <span class="service-duration">
+                                            <i class="bi bi-clock"></i>
+                                            <?php echo $s['duracao']; ?> min
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="service-price-wrapper">
+                                        <div class="service-price"> 
+                                            R$ <?php echo number_format($s['preco'], 2, ',', '.'); ?> 
+                                        </div>
+                                    </div>
+                                    
+                                </div> 
+                            <?php endforeach; ?> 
+                        <?php endif; ?>
  
-                        <?php if (empty($servicos)): ?> 
+                        <?php if (empty($pacotes) && empty($servicosUnicos)): ?> 
                             <div style="text-align:center; padding:30px; color:#999;"> 
                                 Nenhum serviço disponível. 
                             </div> 
