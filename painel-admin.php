@@ -41,12 +41,13 @@ const NOME_SOCIA_LUCIANA    = 'Luciana Aparecida';
 // Verifica ambiente
 $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
 $painelAdminUrl = $isProd ? '/painel-admin' : $_SERVER['PHP_SELF'];
+$loginUrl = $isProd ? '/login' : '/karen_site/controle-salao/login.php';
 
 // Logout
 if (isset($_GET['logout'])) {
     session_unset();
     session_destroy();
-    header("Location: {$painelAdminUrl}");
+    header("Location: {$loginUrl}");
     exit;
 }
 
@@ -72,80 +73,183 @@ if (!isset($_SESSION['admin_logged_in'])) {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Admin Login | Salão Develoi</title>
+        <title>Admin Login | Develoi Gestão</title>
+        
+        <link rel="icon" type="image/svg+xml" href="favicon.svg">
+        <link rel="icon" href="favicon.ico" type="image/x-icon">
+        <link rel="apple-touch-icon" href="favicon.svg">
+        <meta name="theme-color" content="#4f46e5">
+        
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
         <style>
             :root {
                 --primary: #4f46e5;
-                --primary-hover: #4338ca;
-                --bg-body: #f3f4f6;
+                --primary-dark: #4338ca;
+                --secondary: #ec4899;
+                --dark: #0f172a;
             }
+            * { box-sizing: border-box; }
+            html, body { height: 100%; margin: 0; }
             body {
-                font-family: 'Inter', sans-serif;
-                background: var(--bg-body);
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                background: linear-gradient(180deg, #eef2ff 0%, #ffffff 100%);
+                min-height: 100vh;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                height: 100vh;
-                margin: 0;
-                font-size: 14px;
+                position: relative;
+                overflow: hidden;
             }
+            /* Aurora Background */
+            .aurora-bg {
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; overflow: hidden;
+            }
+            .aurora-blob {
+                position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.4;
+                animation: float-blob 15s infinite alternate;
+            }
+            .blob-1 { top: -10%; left: -10%; width: 60vw; height: 60vw; background: #c7d2fe; animation-duration: 25s; }
+            .blob-2 { bottom: -10%; right: -10%; width: 50vw; height: 50vw; background: #fbcfe8; animation-duration: 20s; }
+            @keyframes float-blob {
+                0% { transform: translate(0, 0); }
+                100% { transform: translate(40px, -40px); }
+            }
+            
             .login-card {
-                background: white;
-                padding: 2.2rem;
-                border-radius: 22px;
-                box-shadow: 0 16px 30px rgba(15,23,42,0.12);
+                background: rgba(255, 255, 255, 0.85);
+                backdrop-filter: blur(20px);
+                padding: 2.5rem 2rem;
+                border-radius: 32px;
+                box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.15);
+                border: 1px solid rgba(255, 255, 255, 0.8);
                 width: 100%;
-                max-width: 380px;
+                max-width: 440px;
+                margin: 2rem 1rem;
+                transition: all 0.3s;
+                position: relative;
+                z-index: 10;
+            }
+            .login-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 40px 80px -20px rgba(15, 23, 42, 0.2);
+            }
+            .brand-logo-container {
+                text-align: center;
+                margin-bottom: 1.5rem;
+            }
+            .brand-d {
+                font-family: 'Outfit', sans-serif;
+                font-size: 3rem;
+                font-weight: 800;
+                background: linear-gradient(135deg, var(--primary), var(--secondary));
+                border-radius: 18px;
+                width: 70px;
+                height: 70px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                box-shadow: 0 8px 32px rgba(79,70,229,0.15);
+                margin-bottom: 0.5rem;
+            }
+            .brand-text {
+                font-family: 'Outfit', sans-serif;
+                font-size: 1.8rem;
+                font-weight: 700;
+                background: linear-gradient(135deg, var(--primary), var(--secondary));
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                letter-spacing: -0.02em;
+            }
+            .subtitle {
+                color: #64748b;
+                font-size: 0.95rem;
+                margin-top: 0.5rem;
             }
             .btn-primary {
-                background: var(--primary);
+                background: linear-gradient(135deg, var(--primary), var(--secondary));
                 border: none;
-                padding: 11px;
+                padding: 14px;
                 border-radius: 999px;
                 font-weight: 600;
                 width: 100%;
-                font-size: 0.9rem;
+                font-size: 1rem;
+                transition: all 0.3s;
+                box-shadow: 0 10px 30px -5px rgba(79, 70, 229, 0.5);
             }
-            .btn-primary:hover { background: var(--primary-hover); }
+            .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 20px 40px -5px rgba(236, 72, 153, 0.5);
+            }
             .form-control {
-                padding: 11px;
-                border-radius: 14px;
-                border: 1px solid #e5e7eb;
-                background: #f9fafb;
+                padding: 14px 18px;
+                border-radius: 16px;
+                border: 1px solid #e2e8f0;
+                background: rgba(255, 255, 255, 0.8);
+                font-size: 1rem;
+                transition: all 0.3s;
+            }
+            .form-control:focus {
+                border-color: var(--primary);
+                box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+                background: white;
+            }
+            label.form-label {
+                font-weight: 600;
+                font-size: 0.85rem;
+                color: var(--dark);
+                margin-bottom: 0.5rem;
+            }
+            .alert {
+                border-radius: 16px;
+                border: none;
                 font-size: 0.9rem;
             }
-            .brand {
-                color: var(--primary);
-                font-weight: 800;
-                font-size: 1.25rem;
-                text-align: center;
-                margin-bottom: 0.25rem;
-                display: block;
-                text-decoration: none;
+            @media (max-width: 600px) {
+                .login-card { padding: 2rem 1.5rem; max-width: 95vw; }
+                .brand-d { width: 60px; height: 60px; font-size: 2.5rem; }
+                .brand-text { font-size: 1.5rem; }
             }
-            .text-muted { font-size: 0.8rem; }
-            label.form-label { font-size: 0.75rem; }
         </style>
     </head>
     <body>
+        <div class="aurora-bg">
+            <div class="aurora-blob blob-1"></div>
+            <div class="aurora-blob blob-2"></div>
+        </div>
+        
         <div class="login-card">
-            <a href="#" class="brand">Admin Panel</a>
-            <p class="text-center text-muted mb-4">Acesso restrito à gestão</p>
+            <div class="brand-logo-container">
+                <div class="brand-d">D</div>
+                <div class="brand-text">EVELOI ADMIN</div>
+                <p class="subtitle">Painel de Gestão Premium</p>
+            </div>
+            
             <?php if ($error): ?>
-                <div class="alert alert-danger py-2 text-center small"><?= $error ?></div>
+                <div class="alert alert-danger d-flex align-items-center gap-2 mb-3">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span><?= $error ?></span>
+                </div>
             <?php endif; ?>
+            
             <form method="post">
                 <div class="mb-3">
-                    <label class="form-label small fw-bold text-secondary">Usuário</label>
-                    <input type="text" name="admin_user" class="form-control" required autofocus>
+                    <label class="form-label">
+                        <i class="bi bi-person-fill me-1"></i> Usuário
+                    </label>
+                    <input type="text" name="admin_user" class="form-control" required autofocus placeholder="Digite seu usuário">
                 </div>
                 <div class="mb-4">
-                    <label class="form-label small fw-bold text-secondary">Senha</label>
-                    <input type="password" name="admin_pass" class="form-control" required>
+                    <label class="form-label">
+                        <i class="bi bi-lock-fill me-1"></i> Senha
+                    </label>
+                    <input type="password" name="admin_pass" class="form-control" required placeholder="Digite sua senha">
                 </div>
-                <button type="submit" class="btn btn-primary">Entrar no Painel</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Entrar no Painel
+                </button>
             </form>
         </div>
     </body>
@@ -412,93 +516,168 @@ $lucianaSaldoFinal    = $luciana10Total + $lucianaSoIndicacoes;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Administrativo | Gestão</title>
+    <title>Painel Administrativo | Develoi Gestão</title>
+    
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" href="favicon.svg">
+    <meta name="theme-color" content="#4f46e5">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
         :root {
             --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --bg-body: #f3f4f6;
+            --primary-dark: #4338ca;
+            --secondary: #ec4899;
+            --accent: #8b5cf6;
+            --dark: #0f172a;
+            --light: #f8fafc;
+            --success: #10b981;
+            --glass-bg: rgba(255, 255, 255, 0.75);
             --text-main: #111827;
             --text-muted: #6b7280;
+            --shadow-soft: 0 20px 40px -10px rgba(0,0,0,0.08);
+            --shadow-strong: 0 25px 60px -15px rgba(15, 23, 42, 0.15);
         }
+        * { box-sizing: border-box; }
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-body);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(180deg, #eef2ff 0%, #ffffff 100%);
             color: var(--text-main);
             padding-bottom: 40px;
-            font-size: 14px; /* letras menores, estilo app */
+            font-size: 14px;
+            position: relative;
+            min-height: 100vh;
+        }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Outfit', sans-serif; }
+        
+        /* Aurora Background */
+        .aurora-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden;
+            pointer-events: none;
+        }
+        .aurora-blob {
+            position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.3;
+            animation: float-blob 20s infinite alternate;
+        }
+        .blob-1 { top: -10%; left: -10%; width: 60vw; height: 60vw; background: #c7d2fe; animation-duration: 25s; }
+        .blob-2 { bottom: -10%; right: -10%; width: 50vw; height: 50vw; background: #fbcfe8; animation-duration: 20s; }
+        @keyframes float-blob {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(40px, -40px); }
         }
 
         .top-nav {
-            background: white;
-            padding: 0.75rem 0;
-            box-shadow: 0 1px 3px rgba(15,23,42,0.08);
-            margin-bottom: 1.4rem;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            padding: 1rem 0;
+            box-shadow: 0 4px 20px rgba(15,23,42,0.08);
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(148,163,184,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
         .brand-logo {
+            font-family: 'Outfit', sans-serif;
             font-weight: 800;
-            color: var(--primary);
-            font-size: 1.1rem;
+            font-size: 1.3rem;
             text-decoration: none;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
         }
         .brand-icon {
-            width: 30px;
-            height: 30px;
-            background: var(--primary);
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
-            border-radius: 12px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1rem;
+            font-size: 1.2rem;
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
         }
 
         .stat-card {
-            background: white;
-            border-radius: 20px;
-            padding: 1rem 1.2rem;
-            box-shadow: 0 10px 20px rgba(15,23,42,0.06);
-            transition: transform 0.18s;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 1.5rem 1.3rem;
+            box-shadow: var(--shadow-soft);
+            transition: all 0.3s ease;
             height: 100%;
-            border: 1px solid rgba(148,163,184,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            opacity: 0;
+            transition: opacity 0.3s;
         }
         .stat-card:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 14px 26px rgba(15,23,42,0.08);
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-strong);
+            background: white;
+        }
+        .stat-card:hover::before {
+            opacity: 1;
         }
         .stat-value {
-            font-size: 1.6rem;
-            font-weight: 700;
+            font-size: 2rem;
+            font-weight: 800;
             color: var(--text-main);
             line-height: 1;
-            margin-top: 4px;
+            margin-top: 8px;
+            font-family: 'Outfit', sans-serif;
         }
-        .stat-card .small { font-size: 0.7rem; }
+        .stat-card .small { font-size: 0.75rem; }
+        .stat-label {
+            text-transform: uppercase;
+            font-weight: 700;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
 
         .content-card {
-            background: white;
-            border-radius: 24px;
-            box-shadow: 0 14px 28px rgba(15,23,42,0.08);
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 28px;
+            box-shadow: var(--shadow-soft);
             overflow: hidden;
-            margin-bottom: 1.3rem;
-            border: 1px solid rgba(148,163,184,0.16);
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            transition: all 0.3s;
+        }
+        .content-card:hover {
+            box-shadow: var(--shadow-strong);
+            background: white;
         }
         .card-header-custom {
-            padding: 1rem 1.3rem;
-            border-bottom: 1px solid #f3f4f6;
+            padding: 1.5rem 1.8rem;
+            border-bottom: 1px solid rgba(148,163,184,0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 0.75rem;
+            gap: 1rem;
+            background: rgba(249, 250, 251, 0.5);
         }
 
         .table-custom th {
@@ -531,35 +710,76 @@ $lucianaSaldoFinal    = $luciana10Total + $lucianaSoIndicacoes;
         }
 
         .badge-status {
-            padding: 0.25em 0.7em;
+            padding: 0.35em 0.9em;
             border-radius: 999px;
-            font-size: 0.7rem;
+            font-size: 0.72rem;
             font-weight: 600;
-            display:inline-flex;
-            align-items:center;
-            gap:4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
         }
-        .status-active { background: #dcfce7; color: #166534; }
-        .status-inactive { background: #f3f4f6; color: #374151; }
+        .status-active { 
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0); 
+            color: #166534;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+        }
+        .status-inactive { 
+            background: #f3f4f6; 
+            color: #374151; 
+        }
 
-        .badge-vitalicio { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-        .badge-time      { background: #e0f2fe; color: #075985; border: 1px solid #bae6fd; }
-        .badge-expired   { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .badge-vitalicio { 
+            background: linear-gradient(135deg, #fef3c7, #fde68a); 
+            color: #92400e; 
+            border: 1px solid #fde68a;
+            box-shadow: 0 2px 8px rgba(251, 191, 36, 0.2);
+        }
+        .badge-time { 
+            background: linear-gradient(135deg, #e0f2fe, #bae6fd); 
+            color: #075985; 
+            border: 1px solid #bae6fd;
+            box-shadow: 0 2px 8px rgba(14, 165, 233, 0.2);
+        }
+        .badge-expired { 
+            background: linear-gradient(135deg, #fee2e2, #fecaca); 
+            color: #991b1b; 
+            border: 1px solid #fecaca;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+        }
 
         .btn-action {
-            width: 30px;
-            height: 30px;
+            width: 36px;
+            height: 36px;
             border-radius: 999px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.18s;
+            transition: all 0.3s;
             border: none;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            cursor: pointer;
         }
-        .btn-renew { background: #e0f2fe; color: #0284c7; }
-        .btn-renew:hover { background: #bae6fd; }
-        .btn-delete { background: #fee2e2; color: #991b1b; }
+        .btn-renew { 
+            background: linear-gradient(135deg, #e0f2fe, #bae6fd); 
+            color: #0284c7;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2);
+        }
+        .btn-renew:hover { 
+            background: linear-gradient(135deg, #bae6fd, #7dd3fc);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(2, 132, 199, 0.3);
+        }
+        .btn-delete { 
+            background: linear-gradient(135deg, #fee2e2, #fecaca); 
+            color: #991b1b;
+            box-shadow: 0 4px 12px rgba(153, 27, 27, 0.2);
+        }
+        .btn-delete:hover {
+            background: linear-gradient(135deg, #fecaca, #fca5a5);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(153, 27, 27, 0.3);
+        }
 
         .toast-container {
             position: fixed;
@@ -576,51 +796,80 @@ $lucianaSaldoFinal    = $luciana10Total + $lucianaSoIndicacoes;
 
         /* ---------- MOBILE / ESTILO APP ---------- */
         .user-card {
-            border-radius: 22px;
-            border: 1px solid rgba(148,163,184,0.25);
-            padding: 0.9rem 0.95rem 0.7rem;
-            background: #ffffff;
-            box-shadow: 0 12px 24px rgba(15,23,42,0.07);
-            margin-bottom: 0.85rem;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            padding: 1.2rem;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-soft);
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        .user-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-strong);
+            background: white;
         }
         .user-card-header {
             display: flex;
             align-items: center;
-            gap: 0.65rem;
+            gap: 0.8rem;
         }
         .user-card-name {
-            font-weight: 600;
-            font-size: 0.9rem;
+            font-weight: 700;
+            font-size: 0.95rem;
+            font-family: 'Outfit', sans-serif;
+            color: var(--dark);
         }
         .user-card-email {
-            font-size: 0.76rem;
+            font-size: 0.78rem;
             color: var(--text-muted);
         }
         .user-card-badges {
-            margin-top: 0.5rem;
+            margin-top: 0.8rem;
             display: flex;
             flex-wrap: wrap;
-            gap: 0.3rem;
+            gap: 0.4rem;
         }
         .user-card-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 0.55rem;
-            padding-top: 0.45rem;
-            border-top: 1px dashed #e5e7eb;
+            margin-top: 0.8rem;
+            padding-top: 0.8rem;
+            border-top: 1px solid rgba(148,163,184,0.15);
         }
         .user-card-plan {
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             color: var(--text-muted);
+            font-weight: 500;
         }
         .user-card-actions .btn-action {
-            margin-left: 0.25rem;
+            margin-left: 0.3rem;
         }
 
         .btn-primary {
-            font-size: 0.8rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            font-size: 0.85rem;
             border-radius: 999px;
+            font-weight: 600;
+            padding: 0.6rem 1.5rem;
+            box-shadow: 0 10px 30px -5px rgba(79, 70, 229, 0.5);
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 40px -5px rgba(236, 72, 153, 0.5);
+        }
+        .btn-outline-secondary {
+            border-radius: 999px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-outline-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
         }
 
         @media (max-width: 767.98px) {
@@ -628,39 +877,62 @@ $lucianaSaldoFinal    = $luciana10Total + $lucianaSoIndicacoes;
                 padding-bottom: 70px;
             }
             .container {
-                padding-left: 0.9rem;
-                padding-right: 0.9rem;
+                padding-left: 1rem;
+                padding-right: 1rem;
             }
             .content-card {
-                border-radius: 26px;
-                margin-left: -0.1rem;
-                margin-right: -0.1rem;
+                border-radius: 24px;
             }
             .card-header-custom {
-                padding: 0.9rem 1rem;
+                padding: 1.2rem 1rem;
             }
             .stat-card {
-                padding: 0.9rem 1rem;
-                border-radius: 22px;
+                padding: 1.2rem 1rem;
+                border-radius: 20px;
+            }
+            .stat-value {
+                font-size: 1.6rem;
+            }
+            .top-nav {
+                padding: 0.8rem 0;
+            }
+            .brand-logo {
+                font-size: 1.1rem;
+            }
+            .brand-icon {
+                width: 36px;
+                height: 36px;
+                font-size: 1rem;
             }
         }
+        
+        /* Smooth Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
 <body>
+
+    <div class="aurora-bg">
+        <div class="aurora-blob blob-1"></div>
+        <div class="aurora-blob blob-2"></div>
+    </div>
 
     <nav class="top-nav">
         <div class="container d-flex justify-content-between align-items-center">
             <a href="#" class="brand-logo">
                 <div class="brand-icon"><i class="bi bi-shield-lock-fill"></i></div>
-                <span>Painel Admin</span>
+                <span>DEVELOI ADMIN</span>
             </a>
             <div class="d-flex align-items-center gap-3">
                 <div class="d-none d-md-block text-end lh-1">
-                    <span class="d-block fw-semibold" style="font-size:0.8rem;">Administrador</span>
-                    <span class="text-muted" style="font-size: 0.7rem;">Logado</span>
+                    <span class="d-block fw-bold" style="font-size:0.85rem; color: var(--dark);">Administrador</span>
+                    <span class="text-muted" style="font-size: 0.72rem;">Sessão ativa</span>
                 </div>
-                <a href="?logout=1" class="btn btn-outline-secondary btn-sm rounded-pill px-3" style="font-size:0.75rem;">
-                    <i class="bi bi-box-arrow-right"></i> Sair
+                <a href="?logout=1" class="btn btn-outline-secondary btn-sm rounded-pill px-3" style="font-size:0.78rem;">
+                    <i class="bi bi-box-arrow-right me-1"></i> Sair
                 </a>
             </div>
         </div>
@@ -672,63 +944,86 @@ $lucianaSaldoFinal    = $luciana10Total + $lucianaSoIndicacoes;
         <?php endif; ?>
 
         <!-- MÉTRICAS PRINCIPAIS -->
-        <div class="row g-3 g-md-4 mb-3 mb-md-4">
+        <div class="row g-3 g-md-4 mb-4">
             <div class="col-6 col-md-3">
                 <div class="stat-card">
-                    <div class="text-uppercase text-muted small fw-bold">Total Usuários</div>
+                    <div class="stat-label d-flex align-items-center gap-2">
+                        <i class="bi bi-people-fill" style="color: var(--primary);"></i>
+                        Total Usuários
+                    </div>
                     <div class="stat-value"><?= $total ?></div>
-                    <div class="small text-muted mt-1"><i class="bi bi-people-fill"></i> Base total</div>
+                    <div class="small text-muted mt-2">Base completa</div>
                 </div>
             </div>
             <div class="col-6 col-md-3">
                 <div class="stat-card">
-                    <div class="text-uppercase text-muted small fw-bold">Ativos</div>
-                    <div class="stat-value text-success"><?= $ativos ?></div>
-                    <div class="small text-muted mt-1"><i class="bi bi-check-circle-fill text-success"></i> Acessando</div>
+                    <div class="stat-label d-flex align-items-center gap-2">
+                        <i class="bi bi-check-circle-fill" style="color: var(--success);"></i>
+                        Ativos
+                    </div>
+                    <div class="stat-value" style="color: var(--success);"><?= $ativos ?></div>
+                    <div class="small text-muted mt-2">Acessando agora</div>
                 </div>
             </div>
             <div class="col-6 col-md-3">
                 <div class="stat-card">
-                    <div class="text-uppercase text-muted small fw-bold">Bloqueados</div>
-                    <div class="stat-value text-secondary"><?= $inativos ?></div>
-                    <div class="small text-muted mt-1"><i class="bi bi-dash-circle-fill text-secondary"></i> Restritos</div>
+                    <div class="stat-label d-flex align-items-center gap-2">
+                        <i class="bi bi-dash-circle-fill" style="color: #94a3b8;"></i>
+                        Bloqueados
+                    </div>
+                    <div class="stat-value" style="color: #64748b;"><?= $inativos ?></div>
+                    <div class="small text-muted mt-2">Sem acesso</div>
                 </div>
             </div>
             <div class="col-6 col-md-3">
                 <div class="stat-card">
-                    <div class="text-uppercase text-muted small fw-bold">Receita Histórica</div>
-                    <div class="stat-value">R$ <?= number_format($receitaTotal, 2, ',', '.') ?></div>
-                    <div class="small text-muted mt-1"><i class="bi bi-cash-coin"></i> Desde o início</div>
+                    <div class="stat-label d-flex align-items-center gap-2">
+                        <i class="bi bi-cash-coin" style="color: var(--secondary);"></i>
+                        Receita Total
+                    </div>
+                    <div class="stat-value" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        R$ <?= number_format($receitaTotal, 2, ',', '.') ?>
+                    </div>
+                    <div class="small text-muted mt-2">Histórico completo</div>
                 </div>
             </div>
         </div>
 
         <!-- MÉTRICAS FINANCEIRAS DETALHES -->
-        <div class="row g-3 g-md-4 mb-3 mb-md-4">
+        <div class="row g-3 g-md-4 mb-4">
             <div class="col-md-4">
                 <div class="stat-card">
-                    <div class="text-uppercase text-muted small fw-bold">Comissões de Indicação</div>
-                    <div class="stat-value text-primary">R$ <?= number_format($totalComissaoIndic, 2, ',', '.') ?></div>
-                    <div class="small text-muted mt-1"><i class="bi bi-people"></i> Somando todos</div>
+                    <div class="stat-label d-flex align-items-center gap-2">
+                        <i class="bi bi-gift-fill" style="color: var(--accent);"></i>
+                        Comissões Indicação
+                    </div>
+                    <div class="stat-value" style="color: var(--accent);">R$ <?= number_format($totalComissaoIndic, 2, ',', '.') ?></div>
+                    <div class="small text-muted mt-2">Total de comissões</div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="stat-card">
-                    <div class="text-uppercase text-muted small fw-bold">Sócia Luciana</div>
-                    <div class="stat-value text-warning">R$ <?= number_format($lucianaSaldoFinal, 2, ',', '.') ?></div>
-                    <div class="small text-muted mt-1">
-                        10% (R$ <?= number_format($luciana10Total, 2, ',', '.') ?>)
+                    <div class="stat-label d-flex align-items-center gap-2">
+                        <i class="bi bi-star-fill" style="color: #f59e0b;"></i>
+                        Sócia Luciana
+                    </div>
+                    <div class="stat-value" style="color: #f59e0b;">R$ <?= number_format($lucianaSaldoFinal, 2, ',', '.') ?></div>
+                    <div class="small text-muted mt-2">
+                        10% + Indicações
                         <?php if ($lucianaSoIndicacoes > 0): ?>
-                            + indicações (R$ <?= number_format($lucianaSoIndicacoes, 2, ',', '.') ?>)
+                            (R$ <?= number_format($lucianaSoIndicacoes, 2, ',', '.') ?>)
                         <?php endif; ?>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="stat-card">
-                    <div class="text-uppercase text-muted small fw-bold">Lucro do Sistema</div>
-                    <div class="stat-value text-success">R$ <?= number_format($lucroSistema, 2, ',', '.') ?></div>
-                    <div class="small text-muted mt-1"><i class="bi bi-graph-up-arrow"></i> Receita - Luciana - Indicações</div>
+                    <div class="stat-label d-flex align-items-center gap-2">
+                        <i class="bi bi-graph-up-arrow" style="color: var(--success);"></i>
+                        Lucro Líquido
+                    </div>
+                    <div class="stat-value" style="color: var(--success);">R$ <?= number_format($lucroSistema, 2, ',', '.') ?></div>
+                    <div class="small text-muted mt-2">Sistema descontado</div>
                 </div>
             </div>
         </div>
@@ -737,13 +1032,14 @@ $lucianaSaldoFinal    = $luciana10Total + $lucianaSoIndicacoes;
         <div class="content-card">
             <div class="card-header-custom">
                 <div>
-                    <h6 class="mb-1 fw-bold" style="font-size:0.95rem;">Gerenciar Assinaturas</h6>
-                    <p class="text-muted mb-0" style="font-size:0.75rem;">Controle a validade, indicação e acesso dos profissionais.</p>
+                    <h5 class="mb-1 fw-bold" style="font-size:1.1rem; font-family: 'Outfit', sans-serif;">
+                        <i class="bi bi-people-fill me-2" style="color: var(--primary);"></i>
+                        Gerenciar Assinaturas
+                    </h5>
+                    <p class="text-muted mb-0" style="font-size:0.8rem;">Controle completo de validade, indicações e acessos</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-primary"
-                            style="background:var(--primary); border:none; padding:0.45rem 1.1rem;"
-                            data-bs-toggle="modal" data-bs-target="#modalNovo">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovo">
                         <i class="bi bi-plus-lg me-1"></i> Novo Usuário
                     </button>
                 </div>
@@ -999,23 +1295,26 @@ $lucianaSaldoFinal    = $luciana10Total + $lucianaSoIndicacoes;
         <div class="content-card">
             <div class="card-header-custom">
                 <div>
-                    <h6 class="mb-1 fw-bold" style="font-size:0.9rem;">Resumo de Indicações</h6>
-                    <p class="text-muted mb-0" style="font-size:0.75rem;">Quanto cada pessoa tem a receber pelas indicações (R$ 9,90 por mês de permanência).</p>
+                    <h5 class="mb-1 fw-bold" style="font-size:1.1rem; font-family: 'Outfit', sans-serif;">
+                        <i class="bi bi-gift-fill me-2" style="color: var(--accent);"></i>
+                        Resumo de Indicações
+                    </h5>
+                    <p class="text-muted mb-0" style="font-size:0.8rem;">Comissões acumuladas por indicador (R$ 9,90 por mês)</p>
                 </div>
             </div>
             <div class="table-responsive">
                 <table class="table table-custom mb-0">
                     <thead>
                         <tr>
-                            <th>Indicador</th>
-                            <th class="text-end">Total em Comissões</th>
+                            <th><i class="bi bi-person-fill me-2"></i>Indicador</th>
+                            <th class="text-end"><i class="bi bi-cash-stack me-2"></i>Total em Comissões</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($comissoesIndicacao as $indicador => $valor): ?>
                             <tr>
-                                <td><?= htmlspecialchars($indicador) ?></td>
-                                <td class="text-end">R$ <?= number_format($valor, 2, ',', '.') ?></td>
+                                <td class="fw-semibold"><?= htmlspecialchars($indicador) ?></td>
+                                <td class="text-end fw-bold" style="color: var(--success);">R$ <?= number_format($valor, 2, ',', '.') ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -1029,56 +1328,73 @@ $lucianaSaldoFinal    = $luciana10Total + $lucianaSoIndicacoes;
     <!-- MODAL NOVO USUÁRIO -->
     <div class="modal fade" id="modalNovo" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold" style="font-size:0.95rem;">Novo Profissional</h5>
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 24px; overflow: hidden;">
+                <div class="modal-header border-0 pb-2" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.05), rgba(236, 72, 153, 0.05));">
+                    <h5 class="modal-title fw-bold" style="font-size:1.1rem; font-family: 'Outfit', sans-serif; color: var(--dark);">
+                        <i class="bi bi-person-plus-fill me-2" style="color: var(--primary);"></i>
+                        Novo Profissional
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="padding: 1.5rem 2rem;">
                     <form method="post">
                         <input type="hidden" name="action" value="create">
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold text-muted">Nome</label>
-                            <input type="text" name="nome" class="form-control bg-light" required>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" style="font-size: 0.85rem; color: var(--dark);">
+                                <i class="bi bi-person me-1"></i> Nome Completo
+                            </label>
+                            <input type="text" name="nome" class="form-control" style="border-radius: 14px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0;" required placeholder="Digite o nome">
                         </div>
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold text-muted">E-mail (login)</label>
-                            <input type="email" name="email" class="form-control bg-light" required>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" style="font-size: 0.85rem; color: var(--dark);">
+                                <i class="bi bi-envelope me-1"></i> E-mail (login)
+                            </label>
+                            <input type="email" name="email" class="form-control" style="border-radius: 14px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0;" required placeholder="email@exemplo.com">
                         </div>
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold text-muted">Senha inicial</label>
-                            <input type="text" name="senha" class="form-control bg-light" required>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" style="font-size: 0.85rem; color: var(--dark);">
+                                <i class="bi bi-key me-1"></i> Senha Inicial
+                            </label>
+                            <input type="text" name="senha" class="form-control" style="border-radius: 14px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0;" required placeholder="Defina uma senha">
                         </div>
 
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold text-muted">Valor mensal cobrado (R$)</label>
-                            <input type="text" name="valor_mensal" class="form-control bg-light" placeholder="19,90 (padrão)">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" style="font-size: 0.85rem; color: var(--dark);">
+                                <i class="bi bi-cash me-1"></i> Valor Mensal (R$)
+                            </label>
+                            <input type="text" name="valor_mensal" class="form-control" style="border-radius: 14px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0;" placeholder="19,90 (padrão)">
                         </div>
 
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold text-muted">Indicado por quem? (opcional)</label>
-                            <input list="listaIndicadores" name="indicado_por" class="form-control bg-light" placeholder="Ex: Kátia Gomes, Luciana Aparecida">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" style="font-size: 0.85rem; color: var(--dark);">
+                                <i class="bi bi-person-plus me-1"></i> Indicado por (opcional)
+                            </label>
+                            <input list="listaIndicadores" name="indicado_por" class="form-control" style="border-radius: 14px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0;" placeholder="Ex: Kátia Gomes, Luciana Aparecida">
                             <datalist id="listaIndicadores">
                                 <option value="Katia Gomes">
                                 <option value="Luciana Aparecida">
                             </datalist>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted">Plano Inicial</label>
-                            <select name="plano_inicial" class="form-select bg-light" style="font-size:0.8rem; border-radius:14px;">
-                                <option value="teste_7">Teste 7 dias (grátis / sem cobrança)</option>
-                                <option value="30" selected>30 Dias (Mensal)</option>
-                                <option value="60">60 Dias (Bimestral)</option>
-                                <option value="90">90 Dias (Trimestral)</option>
-                                <option value="180">6 Meses</option>
-                                <option value="365">1 Ano</option>
-                                <option value="730">2 Anos</option>
-                                <option value="vitalicio">⭐ Acesso Vitalício (Sem contador / sem comissão)</option>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold" style="font-size: 0.85rem; color: var(--dark);">
+                                <i class="bi bi-calendar-check me-1"></i> Plano Inicial
+                            </label>
+                            <select name="plano_inicial" class="form-select" style="font-size:0.85rem; border-radius:14px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0;">
+                                <option value="teste_7">🎁 Teste 7 dias (grátis / sem cobrança)</option>
+                                <option value="30" selected>📅 30 Dias (Mensal)</option>
+                                <option value="60">📅 60 Dias (Bimestral)</option>
+                                <option value="90">📅 90 Dias (Trimestral)</option>
+                                <option value="180">📅 6 Meses</option>
+                                <option value="365">📅 1 Ano</option>
+                                <option value="730">📅 2 Anos</option>
+                                <option value="vitalicio">⭐ Acesso Vitalício (Sem expiração)</option>
                             </select>
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Criar Conta</button>
+                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold" style="font-size: 0.95rem;">
+                            <i class="bi bi-check-circle me-2"></i>Criar Conta
+                        </button>
                     </form>
                 </div>
             </div>
@@ -1088,36 +1404,69 @@ $lucianaSaldoFinal    = $luciana10Total + $lucianaSoIndicacoes;
     <!-- MODAL RENOVAR -->
     <div class="modal fade" id="modalRenovar" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold" style="font-size:0.95rem;">Renovar Acesso</h5>
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 24px; overflow: hidden;">
+                <div class="modal-header border-0 pb-2" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.05), rgba(236, 72, 153, 0.05));">
+                    <h5 class="modal-title fw-bold" style="font-size:1.1rem; font-family: 'Outfit', sans-serif; color: var(--dark);">
+                        <i class="bi bi-calendar-plus-fill me-2" style="color: var(--primary);"></i>
+                        Renovar Acesso
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <p class="text-muted small mb-3">Adicionar tempo para: <strong id="renew_user_name" class="text-dark"></strong></p>
+                <div class="modal-body" style="padding: 1.5rem 2rem;">
+                    <div class="alert alert-info d-flex align-items-center gap-2 mb-4" style="background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 16px; color: #075985;">
+                        <i class="bi bi-info-circle-fill"></i>
+                        <div>
+                            <strong>Renovando para:</strong><br>
+                            <span id="renew_user_name" style="font-size: 1.05rem; font-weight: 600;"></span>
+                        </div>
+                    </div>
                     <form method="post">
                         <input type="hidden" name="action" value="renew">
                         <input type="hidden" name="user_id_renew" id="user_id_renew">
 
-                        <div class="d-grid gap-2">
-                            <button type="submit" name="tipo_renovacao" value="add_30" class="btn btn-outline-primary text-start" style="font-size:0.8rem; border-radius:999px;">
-                                <i class="bi bi-plus-circle me-2"></i> + 30 Dias (Mensal)
+                        <div class="d-grid gap-3">
+                            <button type="submit" name="tipo_renovacao" value="add_30" class="btn btn-outline-primary text-start d-flex align-items-center gap-3" style="font-size:0.9rem; border-radius:16px; padding: 14px 18px; border: 2px solid #e2e8f0; transition: all 0.3s;">
+                                <i class="bi bi-plus-circle-fill fs-5" style="color: var(--primary);"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">+ 30 Dias</div>
+                                    <small class="text-muted">Mensal</small>
+                                </div>
                             </button>
-                            <button type="submit" name="tipo_renovacao" value="add_60" class="btn btn-outline-primary text-start" style="font-size:0.8rem; border-radius:999px;">
-                                <i class="bi bi-plus-circle me-2"></i> + 60 Dias (Bimestral)
+                            <button type="submit" name="tipo_renovacao" value="add_60" class="btn btn-outline-primary text-start d-flex align-items-center gap-3" style="font-size:0.9rem; border-radius:16px; padding: 14px 18px; border: 2px solid #e2e8f0; transition: all 0.3s;">
+                                <i class="bi bi-plus-circle-fill fs-5" style="color: var(--primary);"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">+ 60 Dias</div>
+                                    <small class="text-muted">Bimestral</small>
+                                </div>
                             </button>
-                            <button type="submit" name="tipo_renovacao" value="add_90" class="btn btn-outline-primary text-start" style="font-size:0.8rem; border-radius:999px;">
-                                <i class="bi bi-plus-circle me-2"></i> + 90 Dias (Trimestral)
+                            <button type="submit" name="tipo_renovacao" value="add_90" class="btn btn-outline-primary text-start d-flex align-items-center gap-3" style="font-size:0.9rem; border-radius:16px; padding: 14px 18px; border: 2px solid #e2e8f0; transition: all 0.3s;">
+                                <i class="bi bi-plus-circle-fill fs-5" style="color: var(--primary);"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">+ 90 Dias</div>
+                                    <small class="text-muted">Trimestral</small>
+                                </div>
                             </button>
-                            <button type="submit" name="tipo_renovacao" value="add_365" class="btn btn-outline-primary text-start" style="font-size:0.8rem; border-radius:999px;">
-                                <i class="bi bi-calendar-check me-2"></i> + 1 Ano (Anual)
+                            <button type="submit" name="tipo_renovacao" value="add_365" class="btn btn-outline-primary text-start d-flex align-items-center gap-3" style="font-size:0.9rem; border-radius:16px; padding: 14px 18px; border: 2px solid #e2e8f0; transition: all 0.3s;">
+                                <i class="bi bi-calendar-check-fill fs-5" style="color: var(--success);"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">+ 1 Ano</div>
+                                    <small class="text-muted">Anual</small>
+                                </div>
                             </button>
-                            <button type="submit" name="tipo_renovacao" value="add_730" class="btn btn-outline-primary text-start" style="font-size:0.8rem; border-radius:999px;">
-                                <i class="bi bi-calendar-check me-2"></i> + 2 Anos
+                            <button type="submit" name="tipo_renovacao" value="add_730" class="btn btn-outline-primary text-start d-flex align-items-center gap-3" style="font-size:0.9rem; border-radius:16px; padding: 14px 18px; border: 2px solid #e2e8f0; transition: all 0.3s;">
+                                <i class="bi bi-calendar-check-fill fs-5" style="color: var(--success);"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">+ 2 Anos</div>
+                                    <small class="text-muted">Bienal</small>
+                                </div>
                             </button>
                             <div class="border-top my-2"></div>
-                            <button type="submit" name="tipo_renovacao" value="set_vitalicio" class="btn btn-warning text-dark fw-bold text-start" style="font-size:0.8rem; border-radius:999px;">
-                                <i class="bi bi-star-fill me-2"></i> Tornar Vitalício (Sem expiração / sem contador)
+                            <button type="submit" name="tipo_renovacao" value="set_vitalicio" class="btn text-start d-flex align-items-center gap-3" style="font-size:0.9rem; border-radius:16px; padding: 14px 18px; background: linear-gradient(135deg, #fef3c7, #fde68a); border: 2px solid #fde68a; color: #92400e; font-weight: 700;">
+                                <i class="bi bi-star-fill fs-5"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">Tornar Vitalício</div>
+                                    <small>Sem expiração</small>
+                                </div>
                             </button>
                         </div>
                     </form>
@@ -1128,14 +1477,16 @@ $lucianaSaldoFinal    = $luciana10Total + $lucianaSoIndicacoes;
 
     <?php if (isset($_GET['msg'])): ?>
     <div class="toast-container">
-        <div class="toast show border-0 shadow-lg rounded-4" role="alert" style="border-left: 4px solid #10b981;">
-            <div class="toast-body d-flex align-items-center gap-2" style="font-size:0.8rem;">
-                <i class="bi bi-check-circle-fill text-success fs-5"></i>
-                <div>
-                    <strong class="d-block text-dark" style="font-size:0.8rem;">Sucesso!</strong>
-                    <small class="text-muted">Operação realizada.</small>
+        <div class="toast show border-0 shadow-lg" role="alert" style="border-radius: 20px; background: white; overflow: hidden;">
+            <div class="toast-body d-flex align-items-center gap-3 p-3">
+                <div class="d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: linear-gradient(135deg, #dcfce7, #bbf7d0); border-radius: 14px;">
+                    <i class="bi bi-check-circle-fill fs-4" style="color: #10b981;"></i>
                 </div>
-                <button type="button" class="btn-close ms-auto" data-bs-dismiss="toast"></button>
+                <div class="flex-grow-1">
+                    <strong class="d-block" style="font-size:0.95rem; color: var(--dark);">Sucesso!</strong>
+                    <small class="text-muted" style="font-size: 0.8rem;">Operação realizada com sucesso.</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
             </div>
         </div>
     </div>

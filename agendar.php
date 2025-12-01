@@ -94,7 +94,7 @@ if (isset($_GET['action'])) {
         $duracaoServico = (int)$_GET['duracao']; 
         $diaSemana      = date('w', strtotime($data)); 
  
-        $stmt = $pdo->prepare("SELECT inicio, fim FROM horarios_atendimento WHERE user_id = ? AND dia_semana = ?"); 
+        $stmt = $pdo->prepare("SELECT inicio, fim, intervalo_minutos FROM horarios_atendimento WHERE user_id = ? AND dia_semana = ?"); 
         $stmt->execute([$profissionalId, $diaSemana]); 
         $turnos = $stmt->fetchAll(); 
  
@@ -118,8 +118,11 @@ if (isset($_GET['action'])) {
                 $fim   = explode(':', $turno['fim']); 
                 $start = ($ini[0] * 60) + $ini[1]; 
                 $end   = ($fim[0] * 60) + $fim[1]; 
+                
+                // Usa o intervalo configurado ou padrão 30min
+                $intervalo = !empty($turno['intervalo_minutos']) ? (int)$turno['intervalo_minutos'] : 30;
  
-                for ($time = $start; $time <= ($end - $duracaoServico); $time += 30) { 
+                for ($time = $start; $time <= ($end - $duracaoServico); $time += $intervalo) { 
                     $livre = true; 
                     for ($check = $time; $check < ($time + $duracaoServico); $check++) { 
                         if (isset($minutosOcupados[$check])) { 
@@ -293,7 +296,7 @@ $servicos = $stmt->fetchAll();
         <link rel="icon" type="image/png" href="<?php echo $faviconUrl; ?>">
         <link rel="shortcut icon" href="<?php echo $faviconUrl; ?>" type="image/png">
 
-        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" 
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" 
             rel="stylesheet"> 
         <link rel="stylesheet" 
             href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"> 
@@ -308,69 +311,120 @@ $servicos = $stmt->fetchAll();
             --brand-dark: color-mix(in srgb, var(--brand-color), black 20%); 
             --brand-light: color-mix(in srgb, var(--brand-color), white 90%); 
  
-            --bg-body: #f8fafc; 
+            --bg-body: linear-gradient(180deg, #eef2ff 0%, #ffffff 100%);
             --bg-card: #ffffff; 
             --text-main: #1e293b; 
             --text-muted: #64748b; 
             --border: #e2e8f0; 
             --radius-lg: 24px; 
-            --radius-md: 16px; 
-            --shadow-card: 0 4px 6px -1px rgba(0,0,0,0.05), 
-                           0 2px 4px -1px rgba(0,0,0,0.03); 
+            --radius-md: 18px; 
+            --shadow-card: 0 10px 30px -5px rgba(0,0,0,0.08);
+            --shadow-strong: 0 25px 60px -15px rgba(15, 23, 42, 0.15);
         } 
  
         * { 
             margin: 0; 
             padding: 0; 
             box-sizing: border-box; 
-            font-family: 'Outfit', sans-serif; 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
             -webkit-tap-highlight-color: transparent; 
         } 
  
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Outfit', sans-serif;
+        }
+
         body { 
-            background-color: var(--bg-body); 
+            background: var(--bg-body);
             color: var(--text-main); 
             min-height: 100vh; 
             display: flex; 
             flex-direction: column; 
+            position: relative;
+        }
+
+        /* Aurora Background */
+        .aurora-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .aurora-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(90px);
+            opacity: 0.2;
+            animation: float-blob 20s infinite alternate;
+        }
+        .blob-1 {
+            top: -10%;
+            left: -10%;
+            width: 60vw;
+            height: 60vw;
+            background: #c7d2fe;
+            animation-duration: 25s;
+        }
+        .blob-2 {
+            bottom: -10%;
+            right: -10%;
+            width: 50vw;
+            height: 50vw;
+            background: #fbcfe8;
+            animation-duration: 20s;
+        }
+        @keyframes float-blob {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(40px, -40px); }
         } 
  
         .app-container { display: grid; grid-template-columns: 1fr; min-height: 100vh; } 
  
         .sidebar { 
-            background: white; 
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
             padding: 40px 30px; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
             text-align: center; 
-            border-bottom: 1px solid var(--border); 
+            border-bottom: 1px solid rgba(148,163,184,0.1);
             position: relative; 
-            overflow: hidden; 
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(15,23,42,0.05);
         } 
  
         .sidebar::before { 
             content: ''; 
             position: absolute; 
             top: 0; left: 0; right: 0; 
-            height: 150px; 
+            height: 200px; 
             background: linear-gradient(to bottom, var(--brand-light), transparent); 
             z-index: 0; 
         } 
  
         .business-logo { 
-            width: 120px; 
-            height: 120px; 
-            border-radius: 35px; 
+            width: 130px; 
+            height: 130px; 
+            border-radius: 32px; 
             background: white; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.08); 
-            margin-bottom: 20px; 
+            box-shadow: 0 15px 40px rgba(0,0,0,0.12); 
+            margin-bottom: 24px; 
             z-index: 1; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
             overflow: hidden; 
-            border: 4px solid white; 
+            border: 5px solid white;
+            transition: transform 0.3s ease;
+        }
+        
+        .business-logo:hover {
+            transform: translateY(-5px) scale(1.02);
         } 
  
         .logo-img { width: 100%; height: 100%; object-fit: cover; } 
@@ -394,20 +448,26 @@ $servicos = $stmt->fetchAll();
         } 
  
         .info-pill { 
-            background: var(--bg-body); 
-            padding: 8px 16px; 
-            border-radius: 50px; 
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 10px 18px; 
+            border-radius: 999px; 
             font-size: 0.85rem; 
             font-weight: 600; 
             color: var(--text-main); 
             display: inline-flex; 
             align-items: center; 
             gap: 8px; 
-            margin-bottom: 8px; 
-            z-index: 1; 
+            margin-bottom: 10px; 
+            z-index: 1;
+            border: 1px solid rgba(148,163,184,0.15);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         } 
  
-        .info-pill i { color: var(--brand-color); } 
+        .info-pill i {
+            color: var(--brand-color);
+            font-size: 1rem;
+        } 
  
         .main-content { 
             padding: 20px; 
@@ -417,10 +477,33 @@ $servicos = $stmt->fetchAll();
             z-index: 2; 
         } 
  
+        @media (max-width: 767px) {
+            .card-title {
+                font-size: 1.5rem;
+            }
+            .business-name {
+                font-size: 1.5rem;
+            }
+            .business-logo {
+                width: 110px;
+                height: 110px;
+            }
+            .step-label {
+                font-size: 0.7rem;
+            }
+            .time-slots-grid {
+                grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+                gap: 10px;
+            }
+            .main-content {
+                padding: 16px;
+            }
+        }
+
         @media (min-width: 900px) { 
-            .app-container { grid-template-columns: 420px 1fr; } 
+            .app-container { grid-template-columns: 450px 1fr; } 
             .sidebar { 
-                border-right: 1px solid var(--border); 
+                border-right: 1px solid rgba(148,163,184,0.1); 
                 border-bottom: none; 
                 height: 100vh; 
                 position: sticky; 
@@ -429,64 +512,204 @@ $servicos = $stmt->fetchAll();
             } 
             .main-content { 
                 padding: 60px; 
-                max-width: 800px; 
-                margin: 0; 
+                max-width: 900px; 
+                margin: 0 auto; 
                 display: flex; 
                 flex-direction: column; 
                 justify-content: center; 
             } 
         } 
  
-        .step-progress { display:flex; justify-content:space-between; margin-bottom:40px; position:relative; padding:0 10px; } 
-        .progress-line { position:absolute; top:15px; left:20px; right:20px; height:3px; background:#e2e8f0; z-index:0; } 
+        .step-progress {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 50px;
+            position: relative;
+            padding: 0 10px;
+        } 
+        .progress-line {
+            position: absolute;
+            top: 18px;
+            left: 20px;
+            right: 20px;
+            height: 4px;
+            background: #e2e8f0;
+            z-index: 0;
+            border-radius: 10px;
+        } 
         .step-dot { 
-            width:34px; height:34px; border-radius:50%; 
-            background:white; border:2px solid #e2e8f0; 
-            z-index:1; display:flex; align-items:center; justify-content:center; 
-            font-weight:700; color:#94a3b8; transition:0.3s; 
+            width: 40px;
+            height: 40px;
+            border-radius: 50%; 
+            background: white;
+            border: 3px solid #e2e8f0; 
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center; 
+            font-weight: 800;
+            color: #94a3b8;
+            transition: all 0.3s ease;
+            font-family: 'Outfit', sans-serif;
         } 
         .step-label { 
-            position:absolute; top:40px; font-size:0.75rem; font-weight:600; 
-            color:#94a3b8; transform:translateX(-50%); left:50%; white-space:nowrap; 
+            position: absolute;
+            top: 50px;
+            font-size: 0.8rem;
+            font-weight: 700; 
+            color: #94a3b8;
+            transform: translateX(-50%);
+            left: 50%;
+            white-space: nowrap; 
         } 
-        .step-wrapper { position:relative; display:flex; flex-direction:column; align-items:center; } 
+        .step-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        } 
         .step-wrapper.active .step-dot { 
-            border-color:var(--brand-color); background:var(--brand-color); color:white; 
-            transform:scale(1.1); box-shadow:0 0 0 4px var(--brand-light); 
+            border-color: var(--brand-color);
+            background: linear-gradient(135deg, var(--brand-color), var(--brand-dark));
+            color: white; 
+            transform: scale(1.15);
+            box-shadow: 0 0 0 5px var(--brand-light), 0 8px 20px rgba(var(--brand-color-rgb), 0.3); 
         } 
-        .step-wrapper.active .step-label { color:var(--brand-color); } 
-        .step-wrapper.done .step-dot { border-color:var(--brand-color); background:var(--brand-color); color:white; } 
+        .step-wrapper.active .step-label {
+            color: var(--brand-color);
+        } 
+        .step-wrapper.done .step-dot {
+            border-color: var(--brand-color);
+            background: linear-gradient(135deg, var(--brand-color), var(--brand-dark));
+            color: white;
+        } 
  
-        .card-title { font-size:1.5rem; font-weight:700; margin-bottom:10px; color:var(--text-main); } 
-        .card-subtitle { color:var(--text-muted); margin-bottom:30px; } 
+        .card-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            letter-spacing: -0.02em;
+        } 
+        .card-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 35px;
+            font-size: 1rem;
+            line-height: 1.5;
+        } 
  
         .service-card { 
-            background:white; padding:20px; border-radius:var(--radius-md); 
-            border:2px solid transparent; box-shadow:var(--shadow-card); 
-            cursor:pointer; transition:0.2s; display:flex; justify-content:space-between; 
-            align-items:center; margin-bottom:12px; 
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            padding: 22px;
+            border-radius: var(--radius-md); 
+            border: 2px solid rgba(148,163,184,0.1);
+            box-shadow: var(--shadow-card); 
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between; 
+            align-items: center;
+            margin-bottom: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--brand-color), var(--brand-dark));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--brand-light);
+            box-shadow: var(--shadow-strong);
+        }
+        
+        .service-card:hover::before {
+            opacity: 1;
+        }
+        
+        .service-card.selected {
+            border-color: var(--brand-color);
+            background: var(--brand-light);
+            box-shadow: 0 0 0 4px rgba(var(--brand-color-rgb), 0.1);
+        }
+        
+        .service-card.selected::before {
+            opacity: 1;
+        }
+        
+        .service-price {
+            font-weight: 800;
+            color: var(--brand-color);
+            font-size: 1.2rem;
+            font-family: 'Outfit', sans-serif;
         } 
-        .service-card:hover { transform:translateY(-3px); border-color:var(--brand-light); } 
-        .service-card.selected { border-color:var(--brand-color); background:var(--brand-light); } 
-        .service-price { font-weight:700; color:var(--brand-color); font-size:1.1rem; } 
  
-        .form-label { display:block; font-size:0.9rem; font-weight:600; margin-bottom:8px; } 
-        .form-control { 
-            width:100%; padding:14px; border:2px solid var(--border); 
-            border-radius:var(--radius-md); font-size:1rem; outline:none; 
-            transition:0.3s; background:white; 
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-main);
+            letter-spacing: 0.02em;
         } 
-        .form-control:focus { border-color:var(--brand-color); } 
+        .form-control { 
+            width: 100%;
+            padding: 16px;
+            border: 2px solid var(--border); 
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            outline: none; 
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+        } 
+        .form-control:focus {
+            border-color: var(--brand-color);
+            box-shadow: 0 0 0 4px rgba(var(--brand-color-rgb), 0.1);
+            background: white;
+        } 
  
         .btn-action { 
-            width:100%; padding:18px; background:var(--brand-color); 
-            color:white; border:none; border-radius:50px; font-size:1rem; 
-            font-weight:700; cursor:pointer; transition:0.3s; 
-            display:flex; align-items:center; justify-content:center; gap:10px; 
-            margin-top:30px; box-shadow:0 4px 15px rgba(0,0,0,0.1); 
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--brand-color), var(--brand-dark));
+            color: white;
+            border: none;
+            border-radius: 999px;
+            font-size: 1rem; 
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px; 
+            margin-top: 30px;
+            box-shadow: 0 10px 30px -5px rgba(0,0,0,0.15);
+            text-decoration: none;
         } 
-        .btn-action:hover { background:var(--brand-dark); transform:translateY(-2px); } 
-        .btn-action:disabled { background:#cbd5e1; cursor:not-allowed; transform:none; } 
+        .btn-action:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 40px -5px rgba(0,0,0,0.25);
+            color: white;
+        } 
+        .btn-action:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        } 
  
         .step-screen { display:none; animation:fadeIn 0.4s ease-out forwards; } 
         .step-screen.active { display:block; } 
@@ -495,18 +718,57 @@ $servicos = $stmt->fetchAll();
             to   { opacity:1; transform:translateY(0); } 
         } 
  
-        .time-slots-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(80px,1fr)); gap:10px; } 
-        .time-slot { 
-            padding:12px; text-align:center; background:white; 
-            border:1px solid var(--border); border-radius:10px; 
-            font-weight:600; cursor:pointer; transition:0.2s; 
+        .time-slots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 12px;
         } 
-        .time-slot:hover { border-color:var(--brand-color); color:var(--brand-color); } 
-        .time-slot.selected { background:var(--brand-color); color:white; border-color:var(--brand-color); } 
+        .time-slot { 
+            padding: 14px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--border);
+            border-radius: 12px; 
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Outfit', sans-serif;
+        } 
+        .time-slot:hover {
+            border-color: var(--brand-color);
+            color: var(--brand-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        } 
+        .time-slot.selected {
+            background: linear-gradient(135deg, var(--brand-color), var(--brand-dark));
+            color: white;
+            border-color: var(--brand-color);
+            box-shadow: 0 8px 20px rgba(var(--brand-color-rgb), 0.3);
+        } 
  
         .btn-back { 
-            background:none; border:none; color:var(--text-muted); font-weight:600; 
-            cursor:pointer; margin-bottom:20px; display:inline-flex; align-items:center; gap:8px; 
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(148,163,184,0.1);
+            color: var(--text-muted);
+            font-weight: 600; 
+            cursor: pointer;
+            margin-bottom: 25px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-back:hover {
+            background: white;
+            border-color: var(--brand-color);
+            color: var(--brand-color);
+            transform: translateX(-3px);
         } 
  
         .loading-spinner { 
@@ -514,10 +776,80 @@ $servicos = $stmt->fetchAll();
             border:3px solid rgba(255,255,255,0.3); border-radius:50%; 
             border-top-color:white; animation:spin 1s infinite; 
         } 
-        @keyframes spin { to { transform:rotate(360deg); } } 
+        @keyframes spin { to { transform:rotate(360deg); } }
+
+        /* Footer Develoi */
+        .footer-develoi {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(148,163,184,0.1);
+            padding: 24px 20px;
+            text-align: center;
+            margin-top: auto;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .footer-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            transition: all 0.3s ease;
+            padding: 8px 16px;
+            border-radius: 12px;
+        }
+        
+        .footer-logo:hover {
+            color: var(--brand-color);
+            background: rgba(79, 70, 229, 0.05);
+            transform: translateY(-2px);
+        }
+        
+        .footer-logo img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
+        
+        .footer-text {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        
+        @media (min-width: 768px) {
+            .footer-content {
+                flex-direction: row;
+                justify-content: center;
+                gap: 16px;
+            }
+        }
+
+        /* Smooth Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style> 
 </head> 
-<body> 
+<body>
+    <div class="aurora-bg">
+        <div class="aurora-blob blob-1"></div>
+        <div class="aurora-blob blob-2"></div>
+    </div> 
  
 <div class="app-container"> 
     <div class="sidebar"> 
@@ -552,29 +884,42 @@ $servicos = $stmt->fetchAll();
         <?php endif; ?> 
  
         <div id="bookingSummary" 
-             style="margin-top:auto; width:100%; background:white; padding:20px; border-radius:20px; border:1px solid #e2e8f0; text-align:left; display:none; box-shadow:var(--shadow-card);" 
+             style="margin-top:auto; width:100%; background:rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); padding:24px; border-radius:24px; border:1px solid rgba(148,163,184,0.1); text-align:left; display:none; box-shadow:var(--shadow-strong);" 
              class="step-screen"> 
-            <div style="font-size:0.7rem; text-transform:uppercase; color:#94a3b8; font-weight:800; margin-bottom:10px; letter-spacing:1px;"> 
+            <div style="font-size:0.7rem; text-transform:uppercase; color:#94a3b8; font-weight:800; margin-bottom:12px; letter-spacing:1.5px;"> 
+                <i class="bi bi-calendar-check" style="margin-right:6px;"></i>
                 Seu Agendamento 
             </div> 
-            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-weight:700; font-size:1rem;"> 
-                <span id="sumServico">...</span> 
-                <span id="sumPreco" style="color:var(--brand-color);">...</span> 
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-weight:700; font-size:1.05rem;"> 
+                <span id="sumServico" style="font-family: 'Outfit', sans-serif;">...</span> 
+                <span id="sumPreco" style="color:var(--brand-color); font-family: 'Outfit', sans-serif; font-size:1.2rem;">...</span> 
             </div> 
-            <div style="font-size:0.9rem; color:#64748b;" id="sumDataHora"></div> 
+            <div style="font-size:0.9rem; color:#64748b; display:flex; align-items:center; gap:8px;" id="sumDataHora">
+                <i class="bi bi-clock"></i>
+            </div> 
         </div> 
     </div> 
  
     <div class="main-content"> 
         <?php if ($sucesso): ?> 
-            <div style="text-align:center; padding:40px;"> 
-                <i class="bi bi-check-circle-fill" 
-                   style="font-size:5rem; color:#10b981; margin-bottom:20px; display:block;"></i> 
-                <h2 class="card-title">Agendamento Confirmado!</h2> 
-                <p class="card-subtitle">
-                    Serviço: <strong><?php echo htmlspecialchars($servicoConfirmado); ?></strong><br>
-                    Data/Hora: <strong><?php echo htmlspecialchars($dataConfirmada); ?> <?php echo htmlspecialchars($horaConfirmada); ?></strong>
-                </p>
+            <div style="text-align:center; padding:50px 20px;"> 
+                <div style="width:100px; height:100px; margin:0 auto 30px; background:linear-gradient(135deg, #dcfce7, #bbf7d0); border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 20px 60px rgba(16, 185, 129, 0.3);">
+                    <i class="bi bi-check-circle-fill" 
+                       style="font-size:3.5rem; color:#10b981;"></i>
+                </div>
+                <h2 class="card-title" style="color:#10b981; margin-bottom:16px;">Agendamento Confirmado!</h2> 
+                <div style="background:rgba(16, 185, 129, 0.08); padding:20px; border-radius:20px; margin-bottom:30px; border:1px solid rgba(16, 185, 129, 0.2);">
+                    <div style="font-size:0.85rem; color:#64748b; margin-bottom:8px;">Serviço</div>
+                    <div style="font-weight:700; font-size:1.2rem; color:var(--text-main); margin-bottom:16px; font-family:'Outfit', sans-serif;">
+                        <?php echo htmlspecialchars($servicoConfirmado); ?>
+                    </div>
+                    <div style="font-size:0.85rem; color:#64748b; margin-bottom:8px;">Data e Horário</div>
+                    <div style="font-weight:700; font-size:1.1rem; color:var(--text-main); font-family:'Outfit', sans-serif;">
+                        <i class="bi bi-calendar-event me-2"></i><?php echo date('d/m/Y', strtotime($dataConfirmada)); ?>
+                        <span style="margin:0 8px;">•</span>
+                        <i class="bi bi-clock me-2"></i><?php echo htmlspecialchars($horaConfirmada); ?>
+                    </div>
+                </div>
                 <?php
                 $whats = preg_replace('/[^0-9]/', '', $profissional['telefone'] ?? '');
                 $msg   = rawurlencode(
@@ -583,12 +928,12 @@ $servicos = $stmt->fetchAll();
                 ?>
                 <?php if ($whats): ?>
                     <a href="https://wa.me/<?php echo $whats; ?>?text=<?php echo $msg; ?>" 
-                       target="_blank" class="btn-action" style="background:#25d366; color:white; margin-bottom:10px; display:inline-block;"> 
+                       target="_blank" class="btn-action" style="background:linear-gradient(135deg, #25d366, #128C7E); color:white; margin-bottom:14px;"> 
                         <i class="bi bi-whatsapp"></i> Confirmar pelo WhatsApp 
                     </a> 
                 <?php endif; ?> 
-                <a href="?user=<?php echo $profissionalId; ?>" class="btn-action" style="text-decoration:none;"> 
-                    Agendar Novamente 
+                <a href="?user=<?php echo $profissionalId; ?>" class="btn-action" style="background:linear-gradient(135deg, var(--brand-color), var(--brand-dark));"> 
+                    <i class="bi bi-arrow-clockwise"></i> Agendar Novamente 
                 </a> 
             </div> 
         <?php else: ?> 
@@ -861,5 +1206,18 @@ $servicos = $stmt->fetchAll();
     // Data mínima = hoje
     document.getElementById('dateInput').min = new Date().toISOString().split("T")[0];
 </script>
+
+<footer class="footer-develoi">
+    <div class="footer-content">
+        <div class="footer-text">
+            Tecnologia desenvolvida por
+        </div>
+        <a href="https://develoi.com/" target="_blank" rel="noopener noreferrer" class="footer-logo">
+            <img src="img/logo-D.png" alt="Develoi">
+            <span>Develoi</span>
+        </a>
+    </div>
+</footer>
+
 </body> 
 </html>

@@ -20,12 +20,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->prepare("DELETE FROM horarios_atendimento WHERE user_id = ?")->execute([$userId]);
 
         if (isset($_POST['horarios']) && is_array($_POST['horarios'])) {
-            $stmt = $pdo->prepare("INSERT INTO horarios_atendimento (user_id, dia_semana, inicio, fim) VALUES (?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO horarios_atendimento (user_id, dia_semana, inicio, fim, intervalo_minutos) VALUES (?, ?, ?, ?, ?)");
             foreach ($_POST['horarios'] as $dia => $slots) {
                 if (isset($_POST['dia_ativo'][$dia])) {
                     foreach ($slots as $slot) {
                         if (!empty($slot['inicio']) && !empty($slot['fim'])) {
-                            $stmt->execute([$userId, $dia, $slot['inicio'], $slot['fim']]);
+                            $intervalo = !empty($slot['intervalo']) ? (int)$slot['intervalo'] : 30;
+                            $stmt->execute([$userId, $dia, $slot['inicio'], $slot['fim'], $intervalo]);
                         }
                     }
                 }
@@ -47,7 +48,11 @@ $registros = $stmt->fetchAll();
 
 $agenda = array_fill(0, 7, []);
 foreach ($registros as $reg) {
-    $agenda[$reg['dia_semana']][] = ['inicio' => $reg['inicio'], 'fim' => $reg['fim']];
+    $agenda[$reg['dia_semana']][] = [
+        'inicio' => $reg['inicio'], 
+        'fim' => $reg['fim'],
+        'intervalo_minutos' => $reg['intervalo_minutos'] ?? 30
+    ];
 }
 
 $diasSemana = [
@@ -284,6 +289,21 @@ include '../../includes/menu.php';
         padding: 0 4px;
     }
 
+    .interval-select {
+        background: transparent;
+        border: none;
+        font-family: inherit;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        outline: none;
+        cursor: pointer;
+        padding: 2px 4px;
+        font-weight: 600;
+    }
+    .interval-select:hover {
+        color: var(--primary-color);
+    }
+
     .btn-remove {
         width: 32px;
         height: 32px;
@@ -445,6 +465,15 @@ include '../../includes/menu.php';
                                     <span class="time-separator"><i class="bi bi-arrow-right-short"></i></span>
                                     <input type="time" name="horarios[<?php echo $diaIndex; ?>][<?php echo $i; ?>][fim]" 
                                            class="time-input" value="<?php echo $horario['fim']; ?>" required>
+                                    <span class="time-separator">•</span>
+                                    <select name="horarios[<?php echo $diaIndex; ?>][<?php echo $i; ?>][intervalo]" class="interval-select" title="Intervalo entre horários">
+                                        <option value="15" <?php echo ($horario['intervalo_minutos'] == 15) ? 'selected' : ''; ?>>15min</option>
+                                        <option value="30" <?php echo ($horario['intervalo_minutos'] == 30) ? 'selected' : ''; ?>>30min</option>
+                                        <option value="45" <?php echo ($horario['intervalo_minutos'] == 45) ? 'selected' : ''; ?>>45min</option>
+                                        <option value="60" <?php echo ($horario['intervalo_minutos'] == 60) ? 'selected' : ''; ?>>60min</option>
+                                        <option value="90" <?php echo ($horario['intervalo_minutos'] == 90) ? 'selected' : ''; ?>>90min</option>
+                                        <option value="120" <?php echo ($horario['intervalo_minutos'] == 120) ? 'selected' : ''; ?>>120min</option>
+                                    </select>
                                 </div>
                                 <button type="button" class="btn-remove" onclick="removerSlot(this)" title="Remover intervalo">
                                     <i class="bi bi-trash3"></i>
@@ -508,7 +537,7 @@ include '../../includes/footer.php';
         }
     }
 
-    function adicionarSlot(diaIndex, inicio = '', fim = '') {
+    function adicionarSlot(diaIndex, inicio = '', fim = '', intervalo = 30) {
         const container = document.getElementById(`slots-${diaIndex}`);
         const randId = Math.floor(Math.random() * 100000);
 
@@ -520,6 +549,15 @@ include '../../includes/footer.php';
                     <span class="time-separator"><i class="bi bi-arrow-right-short"></i></span>
                     <input type="time" name="horarios[${diaIndex}][${randId}][fim]" 
                            class="time-input" value="${fim}" required>
+                    <span class="time-separator">•</span>
+                    <select name="horarios[${diaIndex}][${randId}][intervalo]" class="interval-select" title="Intervalo entre horários">
+                        <option value="15" ${intervalo == 15 ? 'selected' : ''}>15min</option>
+                        <option value="30" ${intervalo == 30 ? 'selected' : ''}>30min</option>
+                        <option value="45" ${intervalo == 45 ? 'selected' : ''}>45min</option>
+                        <option value="60" ${intervalo == 60 ? 'selected' : ''}>60min</option>
+                        <option value="90" ${intervalo == 90 ? 'selected' : ''}>90min</option>
+                        <option value="120" ${intervalo == 120 ? 'selected' : ''}>120min</option>
+                    </select>
                 </div>
                 <button type="button" class="btn-remove" onclick="removerSlot(this)">
                     <i class="bi bi-trash3"></i>

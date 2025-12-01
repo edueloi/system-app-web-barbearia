@@ -74,9 +74,11 @@ try {
         user_id INTEGER NOT NULL, 
         dia_semana INTEGER NOT NULL, 
         inicio TEXT NOT NULL, 
-        fim TEXT NOT NULL, 
+        fim TEXT NOT NULL,
+        intervalo_minutos INTEGER DEFAULT 30,
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP 
-    )"); 
+    )");
+
 
     // 5. Usuários (profissionais) 
     $pdo->exec("CREATE TABLE IF NOT EXISTS usuarios (
@@ -170,6 +172,14 @@ try {
     // ========================================================= 
     // MIGRAÇÕES (para bancos antigos já existentes) 
     // ========================================================= 
+
+    // Horários – novo campo de intervalo
+    try { $pdo->exec("ALTER TABLE horarios_atendimento ADD COLUMN intervalo_minutos INTEGER DEFAULT 30"); } catch (Exception $e) {}
+
+    try { 
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_horarios_user_dia 
+                    ON horarios_atendimento(user_id, dia_semana)");
+    } catch (Exception $e) {}
 
     try { $pdo->exec("ALTER TABLE servicos ADD COLUMN calculo_servico_id INTEGER"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE calculo_servico_materiais ADD COLUMN produto_id INTEGER"); } catch (Exception $e) {} 
