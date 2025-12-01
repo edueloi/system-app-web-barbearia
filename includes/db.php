@@ -217,6 +217,7 @@ try {
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN estado TEXT"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN estabelecimento TEXT"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN tipo_estabelecimento TEXT DEFAULT 'Salão de Beleza'"); } catch (Exception $e) {} 
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN instagram TEXT"); } catch (Exception $e) {} 
 
     // ⬇️⬇️ AQUI ESTÃO AS NOVAS COLUNAS PARA RECUPERAÇÃO DE SENHA ⬇️⬇️
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN token_recuperacao TEXT"); } catch (Exception $e) {} 

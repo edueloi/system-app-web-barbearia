@@ -32,7 +32,8 @@ if (!$profissional) {
 $nomeEstabelecimento = !empty($profissional['estabelecimento']) ? $profissional['estabelecimento'] : $profissional['nome']; 
 $nomeProfissional    = $profissional['nome']; 
 $telefone            = !empty($profissional['telefone']) ? $profissional['telefone'] : ''; 
-$biografia           = !empty($profissional['biografia']) ? $profissional['biografia'] : 'Agende seu horário com a gente!'; 
+$instagram           = !empty($profissional['instagram']) ? $profissional['instagram'] : ''; 
+$biografia            = !empty($profissional['biografia']) ? $profissional['biografia'] : 'Agende seu horário com a gente!'; 
 $tipoEstabelecimento = !empty($profissional['tipo_estabelecimento']) ? $profissional['tipo_estabelecimento'] : 'Salão de Beleza';
 
 // --- MAPEAMENTO DE ÍCONES POR TIPO DE ESTABELECIMENTO ---
@@ -1525,6 +1526,17 @@ $servicos = $stmt->fetchAll();
         .btn-welcome.secondary:hover {
             background: var(--brand-light);
         }
+        
+        .btn-welcome.instagram {
+            background: linear-gradient(135deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);
+            color: white;
+            border: none;
+        }
+        
+        .btn-welcome.instagram:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 20px 40px -5px rgba(188,24,136,0.4);
+        }
 
         /* Consultar Agendamento Modal */
         .consulta-modal {
@@ -2040,6 +2052,17 @@ $servicos = $stmt->fetchAll();
                 </span>
                 Consultar Meu Agendamento
             </button>
+            <?php if ($instagram): ?>
+            <a href="https://instagram.com/<?php echo htmlspecialchars(ltrim($instagram, '@')); ?>" 
+               target="_blank" 
+               class="btn-welcome instagram" 
+               style="text-decoration:none;">
+                <span class="btn-welcome-icon">
+                    <i class="bi bi-instagram"></i>
+                </span>
+                Nosso Instagram
+            </a>
+            <?php endif; ?>
         </div>
     </div>
     <?php endif; ?>
@@ -2117,6 +2140,17 @@ $servicos = $stmt->fetchAll();
             <div class="info-pill"> 
                 <i class="bi bi-telephone-fill"></i> <?php echo htmlspecialchars($telefone); ?> 
             </div> 
+        <?php endif; ?> 
+ 
+        <?php if ($instagram): ?> 
+            <a href="https://instagram.com/<?php echo htmlspecialchars(ltrim($instagram, '@')); ?>" 
+               target="_blank" 
+               class="info-pill" 
+               style="text-decoration:none; cursor:pointer; transition:all 0.3s ease;" 
+               onmouseover="this.style.background='linear-gradient(135deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)'; this.style.color='white'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(188,24,136,0.3)';" 
+               onmouseout="this.style.background='rgba(255, 255, 255, 0.8)'; this.style.color=''; this.style.transform=''; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.04)';"> 
+                <i class="bi bi-instagram"></i> @<?php echo htmlspecialchars(ltrim($instagram, '@')); ?> 
+            </a> 
         <?php endif; ?> 
  
         <?php if ($enderecoCompleto): ?> 

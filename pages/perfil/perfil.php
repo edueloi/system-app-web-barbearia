@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome            = $_POST['nome'] ?? '';
     $email           = $_POST['email'] ?? '';
     $telefone        = $_POST['telefone'] ?? '';
+    $instagram       = $_POST['instagram'] ?? '';
     $bio             = $_POST['biografia'] ?? '';
     // Endereço
     $cep      = $_POST['cep'] ?? '';
@@ -44,12 +45,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Atualizar no Banco
     $sql = "UPDATE usuarios SET 
-                estabelecimento=?, tipo_estabelecimento=?, nome=?, email=?, telefone=?, foto=?, biografia=?, 
+                estabelecimento=?, tipo_estabelecimento=?, nome=?, email=?, telefone=?, instagram=?, foto=?, biografia=?, 
                 cep=?, endereco=?, numero=?, bairro=?, cidade=?, estado=? 
             WHERE id=?";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
-        $estabelecimento, $tipoEstabelecimento, $nome, $email, $telefone, $fotoPath, $bio,
+        $estabelecimento, $tipoEstabelecimento, $nome, $email, $telefone, $instagram, $fotoPath, $bio,
         $cep, $endereco, $numero, $bairro, $cidade, $estado, $userId
     ]);
 
@@ -472,6 +473,26 @@ unset($_SESSION['perfil_msg']);
                                 maxlength="15"
                                 oninput="mascaraTelefone(this)"
                             >
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <i class="bi bi-instagram" style="color:#E1306C;"></i> Instagram
+                            </label>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span style="color:#64748b; font-weight:600; font-size:1.1rem;">@</span>
+                                <input
+                                    type="text"
+                                    name="instagram"
+                                    class="form-control"
+                                    value="<?php echo htmlspecialchars(ltrim($user['instagram'] ?? '', '@')); ?>"
+                                    placeholder="seuperfil"
+                                    style="flex:1;"
+                                    oninput="this.value = this.value.replace(/[^a-zA-Z0-9._]/g, '')"
+                                >
+                            </div>
+                            <small style="color:#64748b; font-size:0.8rem; display:block; margin-top:4px;">
+                                <i class="bi bi-info-circle"></i> Digite apenas o nome do perfil (sem @)
+                            </small>
                         </div>
                         <div class="form-group full-width">
                             <label>Biografia / Sobre Mim</label>
