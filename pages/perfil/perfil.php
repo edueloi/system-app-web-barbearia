@@ -2,11 +2,15 @@
 require_once __DIR__ . '/../../includes/config.php';
 include '../../includes/db.php';
 
-// ID Fixo (Simulação)
+// Verifica se está logado
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-if (!isset($_SESSION['user_id'])) $_SESSION['user_id'] = 1;
+$isProdTemp = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+if (!isset($_SESSION['user_id'])) {
+    header('Location: ' . ($isProdTemp ? '/login' : '../../login.php'));
+    exit;
+}
 $userId = $_SESSION['user_id'];
 
 // --- 1. SALVAR DADOS (POST) ---

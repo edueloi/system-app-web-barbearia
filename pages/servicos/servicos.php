@@ -6,11 +6,15 @@ include '../../includes/db.php';
 // Simulação de User ID
 
 if (session_status() === PHP_SESSION_NONE) session_start();
-if (!isset($_SESSION['user_id'])) $_SESSION['user_id'] = 1;
-$userId = $_SESSION['user_id'];
 
 // 🔹 Descobre se está em produção (salao.develoi.com) ou local
 $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+
+if (!isset($_SESSION['user_id'])) {
+    header('Location: ' . ($isProd ? '/login' : '../../login.php'));
+    exit;
+}
+$userId = $_SESSION['user_id'];
 
 // 🔹 URL para voltar para a tela de serviços
 // 👉 AJUSTE essa URL local conforme seu path no XAMPP/WAMP
