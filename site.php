@@ -198,6 +198,13 @@
         }
         .mobile-menu-overlay.active { opacity: 1; visibility: visible; }
         
+        /* Quando o menu mobile estiver aberto, some com barra fixa e bolha do Whats */
+        .mobile-menu-overlay.active ~ .fixed-bottom,
+        .mobile-menu-overlay.active ~ .chat-trigger,
+        .mobile-menu-overlay.active ~ .chat-window {
+            display: none !important;
+        }
+
         .mobile-nav-link {
             font-size: 1.5rem; font-weight: 700; color: var(--dark);
             margin: 15px 0; position: relative;
@@ -266,6 +273,15 @@
         }
         .mockup-wrapper:hover .phone-frame { transform: rotateY(0) rotateX(0); }
 
+        /* Melhor ajuste do mock do celular em telas bem pequenas */
+        @media (max-width: 575px) {
+            .phone-frame {
+                width: 100%;
+                max-width: 290px;
+                height: 560px;
+            }
+        }
+
         @keyframes float-phone {
             0%, 100% { transform: translateY(0) rotateY(-5deg); }
             50% { transform: translateY(-15px) rotateY(-5deg); }
@@ -317,9 +333,21 @@
         @keyframes pop-in { to { opacity: 1; transform: scale(1) translateX(0); } }
         @keyframes slide-up { to { opacity: 1; transform: translateY(0); } from { opacity: 0; transform: translateY(20px); } }
 
+
         @media(max-width: 991px) {
-            .whatsapp-popup { right: 50%; transform: translateX(50%); top: -25px; width: 240px; }
-            .phone-frame { margin-top: 40px; }
+            .whatsapp-popup {
+                left: 50%;
+                right: auto;
+                top: -82px;
+                width: 240px;
+                transform: translateX(-50%);
+                animation: none;         /* tira a animação pra não buggar o transform */
+                opacity: 1;
+            }
+
+            .phone-frame {
+                margin-top: 40px;
+            }
         }
 
         /* --- SEÇÃO LUCRO REAL (Recibo) --- */
@@ -410,7 +438,7 @@
             <div class="d-none d-lg-flex align-items-center gap-4">
                 <a href="#lucro" class="fw-medium text-secondary hover-primary">Lucro Real</a>
                 <a href="#recursos" class="fw-medium text-secondary hover-primary">Recursos</a>
-                <a href="#" class="btn btn-dark rounded-pill px-4">Área do Cliente</a>
+                <a href="https://salao.develoi.com/" target="_blank" rel="noopener" class="btn btn-dark rounded-pill px-4">Área do Cliente</a>
             </div>
 
             <div class="menu-toggle d-lg-none" onclick="toggleMenu()">
@@ -441,7 +469,7 @@
 
                         <div class="d-flex flex-column flex-sm-row gap-3">
                             <a href="#" class="btn btn-main d-flex align-items-center justify-content-center gap-2">
-                                Testar Grátis Agora <i class="fa-solid fa-arrow-right"></i>
+                                Solicitar Teste (7 dias) <i class="fa-solid fa-arrow-right"></i>
                             </a>
                             <a href="#" class="btn btn-secondary-soft d-flex align-items-center justify-content-center gap-2">
                                 <i class="fa-brands fa-whatsapp fs-5 text-success"></i> Ver Demo
@@ -772,12 +800,12 @@
                         <div class="accordion-item" data-aos="fade-up" data-aos-delay="200">
                             <h2 class="accordion-header">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-                                    Como funciona o teste grátis?
+                                    Como funciona o teste de 7 dias?
                                 </button>
                             </h2>
                             <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                                 <div class="accordion-body">
-                                    Você cria sua conta em 1 minuto e tem 7 dias para usar tudo. Não pedimos cartão de crédito. Se gostar, você assina depois.
+                                    Você solicita o teste, recebe acesso ao sistema e tem 7 dias para usar tudo. Não pedimos cartão de crédito. Se gostar, você assina depois. O sistema é pago após o período de teste.
                                 </div>
                             </div>
                         </div>
@@ -844,11 +872,12 @@
         </div>
     </footer>
 
+
     <div class="fixed-bottom p-3 d-lg-none" style="z-index: 999;">
         <div class="bg-dark text-white rounded-pill p-2 shadow-lg d-flex justify-content-between align-items-center ps-4 pe-2 border border-secondary border-opacity-25" style="backdrop-filter: blur(10px); background: rgba(15, 23, 42, 0.95) !important;">
             <div class="d-flex flex-column" style="line-height: 1.1;">
-                <span class="fw-bold text-success" style="font-size: 0.9rem;">R$ 19,90 <small class="text-white">/mês</small></span>
-                <span class="small text-white-50" style="font-size: 0.65rem;">Plano Completo</span>
+                <span class="fw-bold text-success" style="font-size: 0.9rem;">R$ 29,90 <small class="text-white">/mês</small></span>
+                <span class="small text-white-50" style="font-size: 0.65rem;">Promo 1º ano • depois R$ 49,90/mês</span>
             </div>
             <a href="#" class="btn btn-primary rounded-pill fw-bold px-4 btn-glow">Quero <i class="fa-solid fa-arrow-right ms-2"></i></a>
         </div>
@@ -863,15 +892,30 @@
 
     <style>
         .chat-trigger {
-            position: fixed; bottom: 20px; right: 20px;
-            width: 60px; height: 60px;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
             background: linear-gradient(135deg, #25D366, #128C7E);
             border-radius: 50%;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            cursor: pointer; z-index: 9999;
-            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             transition: transform 0.3s;
             animation: pulse-green 2s infinite;
+        }
+
+        /* No mobile, sobe um pouco pra não colar demais na borda/barras */
+        @media (max-width: 991px) {
+            .chat-trigger {
+                bottom: 90px;
+                right: 20px;
+            }
+        }
         }
         .chat-trigger:hover { transform: scale(1.1); }
         .chat-trigger i { color: white; font-size: 30px; }
@@ -998,11 +1042,11 @@
             if (action === 'precos') {
                 botType("Nós simplificamos tudo para você! 🚀");
                 setTimeout(() => {
-                    botType("Acesso completo a todas as funções por apenas **R$ 19,90/mês**. Sem taxas de adesão, sem fidelidade e com suporte humano sempre que precisar.");
+                    botType("Acesso completo a todas as funções por **R$ 29,90/mês no primeiro ano**. Depois, o valor padrão é **R$ 49,90/mês**. Sem taxa de adesão e sem fidelidade.");
                     setTimeout(() => {
-                        botType("Quer garantir esse valor promocional agora?");
+                        botType("Quer garantir esse valor promocional de R$ 29,90 agora?");
                         showOptions([
-                            { text: "Sim, quero por R$ 19,90/mês", action: 'zap_plano_19' },
+                            { text: "Sim, quero por R$ 29,90/mês", action: 'zap_plano_19' },
                             { text: "Quais funções estão inclusas?", action: 'como_funciona' },
                             { text: "Tenho outra dúvida", action: 'faq' },
                             { text: "Voltar ao menu", action: 'restart' }
@@ -1012,22 +1056,24 @@
             }
             else if (action === 'como_funciona') {
                 botType("O Develoi é um sistema online para salões, barbearias e clínicas de beleza. Você pode controlar agendamentos, estoque, caixa, comissões, relatórios e muito mais, tudo pelo celular ou computador.");
-                                botType("O Develoi é um sistema online para salões, barbearias e clínicas de beleza. Você pode controlar agendamentos, estoque, caixa, comissões, relatórios e muito mais, tudo pelo celular ou computador, pagando apenas **R$ 19,90/mês**.");
                 setTimeout(() => {
-                    botType("Tudo é muito simples de usar e você recebe treinamento gratuito. Quer ver um vídeo rápido ou falar com nosso time?");
-                    showOptions([
-                        { text: "Quero ver vídeo", action: 'zap_video' },
-                        { text: "Falar com humano", action: 'zap_humano' },
-                        { text: "Voltar ao menu", action: 'restart' }
-                    ]);
-                }, 1500);
+                    botType("Tudo isso por **R$ 29,90/mês no primeiro ano** (depois R$ 49,90/mês), com suporte humano sempre que precisar. Você pode solicitar um teste de 7 dias para experimentar o sistema sem compromisso.");
+                    setTimeout(() => {
+                        botType("Tudo é muito simples de usar e você recebe treinamento gratuito. Quer ver um vídeo rápido ou falar com nosso time?");
+                        showOptions([
+                            { text: "Quero ver vídeo", action: 'zap_video' },
+                            { text: "Falar com humano", action: 'zap_humano' },
+                            { text: "Voltar ao menu", action: 'restart' }
+                        ]);
+                    }, 1500);
+                }, 900);
             }
             else if (action === 'estoque') {
                 botType("Nosso sistema desconta automaticamente a quantidade exata de produto (gramas ou ml) a cada serviço realizado. Assim, você sabe exatamente quando comprar e nunca mais perde dinheiro com desperdício!");
                 setTimeout(() => {
-                    botType("Quer garantir o preço promocional de R$ 19,90 e ter esse controle no seu salão?");
+                    botType("Quer garantir o preço promocional de **R$ 29,90/mês no primeiro ano** (depois R$ 49,90/mês) e ter esse controle no seu salão?");
                     showOptions([
-                        { text: "Sim, quero assinar por R$ 19,90/mês", action: 'zap_plano_19' },
+                        { text: "Sim, quero assinar por R$ 29,90/mês", action: 'zap_plano_19' },
                         { text: "Quero ver vídeo", action: 'zap_video' },
                         { text: "Voltar ao menu", action: 'restart' }
                     ]);
@@ -1078,10 +1124,10 @@
             else if (action.startsWith('zap_')) {
                 botType("Ótima escolha! 👏 Vou abrir seu WhatsApp para finalizarmos seu cadastro.");
                 let zapMsg = "";
-                if(action === 'zap_teste') zapMsg = "Olá! Vi no site e quero testar o sistema.";
-                if(action === 'zap_humano') zapMsg = "Olá! Preciso tirar uma dúvida com o suporte.";
-                if(action === 'zap_plano_19') zapMsg = "Olá! Quero aproveitar o plano completo por R$ 19,90 mensais.";
-                                if(action === 'zap_plano_19') zapMsg = "Olá! Quero aproveitar o plano completo por R$ 19,90/mês.";
+                if (action === 'zap_teste')  zapMsg = "Olá! Vi no site e quero testar o sistema.";
+                if (action === 'zap_humano') zapMsg = "Olá! Preciso tirar uma dúvida com o suporte.";
+                if (action === 'zap_plano_19') zapMsg = "Olá! Quero aproveitar o plano completo promocional de R$ 29,90/mês no primeiro ano (depois R$ 49,90/mês).";
+                if (action === 'zap_video') zapMsg = "Olá! Quero assistir ao vídeo de apresentação do sistema Develoi.";
                 setTimeout(() => {
                     let url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(zapMsg)}`;
                     window.open(url, '_blank');
