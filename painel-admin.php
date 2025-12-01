@@ -1,6 +1,29 @@
 <?php
 // painel-admin.php
-session_start();
+
+// --- CONTROLE DE SESSÃO E INATIVIDADE ---
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// --- CONFIGURAÇÃO: AUTO LOGOUT POR INATIVIDADE ---
+require_once __DIR__ . '/includes/config.php';
+$AUTO_LOGOUT = defined('AUTO_LOGOUT') ? AUTO_LOGOUT : true; // padrão: ativo
+$INATIVIDADE_MINUTOS = defined('AUTO_LOGOUT_MINUTES') ? AUTO_LOGOUT_MINUTES : 30;
+
+if ($AUTO_LOGOUT) {
+    $inatividade = $INATIVIDADE_MINUTOS * 60;
+    if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > $inatividade)) {
+        // Sessão expirada por inatividade
+        session_unset();
+        session_destroy();
+        session_start();
+        $_SESSION['login_erro'] = 'Sessão expirada por inatividade.';
+        header('Location: /karen_site/controle-salao/login.php');
+        exit;
+    }
+    $_SESSION['LAST_ACTIVITY'] = time();
+}
 
 // =========================================================
 // 1. CONFIGURAÇÕES E LÓGICA DE LOGIN
@@ -21,7 +44,8 @@ $painelAdminUrl = $isProd ? '/painel-admin' : $_SERVER['PHP_SELF'];
 
 // Logout
 if (isset($_GET['logout'])) {
-    unset($_SESSION['admin_logged_in']);
+    session_unset();
+    session_destroy();
     header("Location: {$painelAdminUrl}");
     exit;
 }
