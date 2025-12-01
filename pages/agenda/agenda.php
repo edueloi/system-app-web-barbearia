@@ -29,6 +29,17 @@ $agendaUrl = $isProd
     ? '/agenda' // em produção usa rota amigável
     : '/karen_site/controle-salao/pages/agenda/agenda.php';
 
+// Buscar estabelecimento e gerar link de agendamento
+$stmtUser = $pdo->prepare("SELECT estabelecimento FROM usuarios WHERE id = ?");
+$stmtUser->execute([$userId]);
+$userInfo = $stmtUser->fetch();
+$nomeEstabelecimento = $userInfo['estabelecimento'] ?? 'Meu Salão';
+
+// Link de agendamento online
+$linkAgendamento = $isProd 
+    ? "https://salao.develoi.com/agendar.php?id={$userId}"
+    : "http://localhost/karen_site/controle-salao/agendar.php?id={$userId}";
+
 // Função Auxiliar de Redirecionamento
 function redirect($data, $view) {
     global $agendaUrl;
@@ -212,10 +223,23 @@ include '../../includes/menu.php';
         position: sticky;
         top: 60px;
         z-index: 50;
-        background: rgba(248, 250, 252, 0.96);
-        backdrop-filter: blur(12px);
-        padding: 8px 16px 12px 16px;
+        background: rgba(248, 250, 252, 0.98);
+        backdrop-filter: blur(16px);
+        padding: 12px 16px 14px 16px;
         border-bottom: 1px solid #e2e8f0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+    
+    .agenda-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        margin: 0 0 12px 0;
+        color: var(--text-main);
+        letter-spacing: -0.02em;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
 
     /* Botões de Visualização (Dia/Semana/Mês) */
@@ -295,25 +319,131 @@ include '../../includes/menu.php';
 
     /* Card Faturamento */
     .finance-card {
-        margin-top: 4px;
-        background: radial-gradient(circle at top left,#4f46e5,#6366f1);
+        margin-top: 8px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         color: white;
-        padding: 10px 14px;
-        border-radius: 16px;
+        padding: 12px 16px;
+        border-radius: 18px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        box-shadow: 0 10px 22px rgba(79,70,229,0.45);
+        box-shadow: 0 8px 20px rgba(16,185,129,0.35);
     }
     .fin-label {
-        font-size: 0.7rem;
+        font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.06em;
-        opacity: 0.9;
+        opacity: 0.95;
+        font-weight: 700;
     }
     .fin-value {
-        font-size: 1rem;
+        font-size: 1.1rem;
         font-weight: 800;
+    }
+    
+    /* Card de Link de Agendamento */
+    .link-card {
+        margin-top: 10px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 14px 16px;
+        border-radius: 18px;
+        box-shadow: 0 8px 20px rgba(102,126,234,0.35);
+    }
+    .link-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+    .link-card-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .link-card-title i {
+        font-size: 1.2rem;
+    }
+    .link-input-group {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    .link-input {
+        flex: 1;
+        background: rgba(255,255,255,0.2);
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 12px;
+        padding: 8px 12px;
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .link-input:focus {
+        outline: none;
+        background: rgba(255,255,255,0.3);
+        border-color: rgba(255,255,255,0.5);
+    }
+    .btn-copy-link,
+    .btn-share-link {
+        background: rgba(255,255,255,0.95);
+        border: none;
+        padding: 8px 14px;
+        border-radius: 12px;
+        color: #667eea;
+        font-weight: 700;
+        font-size: 0.75rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        white-space: nowrap;
+    }
+    .btn-copy-link:hover,
+    .btn-share-link:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .btn-copy-link:active,
+    .btn-share-link:active {
+        transform: scale(0.95);
+    }
+    .btn-copy-link i,
+    .btn-share-link i {
+        font-size: 0.9rem;
+    }
+    .link-hint {
+        font-size: 0.7rem;
+        opacity: 0.9;
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .link-hint i {
+        font-size: 0.85rem;
+    }
+    
+    @media (max-width: 480px) {
+        .link-input-group {
+            flex-direction: column;
+        }
+        .link-input {
+            width: 100%;
+            text-align: center;
+        }
+        .btn-copy-link,
+        .btn-share-link {
+            width: 100%;
+            justify-content: center;
+        }
     }
 
     /* --- CONTEÚDO E CARDS --- */
@@ -609,6 +739,8 @@ include '../../includes/menu.php';
 </style>
 
 <div class="app-header">
+    <h1 class="agenda-title">📅 Minha Agenda</h1>
+    
     <div class="view-control">
         <a href="<?php echo $agendaUrl; ?>?data=<?php echo $dataExibida; ?>&view=day" class="view-opt <?php echo $viewType==='day'?'active':''; ?>">Dia</a>
         <a href="<?php echo $agendaUrl; ?>?data=<?php echo $dataExibida; ?>&view=week" class="view-opt <?php echo $viewType==='week'?'active':''; ?>">Semana</a>
@@ -627,8 +759,32 @@ include '../../includes/menu.php';
     </div>
 
     <div class="finance-card">
-        <span class="fin-label">Faturamento</span>
+        <span class="fin-label">💰 Faturamento</span>
         <span class="fin-value">R$ <?php echo number_format($faturamento, 2, ',', '.'); ?></span>
+    </div>
+    
+    <div class="link-card">
+        <div class="link-card-header">
+            <div class="link-card-title">
+                <i class="bi bi-link-45deg"></i>
+                Link de Agendamento Online
+            </div>
+        </div>
+        <div class="link-input-group">
+            <input type="text" class="link-input" id="linkAgendamento" value="<?php echo htmlspecialchars($linkAgendamento); ?>" readonly>
+            <button class="btn-copy-link" onclick="copiarLink()">
+                <i class="bi bi-clipboard-check"></i>
+                Copiar
+            </button>
+            <button class="btn-share-link" onclick="compartilharLink()">
+                <i class="bi bi-share-fill"></i>
+                Compartilhar
+            </button>
+        </div>
+        <div class="link-hint">
+            <i class="bi bi-info-circle-fill"></i>
+            Compartilhe este link para clientes agendarem online
+        </div>
     </div>
 </div>
 
@@ -890,5 +1046,46 @@ function renderCard($ag, $clientes) {
         }
 
         document.getElementById('actionSheet').classList.add('active');
+    }
+
+    // --- FUNÇÕES DO LINK DE AGENDAMENTO ---
+    function copiarLink() {
+        const linkInput = document.getElementById('linkAgendamento');
+        linkInput.select();
+        linkInput.setSelectionRange(0, 99999); // Para mobile
+        
+        navigator.clipboard.writeText(linkInput.value).then(() => {
+            const btn = event.target.closest('.btn-copy-link');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Copiado!';
+            btn.style.background = 'rgba(16,185,129,0.95)';
+            btn.style.color = 'white';
+            
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.style.background = 'rgba(255,255,255,0.95)';
+                btn.style.color = '#667eea';
+            }, 2000);
+        }).catch(err => {
+            alert('Erro ao copiar. Tente selecionar e copiar manualmente.');
+        });
+    }
+
+    function compartilharLink() {
+        const link = document.getElementById('linkAgendamento').value;
+        const texto = `Agende seu horário online no <?php echo htmlspecialchars($nomeEstabelecimento); ?>! Acesse: ${link}`;
+        
+        if (navigator.share) {
+            // Usa API nativa de compartilhamento (mobile)
+            navigator.share({
+                title: 'Link de Agendamento',
+                text: texto,
+                url: link
+            }).catch(err => console.log('Erro ao compartilhar:', err));
+        } else {
+            // Fallback: abre WhatsApp
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+            window.open(whatsappUrl, '_blank');
+        }
     }
 </script>
