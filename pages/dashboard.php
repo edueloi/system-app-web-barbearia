@@ -163,6 +163,44 @@ $stmtAniv->execute([
 ]);
 $aniversariantes = $stmtAniv->fetchAll();
 
+// --- 7. Agendamentos Próximos (30 minutos antes) ---
+$horaAtual = date('H:i:s');
+$horaLimite = date('H:i:s', strtotime('+30 minutes'));
+
+$stmtProximos = $pdo->prepare("
+    SELECT id, cliente_nome, servico, horario, valor, status
+      FROM agendamentos
+     WHERE user_id = :userId
+       AND data_agendamento = :hoje
+       AND horario BETWEEN :horaAtual AND :horaLimite
+       AND status != 'Cancelado'
+  ORDER BY horario ASC
+");
+$stmtProximos->execute([
+    ':userId' => $userId,
+    ':hoje' => $hoje,
+    ':horaAtual' => $horaAtual,
+    ':horaLimite' => $horaLimite
+]);
+$agendamentosProximos = $stmtProximos->fetchAll();
+
+// --- 8. Confirmações Pendentes ---
+$stmtPendentes = $pdo->prepare("
+    SELECT a.id, a.cliente_nome, a.servico, a.data_agendamento, a.horario, a.valor, c.telefone
+      FROM agendamentos a
+      LEFT JOIN clientes c ON a.cliente_nome = c.nome AND a.user_id = c.user_id
+     WHERE a.user_id = :userId
+       AND a.status = 'Pendente'
+       AND a.data_agendamento >= :hoje
+  ORDER BY a.data_agendamento ASC, a.horario ASC
+  LIMIT 10
+");
+$stmtPendentes->execute([
+    ':userId' => $userId,
+    ':hoje' => $hoje
+]);
+$agendamentosPendentes = $stmtPendentes->fetchAll();
+
 ?>
 <style>
     /* ============================
@@ -1200,6 +1238,291 @@ $aniversariantes = $stmtAniv->fetchAll();
         letter-spacing: -0.01em;
     }
 
+    /* ============================
+       MODAL DE AGENDAMENTOS PRÓXIMOS
+       ============================ */
+    .proximos-modal {
+        display: none;
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 9999;
+        animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .proximos-modal.active {
+        display: block;
+    }
+
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    .proximos-box {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        padding: 20px 24px;
+        border-radius: var(--dash-radius-lg);
+        box-shadow: 0 20px 40px rgba(239,68,68,0.4);
+        min-width: 340px;
+        max-width: 400px;
+        position: relative;
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { box-shadow: 0 20px 40px rgba(239,68,68,0.4); }
+        50% { box-shadow: 0 25px 50px rgba(239,68,68,0.6); }
+    }
+
+    .proximos-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid rgba(255,255,255,0.2);
+    }
+
+    .proximos-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .proximos-title i {
+        font-size: 1.5rem;
+        animation: ring 1.5s ease-in-out infinite;
+    }
+
+    @keyframes ring {
+        0%, 100% { transform: rotate(0deg); }
+        10%, 30% { transform: rotate(-15deg); }
+        20% { transform: rotate(15deg); }
+    }
+
+    .proximos-close {
+        background: rgba(255,255,255,0.2);
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        cursor: pointer;
+        color: white;
+        font-size: 1.125rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    .proximos-close:hover {
+        background: rgba(255,255,255,0.3);
+        transform: scale(1.1);
+    }
+
+    .proximos-item {
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(10px);
+        padding: 12px;
+        border-radius: var(--dash-radius-sm);
+        margin-bottom: 10px;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .proximos-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .proximos-cliente {
+        font-weight: 700;
+        font-size: 0.9375rem;
+        margin-bottom: 4px;
+    }
+
+    .proximos-info {
+        font-size: 0.8125rem;
+        opacity: 0.95;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .proximos-info i {
+        font-size: 0.875rem;
+    }
+
+    @media (max-width: 640px) {
+        .proximos-modal {
+            bottom: 12px;
+            right: 12px;
+            left: 12px;
+        }
+        .proximos-box {
+            min-width: auto;
+            max-width: none;
+        }
+    }
+
+    /* ============================
+       CARD DE CONFIRMAÇÕES PENDENTES
+       ============================ */
+    .pendentes-section {
+        background: #fff;
+        border-radius: var(--dash-radius-lg);
+        padding: 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--dash-border);
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .pendentes-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+        border-radius: var(--dash-radius-lg) var(--dash-radius-lg) 0 0;
+    }
+
+    .pendentes-section:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .pendentes-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+        border-radius: 50%;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-left: 8px;
+        box-shadow: 0 4px 12px rgba(245,158,11,0.3);
+    }
+
+    .pendente-item {
+        background: #fef3c7;
+        padding: 16px;
+        border-radius: var(--dash-radius-md);
+        margin-bottom: 12px;
+        border: 2px solid #fde68a;
+        transition: all 0.2s ease;
+    }
+
+    .pendente-item:hover {
+        transform: translateX(4px);
+        box-shadow: 0 4px 12px rgba(245,158,11,0.2);
+    }
+
+    .pendente-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .pendente-cliente {
+        font-weight: 700;
+        font-size: 0.9375rem;
+        color: #92400e;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .pendente-cliente i {
+        font-size: 1.125rem;
+    }
+
+    .pendente-detalhes {
+        font-size: 0.8125rem;
+        color: #78350f;
+        margin-bottom: 12px;
+        line-height: 1.6;
+    }
+
+    .pendente-detalhes strong {
+        font-weight: 600;
+    }
+
+    .pendente-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .btn-confirmar {
+        flex: 1;
+        min-width: 120px;
+        padding: 10px 16px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border: none;
+        border-radius: 999px;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+        text-decoration: none;
+    }
+
+    .btn-confirmar:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(16,185,129,0.4);
+    }
+
+    .btn-confirmar i {
+        font-size: 1rem;
+    }
+
+    .btn-whats-pendente {
+        padding: 10px 16px;
+        background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+        color: white;
+        border: none;
+        border-radius: 999px;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        box-shadow: 0 4px 12px rgba(37,211,102,0.3);
+        text-decoration: none;
+    }
+
+    .btn-whats-pendente:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(37,211,102,0.4);
+    }
+
+    .btn-whats-pendente i {
+        font-size: 1.125rem;
+    }
+
     .btn-send-birthday:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 16px rgba(245,158,11,0.4);
@@ -1611,11 +1934,93 @@ $aniversariantes = $stmtAniv->fetchAll();
 
             </div>
 
+            <!-- Confirmações Pendentes -->
+            <?php if (!empty($agendamentosPendentes)): ?>
+            <div class="pendentes-section">
+                <div class="section-header">
+                    <div>
+                        <h3 class="section-title">
+                            <i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b;"></i>
+                            Confirmações Pendentes
+                            <span class="pendentes-count"><?php echo count($agendamentosPendentes); ?></span>
+                        </h3>
+                        <p class="section-sub">Agendamentos aguardando sua confirmação</p>
+                    </div>
+                </div>
+
+                <?php foreach ($agendamentosPendentes as $pend): ?>
+                    <div class="pendente-item">
+                        <div class="pendente-cliente">
+                            <i class="bi bi-person-fill"></i>
+                            <?php echo htmlspecialchars($pend['cliente_nome']); ?>
+                        </div>
+                        <div class="pendente-detalhes">
+                            <strong>Serviço:</strong> <?php echo htmlspecialchars($pend['servico']); ?><br>
+                            <strong>Data:</strong> <?php echo date('d/m/Y', strtotime($pend['data_agendamento'])); ?> às <?php echo date('H:i', strtotime($pend['horario'])); ?><br>
+                            <strong>Valor:</strong> R$ <?php echo number_format($pend['valor'], 2, ',', '.'); ?>
+                        </div>
+                        <div class="pendente-actions">
+                            <button class="btn-confirmar" onclick="confirmarAgendamento(<?php echo $pend['id']; ?>)">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Confirmar Apenas
+                            </button>
+                            <?php if (!empty($pend['telefone'])): ?>
+                                <a href="https://wa.me/55<?php echo preg_replace('/[^0-9]/', '', $pend['telefone']); ?>?text=<?php 
+                                    $msg = "Olá, {$pend['cliente_nome']}! 👋\n\n";
+                                    $msg .= "Seu agendamento no {$nomeEstabelecimento} foi confirmado! ✅\n\n";
+                                    $msg .= "📅 Data: " . date('d/m/Y', strtotime($pend['data_agendamento'])) . "\n";
+                                    $msg .= "🕐 Horário: " . date('H:i', strtotime($pend['horario'])) . "\n";
+                                    $msg .= "✂️ Serviço: {$pend['servico']}\n";
+                                    $msg .= "💰 Valor: R$ " . number_format($pend['valor'], 2, ',', '.') . "\n\n";
+                                    $msg .= "Te esperamos! 💜";
+                                    echo urlencode($msg);
+                                ?>" 
+                                   class="btn-whats-pendente" 
+                                   target="_blank"
+                                   onclick="confirmarAgendamento(<?php echo $pend['id']; ?>, false)">
+                                    <i class="bi bi-whatsapp"></i>
+                                    Confirmar + WhatsApp
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+
         </div>
 
     </div><!-- .dashboard-panels -->
 
 </main>
+
+<!-- Modal de Agendamentos Próximos (30 minutos antes) -->
+<?php if (!empty($agendamentosProximos)): ?>
+<div class="proximos-modal active" id="proximosModal">
+    <div class="proximos-box">
+        <div class="proximos-header">
+            <h3 class="proximos-title">
+                <i class="bi bi-bell-fill"></i>
+                Agendamento Próximo!
+            </h3>
+            <button class="proximos-close" onclick="fecharProximos()">&times;</button>
+        </div>
+        <?php foreach ($agendamentosProximos as $prox): ?>
+            <div class="proximos-item">
+                <div class="proximos-cliente">
+                    <?php echo htmlspecialchars($prox['cliente_nome']); ?>
+                </div>
+                <div class="proximos-info">
+                    <span><i class="bi bi-clock-fill"></i> <?php echo date('H:i', strtotime($prox['horario'])); ?></span>
+                    <span><i class="bi bi-scissors"></i> <?php echo htmlspecialchars($prox['servico']); ?></span>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php endif; ?>
+
+
 
 <!-- Modal de Mensagem de Aniversário -->
 <div class="message-modal" id="messageModal">
@@ -1731,8 +2136,79 @@ $aniversariantes = $stmtAniv->fetchAll();
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             fecharMensagem();
+            fecharProximos();
         }
     });
+
+    // ============================
+    // MODAL DE AGENDAMENTOS PRÓXIMOS
+    // ============================
+    function fecharProximos() {
+        const modal = document.getElementById('proximosModal');
+        if (modal) {
+            modal.classList.remove('active');
+            // Salvar no localStorage para não mostrar novamente nesta sessão
+            localStorage.setItem('proximosModalFechado', Date.now());
+        }
+    }
+
+    // Verifica se deve mostrar o modal (não mostrar se foi fechado há menos de 1 hora)
+    window.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('proximosModal');
+        if (modal) {
+            const fechadoEm = localStorage.getItem('proximosModalFechado');
+            if (fechadoEm) {
+                const umaHora = 60 * 60 * 1000; // 1 hora em milissegundos
+                if (Date.now() - fechadoEm < umaHora) {
+                    modal.classList.remove('active');
+                }
+            }
+        }
+    });
+
+    // ============================
+    // CONFIRMAÇÃO DE AGENDAMENTOS
+    // ============================
+    function confirmarAgendamento(agendamentoId, recarregar = true) {
+        // Envia requisição AJAX para confirmar
+        fetch('<?php echo $isProd ? '/api/confirmar_agendamento.php' : '/karen_site/controle-salao/api/confirmar_agendamento.php'; ?>', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'id=' + agendamentoId
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Feedback visual
+                const item = event.target.closest('.pendente-item');
+                if (item) {
+                    item.style.background = 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)';
+                    item.style.borderColor = '#6ee7b7';
+                    
+                    // Remove após animação
+                    setTimeout(() => {
+                        item.style.transition = 'all 0.3s ease';
+                        item.style.opacity = '0';
+                        item.style.transform = 'translateX(-100%)';
+                        
+                        setTimeout(() => {
+                            if (recarregar) {
+                                location.reload();
+                            }
+                        }, 300);
+                    }, 1000);
+                }
+            } else {
+                alert('Erro ao confirmar agendamento. Tente novamente.');
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao confirmar agendamento. Verifique sua conexão.');
+        });
+    }
 </script>
 
 <?php include '../includes/footer.php'; ?>
