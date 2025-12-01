@@ -645,14 +645,22 @@ function isActive($pageName)
         animation: notifFadeOut 0.3s forwards;
     }
 
-    @media (max-width: 480px) {
+    /* Ajuste da notificação no mobile / telas menores */
+    @media (max-width: 768px) {
         .notif-dropdown {
-            width: 100vw;
-            max-width: 100vw;
-            left: 0;
-            right: 0;
-            border-radius: 16px 16px 0 0;
-            top: 60px;
+            position: fixed !important;     /* força ficar preso na tela */
+            top: 64px !important;           /* logo abaixo da navbar */
+            left: 50% !important;           /* centraliza horizontalmente */
+            right: auto !important;         /* remove o right */
+            transform: translateX(-50%);    /* centraliza perfeitamente */
+            width: calc(100vw - 16px);      /* largura total menos margens */
+            max-width: 420px;               /* não fica muito largo em tablets */
+            border-radius: 16px;
+            z-index: 2000;
+        }
+
+        .notif-dropdown.active {
+            animation: slideDownMobile 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .notif-card {
@@ -671,6 +679,17 @@ function isActive($pageName)
 
         .notif-time {
             font-size: 0.75rem;
+        }
+    }
+
+    @keyframes slideDownMobile {
+        from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
     }
 
