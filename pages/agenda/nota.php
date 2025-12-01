@@ -494,6 +494,10 @@ $enderecoProfissional = implode(' • ', array_filter($enderecoPartes));
             
         <?php else: ?>
             <!-- TELA DE ESCOLHA -->
+            <a href="<?php echo $isProd ? '/agenda' : '/karen_site/controle-salao/pages/agenda/agenda.php'; ?>" class="btn-back">
+                <i class="bi bi-arrow-left"></i> Voltar para Agenda
+            </a>
+            
             <div class="header">
                 <h1>📄 Emitir Nota de Serviço</h1>
                 <p>Escolha o tipo de nota que deseja gerar</p>

@@ -243,10 +243,10 @@ include '../../includes/menu.php';
         -moz-osx-font-smoothing: grayscale;
     }
 
-    /* --- HEADER FLUTUANTE MODERNIZADO --- */
+    /* --- HEADER NORMAL (NÃO FIXO) --- */
     .app-header {
-        position: sticky;
-        top: 60px;
+        position: relative !important; /* Força header não fixo */
+        top: auto !important;
         z-index: 50;
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(20px);
@@ -259,7 +259,6 @@ include '../../includes/menu.php';
     @media (max-width: 768px) {
         .app-header {
             position: relative;
-            top: 0;
             padding: 14px 16px 16px;
         }
         
@@ -416,7 +415,7 @@ include '../../includes/menu.php';
         justify-content: space-between;
         align-items: center;
         box-shadow: 0 8px 24px rgba(16,185,129,0.4);
-        position: relative;
+        position: relative !important; /* Nunca fixo */
         overflow: hidden;
     }
     .finance-card::before {
@@ -451,7 +450,7 @@ include '../../includes/menu.php';
         padding: 18px 20px;
         border-radius: var(--radius-lg);
         box-shadow: 0 8px 24px rgba(99,102,241,0.4);
-        position: relative;
+        position: relative !important; /* Nunca fixo */
         overflow: hidden;
     }
     .link-card::before {
