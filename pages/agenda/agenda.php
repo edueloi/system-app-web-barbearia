@@ -164,6 +164,9 @@ foreach ($raw as &$r) {
 }
 unset($r); // Limpa referência
 
+// Array para contar agendamentos por dia (para o calendário mensal)
+$agendamentosPorDia = [];
+
 // Organiza array final baseado na View
 if ($viewType === 'day') {
     $agendamentos = $raw;
@@ -180,8 +183,14 @@ if ($viewType === 'day') {
     }
 
 } elseif ($viewType === 'month') {
+    // Conta agendamentos por dia para mostrar no badge
     foreach ($raw as $ag) {
-        $diasComAgendamento[$ag['data_agendamento']] = true;
+        $data = $ag['data_agendamento'];
+        if (!isset($agendamentosPorDia[$data])) {
+            $agendamentosPorDia[$data] = 0;
+        }
+        $agendamentosPorDia[$data]++;
+        $diasComAgendamento[$data] = true;
         if(($ag['status']??'')!=='Cancelado') $faturamento += $ag['valor'];
     }
 }
@@ -199,103 +208,177 @@ include '../../includes/header.php';
 include '../../includes/menu.php';
 ?>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
 <style>
-    /* --- ESTILOS GERAIS --- */
+    /* --- DESIGN MODERNO APP AGENDA --- */
     :root {
         --primary: #6366f1;
+        --primary-dark: #4f46e5;
+        --secondary: #8b5cf6;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
         --bg-body: #f8fafc;
         --text-main: #0f172a;
         --text-light: #64748b;
         --white: #ffffff;
         --shadow-sm: 0 1px 3px rgba(15,23,42,0.06);
-        --radius: 18px;
+        --shadow-md: 0 4px 12px rgba(15,23,42,0.08);
+        --radius-lg: 20px;
+        --radius-md: 16px;
+        --radius-sm: 12px;
     }
+    
     *{ box-sizing:border-box; }
 
     body {
-        background-color: var(--bg-body);
-        font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
         padding-bottom: 90px;
         margin: 0;
-        font-size: 13px; /* fonte menor, bem app */
+        font-size: 0.8125rem;
         color: var(--text-main);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
 
-    /* --- HEADER FLUTUANTE (GLASSMORPHISM) --- */
+    /* --- HEADER FLUTUANTE MODERNIZADO --- */
     .app-header {
         position: sticky;
         top: 60px;
         z-index: 50;
-        background: rgba(248, 250, 252, 0.98);
-        backdrop-filter: blur(16px);
-        padding: 12px 16px 14px 16px;
-        border-bottom: 1px solid #e2e8f0;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        padding: 16px 18px 18px;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+    }
+
+    /* Otimizações para telas menores */
+    @media (max-width: 768px) {
+        .app-header {
+            position: relative;
+            top: 0;
+            padding: 14px 16px 16px;
+        }
+        
+        .agenda-title {
+            font-size: 1.25rem;
+            margin-bottom: 12px;
+        }
+        
+        .finance-card,
+        .link-card {
+            margin-top: 10px;
+        }
+        
+        .content-area {
+            padding: 10px 12px 16px;
+        }
+        
+        .fab-add {
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .calendar-grid {
+            gap: 6px;
+        }
+        
+        .day-cell {
+            font-size: 0.8125rem;
+        }
+        
+        .event-count-badge {
+            font-size: 0.6875rem;
+            padding: 3px 6px;
+            min-width: 18px;
+        }
     }
     
     .agenda-title {
-        font-size: 1.3rem;
+        font-size: 1.5rem;
         font-weight: 800;
-        margin: 0 0 12px 0;
+        margin: 0 0 16px 0;
         color: var(--text-main);
-        letter-spacing: -0.02em;
+        letter-spacing: -0.03em;
         background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
     }
 
-    /* Botões de Visualização (Dia/Semana/Mês) */
+    /* Botões de Visualização - Estilo Premium */
     .view-control {
         display: flex;
-        background: #e2e8f0;
-        padding: 3px;
+        background: #f1f5f9;
+        padding: 4px;
         border-radius: 999px;
-        margin-bottom: 10px;
+        margin-bottom: 14px;
+        gap: 4px;
     }
     .view-opt {
         flex: 1;
         text-align: center;
-        padding: 6px 0;
+        padding: 8px 0;
         border-radius: 999px;
-        font-size: 0.78rem;
-        font-weight: 600;
+        font-size: 0.75rem;
+        font-weight: 700;
         color: var(--text-light);
         text-decoration: none;
-        transition: 0.18s;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         line-height: 1.1;
+        letter-spacing: -0.01em;
     }
     .view-opt.active {
-        background: var(--white);
-        color: var(--primary);
-        box-shadow: 0 1px 5px rgba(15,23,42,0.12);
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        transform: scale(1.02);
     }
 
-    /* Navegador de Datas */
+    /* Navegador de Datas Modernizado */
     .date-nav-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 10px;
+        margin-bottom: 14px;
+        gap: 12px;
     }
     .btn-circle {
-        width: 34px;
-        height: 34px;
-        border-radius: 999px;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
         background: var(--white);
-        border: 1px solid #e2e8f0;
+        border: 2px solid #e2e8f0;
         color: var(--text-main);
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         text-decoration: none;
-        font-size: 0.8rem;
+        font-size: 0.875rem;
+        font-weight: 700;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 4px rgba(15,23,42,0.06);
+    }
+    .btn-circle:hover {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(99,102,241,0.3);
     }
     .btn-circle:active {
-        transform: scale(0.94);
+        transform: scale(0.95);
     }
     .date-picker-trigger {
         position: relative;
@@ -322,17 +405,26 @@ include '../../includes/menu.php';
         cursor: pointer;
     }
 
-    /* Card Faturamento */
+    /* Card Faturamento Modernizado */
     .finance-card {
-        margin-top: 8px;
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        margin-top: 12px;
+        background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
         color: white;
-        padding: 12px 16px;
-        border-radius: 18px;
+        padding: 16px 20px;
+        border-radius: var(--radius-lg);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        box-shadow: 0 8px 20px rgba(16,185,129,0.35);
+        box-shadow: 0 8px 24px rgba(16,185,129,0.4);
+        position: relative;
+        overflow: hidden;
+    }
+    .finance-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+        opacity: 0.5;
     }
     .fin-label {
         font-size: 0.75rem;
@@ -340,26 +432,42 @@ include '../../includes/menu.php';
         letter-spacing: 0.06em;
         opacity: 0.95;
         font-weight: 700;
+        position: relative;
+        z-index: 1;
     }
     .fin-value {
-        font-size: 1.1rem;
+        font-size: 1.25rem;
         font-weight: 800;
+        letter-spacing: -0.02em;
+        position: relative;
+        z-index: 1;
     }
     
-    /* Card de Link de Agendamento */
+    /* Card de Link de Agendamento Modernizado */
     .link-card {
-        margin-top: 10px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        margin-top: 12px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
         color: white;
-        padding: 14px 16px;
-        border-radius: 18px;
-        box-shadow: 0 8px 20px rgba(102,126,234,0.35);
+        padding: 18px 20px;
+        border-radius: var(--radius-lg);
+        box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+        position: relative;
+        overflow: hidden;
+    }
+    .link-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+        opacity: 0.4;
     }
     .link-card-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
+        position: relative;
+        z-index: 1;
     }
     .link-card-title {
         font-size: 0.85rem;
@@ -458,34 +566,43 @@ include '../../includes/menu.php';
 
     .appt-card {
         background: var(--white);
-        border-radius: 20px;
-        padding: 12px 12px;
-        margin-bottom: 10px;
+        border-radius: var(--radius-lg);
+        padding: 14px 16px;
+        margin-bottom: 12px;
         position: relative;
         display: flex;
-        gap: 10px;
-        box-shadow: var(--shadow-sm);
-        border: 1px solid #f1f5f9;
+        gap: 14px;
+        box-shadow: 0 2px 8px rgba(15,23,42,0.06);
+        border: 2px solid #f8fafc;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .appt-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(15,23,42,0.12);
+        border-color: var(--primary);
     }
     .time-col {
         display: flex;
         flex-direction: column;
         align-items: center;
-        min-width: 44px;
-        border-right: 1px solid #f1f5f9;
-        padding-right: 10px;
+        min-width: 50px;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: var(--radius-sm);
+        padding: 8px;
         justify-content: center;
     }
     .time-val {
-        font-size: 0.95rem;
+        font-size: 1.125rem;
         font-weight: 800;
         color: var(--text-main);
-        line-height: 1.1;
+        line-height: 1;
+        letter-spacing: -0.02em;
     }
     .time-min {
-        font-size: 0.7rem;
+        font-size: 0.75rem;
         color: var(--text-light);
-        font-weight: 500;
+        font-weight: 600;
+        margin-top: 2px;
     }
     
     .info-col {
@@ -493,13 +610,14 @@ include '../../includes/menu.php';
         display: flex;
         flex-direction: column;
         justify-content: center;
-        gap: 2px;
+        gap: 4px;
     }
     .client-name {
         font-weight: 700;
         color: var(--text-main);
-        font-size: 0.9rem;
-        margin-bottom: 1px;
+        font-size: 0.9375rem;
+        margin-bottom: 2px;
+        letter-spacing: -0.01em;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -507,90 +625,134 @@ include '../../includes/menu.php';
     .service-row {
         display: flex;
         align-items: center;
-        gap: 6px;
-        font-size: 0.78rem;
+        gap: 8px;
+        font-size: 0.8125rem;
         color: var(--text-light);
         flex-wrap: wrap;
+        font-weight: 500;
     }
     .price-tag {
-        background: #eef2ff;
+        background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
         color: var(--primary);
-        font-size: 0.7rem;
+        font-size: 0.6875rem;
         font-weight: 700;
-        padding: 2px 7px;
+        padding: 3px 9px;
         border-radius: 999px;
+        letter-spacing: -0.01em;
     }
 
-    /* Status (Bolinhas) */
+    /* Status (Bolinhas Melhoradas) */
     .status-badge {
         position: absolute;
-        top: 10px;
-        right: 10px;
-        width: 9px;
-        height: 9px;
+        top: 12px;
+        right: 12px;
+        width: 10px;
+        height: 10px;
         border-radius: 50%;
+        animation: pulse-status 2s ease-in-out infinite;
     }
-    .st-Confirmado { background: #10b981; box-shadow: 0 0 0 3px #d1fae5; }
-    .st-Pendente { background: #f59e0b; box-shadow: 0 0 0 3px #fef3c7; }
-    .st-Cancelado { background: #ef4444; box-shadow: 0 0 0 3px #fee2e2; }
+    @keyframes pulse-status {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.8; transform: scale(1.1); }
+    }
+    .st-Confirmado { background: var(--success); box-shadow: 0 0 0 3px rgba(16,185,129,0.2); }
+    .st-Pendente { background: var(--warning); box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
+    .st-Cancelado { background: var(--danger); box-shadow: 0 0 0 3px rgba(239,68,68,0.2); }
 
     .appt-card button {
-        background:none;
-        border:none;
-        font-size:1.1rem;
-        color:var(--text-light);
-        padding:0 0 0 6px;
-        align-self:center;
+        background: #f8fafc;
+        border: none;
+        font-size: 1.125rem;
+        color: var(--text-light);
+        padding: 8px;
+        align-self: center;
+        border-radius: var(--radius-sm);
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .appt-card button:hover {
+        background: var(--primary);
+        color: white;
+        transform: scale(1.1);
     }
 
-    /* --- CALENDÁRIO MENSAL --- */
+    /* --- CALENDÁRIO MENSAL MODERNIZADO --- */
     .calendar-grid {
         display: grid;
         grid-template-columns: repeat(7, 1fr);
-        gap: 6px;
-        margin-top: 10px;
+        gap: 8px;
+        margin-top: 12px;
     }
     .week-day-name {
         text-align: center;
-        font-size: 0.68rem;
+        font-size: 0.6875rem;
         font-weight: 700;
         color: var(--text-light);
         text-transform: uppercase;
-        margin-bottom: 2px;
+        margin-bottom: 4px;
+        letter-spacing: 0.03em;
     }
     .day-cell {
         aspect-ratio: 1;
         background: var(--white);
-        border-radius: 16px;
+        border-radius: var(--radius-md);
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        font-size: 0.85rem;
-        font-weight: 600;
+        font-size: 0.875rem;
+        font-weight: 700;
         color: var(--text-main);
         text-decoration: none;
-        border: 1px solid transparent;
+        border: 2px solid transparent;
         position: relative;
-        box-shadow: 0 1px 2px rgba(15,23,42,0.05);
+        box-shadow: 0 2px 4px rgba(15,23,42,0.06);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .day-cell:hover:not(.empty) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(15,23,42,0.12);
+        border-color: var(--primary);
     }
     .day-cell.today {
         border-color: var(--primary);
-        color: var(--primary);
-        background: #eef2ff;
-        box-shadow: 0 4px 12px rgba(79,70,229,0.35);
+        color: white;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        box-shadow: 0 8px 20px rgba(99,102,241,0.4);
     }
     .day-cell.empty {
         background: transparent;
-        box-shadow:none;
+        box-shadow: none;
+        pointer-events: none;
     }
-    .has-event-dot {
-        width: 5px;
-        height: 5px;
-        background: var(--primary);
-        border-radius: 50%;
+    .day-cell.has-events {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border-color: #bae6fd;
+    }
+    .day-cell.has-events.today {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    }
+    .event-count-badge {
         position: absolute;
-        bottom: 5px;
+        top: 4px;
+        right: 4px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 800;
+        padding: 4px 7px;
+        border-radius: 999px;
+        min-width: 20px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(99,102,241,0.5);
+        line-height: 1;
+    }
+    .day-cell.today .event-count-badge {
+        background: rgba(255,255,255,0.35);
+        backdrop-filter: blur(10px);
+        color: white;
+        font-size: 0.8125rem;
+        padding: 5px 8px;
     }
 
     /* --- SEMANAL --- */
@@ -610,101 +772,164 @@ include '../../includes/menu.php';
         background: #e2e8f0;
     }
 
-    /* --- BOTÃO FLUTUANTE (FAB) --- */
+    /* --- BOTÃO FLUTUANTE (FAB) MODERNIZADO --- */
     .fab-add {
         position: fixed;
-        bottom: 20px;
-        right: 20px;
-        width: 54px;
-        height: 54px;
-        background: #0f172a;
+        bottom: 24px;
+        right: 24px;
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
         color: white;
-        border-radius: 999px;
+        border-radius: 50%;
         border: none;
-        font-size: 1.6rem;
-        box-shadow: 0 14px 30px rgba(15,23,42,0.5);
+        font-size: 1.75rem;
+        box-shadow: 0 12px 32px rgba(99,102,241,0.5);
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 100;
         cursor: pointer;
-        transition: 0.18s;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .fab-add:hover {
+        transform: scale(1.1) rotate(90deg);
+        box-shadow: 0 16px 40px rgba(99,102,241,0.6);
     }
     .fab-add:active {
-        transform: scale(0.9) translateY(2px);
+        transform: scale(0.95) rotate(90deg);
     }
 
-    /* --- MODAIS E FORMULÁRIOS --- */
+    /* --- MODAIS E FORMULÁRIOS MODERNIZADOS --- */
     .modal-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(15,23,42,0.7);
+        background: rgba(15,23,42,0.75);
         z-index: 2000;
         display: none;
         align-items: flex-end;
         justify-content: center;
-        backdrop-filter: blur(3px);
+        backdrop-filter: blur(8px);
     }
     .modal-overlay.active {
         display: flex;
-        animation: fadeIn 0.18s;
+        animation: fadeIn 0.25s ease-out;
     }
     .sheet-modal {
         background: white;
         width: 100%;
-        max-width: 480px;
-        border-radius: 22px 22px 0 0;
-        padding: 18px 18px 22px 18px;
-        animation: slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+        max-width: 500px;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        padding: 24px 20px 28px;
+        animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         max-height: 88vh;
         overflow-y: auto;
+        box-shadow: 0 -10px 40px rgba(15,23,42,0.2);
     }
-    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    @keyframes slideUp { 
+        from { 
+            transform: translateY(100%); 
+            opacity: 0;
+        } 
+        to { 
+            transform: translateY(0); 
+            opacity: 1;
+        } 
+    }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    .form-group { margin-bottom: 12px; }
+    .form-group { margin-bottom: 16px; }
     .form-label {
-        font-size: 0.78rem;
-        font-weight: 600;
+        font-size: 0.75rem;
+        font-weight: 700;
         color: var(--text-main);
-        margin-bottom: 4px;
+        margin-bottom: 6px;
         display: block;
+        letter-spacing: 0.01em;
     }
     .form-input {
         width: 100%;
-        padding: 11px 12px;
-        border: 1px solid #e2e8f0;
-        border-radius: 999px;
-        font-size: 0.82rem;
+        padding: 12px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
         background: #f8fafc;
         outline: none;
         box-sizing: border-box;
+        font-family: inherit;
+        font-weight: 500;
+        transition: all 0.2s ease;
     }
     .form-input:focus {
         border-color: var(--primary);
         background: white;
-        box-shadow: 0 0 0 1px rgba(99,102,241,0.18);
+        box-shadow: 0 0 0 4px rgba(99,102,241,0.1);
+        transform: translateY(-1px);
+    }
+    .form-input:disabled,
+    .form-input[readonly] {
+        background: #f8fafc;
+        color: var(--text-light);
+        cursor: not-allowed;
     }
     textarea.form-input {
-        border-radius: 14px;
+        border-radius: var(--radius-md);
         resize: vertical;
-        min-height: 66px;
+        min-height: 80px;
+    }
+    
+    /* Destaque para campos preenchidos automaticamente */
+    @keyframes highlight-field {
+        0% { background: #fef3c7; }
+        100% { background: #f8fafc; }
+    }
+    .form-input.auto-filled {
+        animation: highlight-field 0.8s ease-out;
     }
     .btn-main {
         width: 100%;
-        padding: 13px;
-        background: var(--primary);
+        padding: 14px 24px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
         color: white;
         border: none;
-        border-radius: 999px;
+        border-radius: var(--radius-md);
         font-weight: 700;
-        font-size: 0.9rem;
-        margin-top: 8px;
+        font-size: 0.9375rem;
+        margin-top: 12px;
         cursor: pointer;
-        box-shadow: 0 12px 26px rgba(79,70,229,0.45);
+        box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        letter-spacing: -0.01em;
+    }
+    .btn-main:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 32px rgba(99,102,241,0.5);
     }
     .btn-main:active {
-        transform: scale(0.97) translateY(1px);
+        transform: scale(0.98);
+    }
+    
+    .btn-cancel {
+        width: 100%;
+        padding: 12px 24px;
+        background: white;
+        color: var(--text-main);
+        border: 2px solid #e2e8f0;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 0.9375rem;
+        margin-top: 10px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        letter-spacing: -0.01em;
+    }
+    .btn-cancel:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        transform: translateY(-1px);
+    }
+    .btn-cancel:active {
+        transform: scale(0.98);
     }
     
     .empty-state {
@@ -720,6 +945,81 @@ include '../../includes/menu.php';
         font-weight:700;
         font-size:0.8rem;
         margin-top:4px;
+    }
+
+    /* Seção de Horários Livres */
+    .free-slots-section {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border-radius: var(--radius-lg);
+        padding: 18px;
+        margin-top: 20px;
+        border: 2px solid #bae6fd;
+        animation: fadeInUp 0.4s ease-out;
+    }
+    .free-slots-title {
+        font-size: 0.9375rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin: 0 0 8px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        letter-spacing: -0.01em;
+    }
+    .free-slots-title i {
+        font-size: 1.125rem;
+        color: var(--primary);
+        animation: pulse-icon 2s ease-in-out infinite;
+    }
+    @keyframes pulse-icon {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .free-slots-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+        gap: 8px;
+    }
+    .slot-chip {
+        background: white;
+        padding: 10px 12px;
+        border-radius: var(--radius-sm);
+        text-align: center;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--text-main);
+        box-shadow: 0 2px 4px rgba(15,23,42,0.06);
+        border: 1px solid #e0f2fe;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+    }
+    .slot-chip:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(99,102,241,0.2);
+        border-color: var(--primary);
+        background: var(--primary);
+        color: white;
+    }
+    .slot-chip:hover i {
+        opacity: 1 !important;
+    }
+    .slot-chip:active {
+        transform: scale(0.95);
     }
 
     .action-list { list-style: none; padding: 0; margin:0; }
@@ -797,11 +1097,11 @@ include '../../includes/menu.php';
 
     <?php if ($viewType === 'month'): ?>
         <div class="calendar-grid">
-            <div class="week-day-name">D</div><div class="week-day-name">S</div><div class="week-day-name">T</div>
-            <div class="week-day-name">Q</div><div class="week-day-name">Q</div><div class="week-day-name">S</div><div class="week-day-name">S</div>
+            <div class="week-day-name">DOM</div><div class="week-day-name">SEG</div><div class="week-day-name">TER</div>
+            <div class="week-day-name">QUA</div><div class="week-day-name">QUI</div><div class="week-day-name">SEX</div><div class="week-day-name">SÁB</div>
             
             <?php
-            // Lógica de Renderização do Calendário
+            // Lógica de Renderização do Calendário Melhorado
             $firstDayMonth = date('Y-m-01', strtotime($dataExibida));
             $daysInMonth   = date('t', strtotime($dataExibida));
             $startPadding  = date('w', strtotime($firstDayMonth));
@@ -813,11 +1113,17 @@ include '../../includes/menu.php';
             for($day=1; $day<=$daysInMonth; $day++) {
                 $currentDate = date('Y-m-', strtotime($dataExibida)) . str_pad($day, 2, '0', STR_PAD_LEFT);
                 $isToday = ($currentDate === $hoje) ? 'today' : '';
-                $hasEvent = isset($diasComAgendamento[$currentDate]) ? '<div class="has-event-dot"></div>' : '';
+                $hasEvents = isset($diasComAgendamento[$currentDate]) ? 'has-events' : '';
+                $eventCount = $agendamentosPorDia[$currentDate] ?? 0;
+                
+                $badge = '';
+                if ($eventCount > 0) {
+                    $badge = "<div class='event-count-badge'>{$eventCount}</div>";
+                }
 
-                echo "<a href='?view=day&data={$currentDate}' class='day-cell {$isToday}'>
+                echo "<a href='?view=day&data={$currentDate}' class='day-cell {$isToday} {$hasEvents}'>
                         {$day}
-                        {$hasEvent}
+                        {$badge}
                       </a>";
             }
             ?>
@@ -845,6 +1151,62 @@ include '../../includes/menu.php';
                 <button onclick="openModal()">+ Adicionar agendamento</button>
             </div>
         <?php endif; ?>
+        
+        <?php
+        // Mostra horários livres do dia
+        if ($viewType === 'day'):
+            $diaSemana = date('w', strtotime($dataExibida));
+            $stmtHorarios = $pdo->prepare("SELECT * FROM horarios_atendimento WHERE user_id = ? AND dia_semana = ? ORDER BY inicio ASC");
+            $stmtHorarios->execute([$userId, $diaSemana]);
+            $horariosConfig = $stmtHorarios->fetchAll();
+            
+            if (!empty($horariosConfig)):
+                // Pega horários já agendados
+                $horariosOcupados = [];
+                foreach ($agendamentos as $ag) {
+                    $horariosOcupados[] = date('H:i', strtotime($ag['horario']));
+                }
+                
+                // Gera horários livres
+                $horariosLivres = [];
+                foreach ($horariosConfig as $config) {
+                    $inicio = strtotime($config['inicio']);
+                    $fim = strtotime($config['fim']);
+                    $intervalo = ($config['intervalo_minutos'] ?? 30) * 60;
+                    
+                    while ($inicio < $fim) {
+                        $horario = date('H:i', $inicio);
+                        if (!in_array($horario, $horariosOcupados)) {
+                            $horariosLivres[] = $horario;
+                        }
+                        $inicio += $intervalo;
+                    }
+                }
+                
+                if (!empty($horariosLivres)):
+        ?>
+            <div class="free-slots-section">
+                <h3 class="free-slots-title">
+                    <i class="bi bi-clock"></i>
+                    Horários Disponíveis (<?php echo count($horariosLivres); ?>)
+                </h3>
+                <p style="font-size: 0.75rem; color: var(--text-light); margin: 0 0 12px 0; font-weight: 500;">
+                    <i class="bi bi-hand-index"></i> Clique em um horário para agendar rapidamente
+                </p>
+                <div class="free-slots-grid">
+                    <?php foreach($horariosLivres as $hora): ?>
+                        <div class="slot-chip" onclick="abrirModalComHorario('<?php echo $dataExibida; ?>', '<?php echo $hora; ?>')" title="Clique para agendar neste horário">
+                            <i class="bi bi-clock-fill" style="font-size: 0.75rem; opacity: 0.6; margin-right: 4px;"></i>
+                            <?php echo $hora; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php 
+                endif;
+            endif;
+        endif;
+        ?>
     <?php endif; ?>
 
 </div>
@@ -947,6 +1309,7 @@ include '../../includes/menu.php';
             </div>
 
             <button type="submit" class="btn-main">Salvar agendamento</button>
+            <button type="button" class="btn-cancel" onclick="closeModal()">Cancelar</button>
         </form>
     </div>
 </div>
@@ -1009,8 +1372,55 @@ function renderCard($ag, $clientes) {
 
 <script>
     // --- LÓGICA DE ABERTURA DE MODAIS ---
-    function openModal() { document.getElementById('modalAdd').classList.add('active'); }
-    function closeModal() { document.getElementById('modalAdd').classList.remove('active'); }
+    function openModal() { 
+        document.getElementById('modalAdd').classList.add('active'); 
+    }
+    
+    function closeModal() { 
+        document.getElementById('modalAdd').classList.remove('active'); 
+    }
+    
+    // Abre modal com data e horário preenchidos (para horários livres)
+    function abrirModalComHorario(data, horario) {
+        // Feedback visual no chip clicado
+        const chips = document.querySelectorAll('.slot-chip');
+        chips.forEach(chip => {
+            if (chip.textContent.trim() === horario) {
+                chip.style.transform = 'scale(1.1)';
+                chip.style.background = 'var(--primary)';
+                chip.style.color = 'white';
+                setTimeout(() => {
+                    chip.style.transform = '';
+                }, 200);
+            }
+        });
+        
+        // Preenche os campos com animação de destaque
+        const inputData = document.querySelector('input[name="data_agendamento"]');
+        const inputHorario = document.querySelector('input[name="horario"]');
+        
+        if (inputData) {
+            inputData.value = data;
+            inputData.classList.add('auto-filled');
+            setTimeout(() => inputData.classList.remove('auto-filled'), 800);
+        }
+        if (inputHorario) {
+            inputHorario.value = horario;
+            inputHorario.classList.add('auto-filled');
+            setTimeout(() => inputHorario.classList.remove('auto-filled'), 800);
+        }
+        
+        // Abre o modal após pequeno delay para feedback visual
+        setTimeout(() => {
+            openModal();
+            
+            // Foca no campo de nome do cliente
+            setTimeout(() => {
+                const inputCliente = document.getElementById('inputNomeCliente');
+                if (inputCliente) inputCliente.focus();
+            }, 300);
+        }, 150);
+    }
     
     // Atualiza preço automático ao escolher serviço
     function atualizaPreco() {
