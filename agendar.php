@@ -39,16 +39,36 @@ if (!empty($profissional['numero'])) $enderecoCompleto .= ', ' . $profissional['
 if (!empty($profissional['bairro'])) $enderecoCompleto .= ' - ' . $profissional['bairro']; 
  
 // Foto / Logo 
-$fotoPerfil = 'assets/default-avatar.png'; // Fallback padrão se você tiver 
+$fotoPerfil = ''; 
 $iniciais   = strtoupper(mb_substr($nomeEstabelecimento, 0, 1)); 
 $temFoto    = false; 
  
-if (!empty($profissional['foto']) && file_exists($profissional['foto'])) { 
-    $fotoPerfil = $profissional['foto']; 
-    $temFoto = true; 
-} elseif (!empty($profissional['foto']) && file_exists('../../' . $profissional['foto'])) { 
-    $fotoPerfil = '../../' . $profissional['foto']; 
-    $temFoto = true; 
+if (!empty($profissional['foto'])) {
+    $caminhosFoto = [
+        $profissional['foto'],                              // Caminho direto do banco
+        __DIR__ . '/' . $profissional['foto'],              // Relativo ao agendar.php
+        'uploads/' . basename($profissional['foto']),       // Na pasta uploads
+        __DIR__ . '/uploads/' . basename($profissional['foto']), // uploads relativo
+        '../uploads/' . basename($profissional['foto'])     // uploads um nível acima
+    ];
+    
+    foreach ($caminhosFoto as $caminho) {
+        if (file_exists($caminho)) {
+            // Determina o caminho web correto
+            if (strpos($caminho, __DIR__) === 0) {
+                // Remove __DIR__ e ajusta para caminho web
+                $fotoPerfil = str_replace('\\', '/', str_replace(__DIR__, '', $caminho));
+            } else {
+                $fotoPerfil = str_replace('\\', '/', $profissional['foto']);
+            }
+            $temFoto = true;
+            break;
+        }
+    }
+    
+    // Debug apenas em desenvolvimento (comentar em produção)
+    // if ($temFoto) error_log("Foto encontrada: $fotoPerfil");
+    // else error_log("Foto não encontrada. Valor no banco: " . $profissional['foto']);
 } 
  
 // --- CONFIGURAÇÃO DE CORES (AGORA VEM DO BANCO) --- 
@@ -160,7 +180,55 @@ if (isset($_GET['action'])) {
             echo json_encode(['found' => false]); 
         } 
         exit; 
-    } 
+    }
+    
+    // Buscar Agendamentos do Cliente
+    if ($_GET['action'] === 'buscar_agendamentos') {
+        $telefone = preg_replace('/[^0-9]/', '', $_GET['telefone']);
+        
+        // Primeiro busca o cliente
+        $stmt = $pdo->prepare("
+            SELECT id, nome, telefone, data_nascimento 
+            FROM clientes 
+            WHERE REPLACE(REPLACE(REPLACE(REPLACE(telefone, '(', ''), ')', ''), '-', ''), ' ', '') = ? 
+              AND user_id = ? 
+            LIMIT 1
+        ");
+        $stmt->execute([$telefone, $profissionalId]);
+        $cliente = $stmt->fetch();
+        
+        if (!$cliente) {
+            echo json_encode(['found' => false, 'agendamentos' => []]);
+            exit;
+        }
+        
+        // Busca agendamentos futuros (usando data_agendamento)
+        $stmt = $pdo->prepare("
+            SELECT a.*
+            FROM agendamentos a
+            WHERE a.cliente_id = ? 
+              AND a.user_id = ?
+              AND (
+                    a.data_agendamento > DATE('now')
+                 OR (a.data_agendamento = DATE('now') 
+                     AND a.horario >= TIME('now', 'localtime'))
+              )
+            ORDER BY a.data_agendamento ASC, a.horario ASC
+        ");
+        $stmt->execute([$cliente['id'], $profissionalId]);
+        $agendamentos = $stmt->fetchAll();
+        
+        echo json_encode([
+            'found' => true,
+            'cliente' => [
+                'nome' => $cliente['nome'],
+                'telefone' => $cliente['telefone'],
+                'data_nascimento' => $cliente['data_nascimento']
+            ],
+            'agendamentos' => $agendamentos
+        ]);
+        exit;
+    }
     exit; 
 } 
  
@@ -410,9 +478,9 @@ $servicos = $stmt->fetchAll();
         .business-logo { 
             width: 130px; 
             height: 130px; 
-            border-radius: 32px; 
-            background: white; 
-            box-shadow: 0 15px 40px rgba(0,0,0,0.12); 
+            border-radius: 50%; 
+            background: linear-gradient(135deg, white, #f8fafc);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.12), 0 5px 15px rgba(0,0,0,0.08); 
             margin-bottom: 24px; 
             z-index: 1; 
             display: flex; 
@@ -420,15 +488,56 @@ $servicos = $stmt->fetchAll();
             justify-content: center; 
             overflow: hidden; 
             border: 5px solid white;
-            transition: transform 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        
+        .business-logo::after {
+            content: '';
+            position: absolute;
+            inset: -5px;
+            border-radius: 50%;
+            padding: 3px;
+            background: linear-gradient(135deg, var(--brand-color), var(--brand-dark));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.4s;
         }
         
         .business-logo:hover {
-            transform: translateY(-5px) scale(1.02);
-        } 
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15), 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .business-logo:hover::after {
+            opacity: 1;
+        }
  
-        .logo-img { width: 100%; height: 100%; object-fit: cover; } 
-        .logo-initial { font-size: 3rem; font-weight: 800; color: var(--brand-color); } 
+        .logo-img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover;
+            position: relative;
+            z-index: 1;
+        } 
+        
+        .logo-initial { 
+            font-size: 3rem; 
+            font-weight: 800; 
+            color: var(--brand-color);
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            font-family: 'Outfit', sans-serif;
+            letter-spacing: -0.02em;
+        } 
  
         .business-name { 
             font-size: 1.75rem; 
@@ -442,9 +551,11 @@ $servicos = $stmt->fetchAll();
         .business-bio { 
             font-size: 0.95rem; 
             color: var(--text-muted); 
-            margin-bottom: 20px; 
-            max-width: 350px; 
-            z-index: 1; 
+            margin-bottom: 24px; 
+            max-width: 380px; 
+            z-index: 1;
+            line-height: 1.6;
+            font-weight: 400;
         } 
  
         .info-pill { 
@@ -485,8 +596,12 @@ $servicos = $stmt->fetchAll();
                 font-size: 1.5rem;
             }
             .business-logo {
-                width: 110px;
-                height: 110px;
+                width: 100px;
+                height: 100px;
+            }
+            .business-bio {
+                font-size: 0.9rem;
+                max-width: 320px;
             }
             .step-label {
                 font-size: 0.7rem;
@@ -497,6 +612,41 @@ $servicos = $stmt->fetchAll();
             }
             .main-content {
                 padding: 16px;
+            }
+            .service-card {
+                grid-template-columns: 70px 1fr;
+                gap: 12px;
+            }
+            .service-img {
+                width: 70px;
+                height: 70px;
+                border-radius: 50%;
+                border-width: 2px;
+            }
+            .service-content {
+                padding: 12px 0;
+            }
+            .service-title {
+                font-size: 0.95rem;
+            }
+            .service-description {
+                font-size: 0.8rem;
+                -webkit-line-clamp: 1;
+                margin-bottom: 6px;
+            }
+            .service-duration {
+                font-size: 0.75rem;
+                padding: 3px 8px;
+            }
+            .service-price-wrapper {
+                grid-column: 2;
+                padding: 0 12px 12px 0;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .service-price {
+                font-size: 1.1rem;
             }
         }
 
@@ -600,18 +750,19 @@ $servicos = $stmt->fetchAll();
         } 
  
         .service-card { 
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
-            padding: 22px;
+            padding: 0;
             border-radius: var(--radius-md); 
             border: 2px solid rgba(148,163,184,0.1);
             box-shadow: var(--shadow-card); 
             cursor: pointer;
             transition: all 0.3s ease;
-            display: flex;
-            justify-content: space-between; 
+            display: grid;
+            grid-template-columns: auto 1fr auto;
             align-items: center;
-            margin-bottom: 14px;
+            gap: 16px;
+            margin-bottom: 16px;
             position: relative;
             overflow: hidden;
         }
@@ -640,19 +791,131 @@ $servicos = $stmt->fetchAll();
         
         .service-card.selected {
             border-color: var(--brand-color);
-            background: var(--brand-light);
-            box-shadow: 0 0 0 4px rgba(var(--brand-color-rgb), 0.1);
+            background: linear-gradient(135deg, rgba(255,255,255,0.98), var(--brand-light));
+            box-shadow: 0 0 0 4px rgba(var(--brand-color-rgb), 0.15), var(--shadow-strong);
+            transform: translateY(-2px);
+        }
+        
+        .service-card.selected .service-img {
+            background: linear-gradient(135deg, var(--brand-color), var(--brand-dark));
+            border-color: var(--brand-color);
+            transform: scale(1.05);
+        }
+        
+        .service-card.selected .service-img::after {
+            content: '✓';
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            font-size: 1rem;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            animation: checkPop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        @keyframes checkPop {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        .service-card.selected .service-img-placeholder {
+            color: white;
+            opacity: 1;
         }
         
         .service-card.selected::before {
             opacity: 1;
         }
         
+        .service-img {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--brand-light), #f1f5f9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+            position: relative;
+            border: 3px solid white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .service-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .service-img-placeholder {
+            font-size: 2rem;
+            color: var(--brand-color);
+            opacity: 0.6;
+        }
+        
+        .service-content {
+            flex: 1;
+            padding: 18px 0;
+            min-width: 0;
+        }
+        
+        .service-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+        }
+        
+        .service-description {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .service-duration {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(148,163,184,0.1);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        
+        .service-price-wrapper {
+            padding: 18px 20px 18px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+        }
+        
         .service-price {
             font-weight: 800;
             color: var(--brand-color);
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             font-family: 'Outfit', sans-serif;
+            white-space: nowrap;
         } 
  
         .form-label {
@@ -843,19 +1106,651 @@ $servicos = $stmt->fetchAll();
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* ========================================== */
+        /* SPLASH SCREEN & WELCOME */
+        /* ========================================== */
+        .splash-screen {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, var(--brand-color), var(--brand-dark));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            animation: splashFadeOut 0.6s ease-out 2s forwards;
+        }
+        
+        .splash-logo {
+            width: 120px;
+            height: 120px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--brand-color);
+            margin-bottom: 24px;
+            animation: logoFloat 2s ease-in-out infinite;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .splash-text {
+            color: white;
+            font-size: 1.8rem;
+            font-weight: 800;
+            font-family: 'Outfit', sans-serif;
+            animation: textFadeIn 0.8s ease-out 0.3s backwards;
+        }
+        
+        .splash-spinner {
+            margin-top: 32px;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes splashFadeOut {
+            to { opacity: 0; pointer-events: none; }
+        }
+        
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes textFadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(180deg, #eef2ff 0%, #ffffff 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9998;
+            padding: 32px;
+            text-align: center;
+            animation: fadeIn 0.5s ease-out 2.5s backwards;
+        }
+        
+        .welcome-screen.hidden {
+            display: none;
+        }
+        
+        .welcome-logo {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, white, #f8fafc);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--brand-color);
+            margin-bottom: 24px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.12);
+            border: 5px solid white;
+        }
+        
+        .welcome-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 12px;
+            font-family: 'Outfit', sans-serif;
+        }
+        
+        .welcome-subtitle {
+            font-size: 1.05rem;
+            color: var(--text-muted);
+            margin-bottom: 40px;
+            max-width: 400px;
+            line-height: 1.6;
+        }
+        
+        .welcome-options {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .btn-welcome {
+            padding: 20px 32px;
+            background: linear-gradient(135deg, var(--brand-color), var(--brand-dark));
+            color: white;
+            border: none;
+            border-radius: 999px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 10px 30px -5px rgba(0,0,0,0.2);
+        }
+        
+        .btn-welcome:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 40px -5px rgba(0,0,0,0.3);
+        }
+        
+        .btn-welcome.secondary {
+            background: white;
+            color: var(--brand-color);
+            border: 2px solid var(--brand-color);
+        }
+        
+        .btn-welcome.secondary:hover {
+            background: var(--brand-light);
+        }
+
+        /* Consultar Agendamento Modal */
+        .consulta-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .consulta-modal.active {
+            display: flex;
+        }
+        
+        .consulta-content {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 450px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.25);
+            animation: slideUp 0.4s ease-out;
+            position: relative;
+        }
+        
+        .consulta-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .consulta-content::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+            border-radius: 10px;
+        }
+        
+        .consulta-content::-webkit-scrollbar-thumb {
+            background: var(--brand-color);
+            border-radius: 10px;
+        }
+        
+        @media (max-width: 767px) {
+            .consulta-content {
+                padding: 20px;
+                border-radius: 20px;
+                max-height: 90vh;
+            }
+            
+            .consulta-content::-webkit-scrollbar {
+                width: 4px;
+            }
+        }
+        
+        .consulta-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(148,163,184,0.1);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+        
+        .consulta-close:hover {
+            background: rgba(239,68,68,0.1);
+            color: #ef4444;
+        }
+        
+        .agendamento-card {
+            background: linear-gradient(135deg, var(--brand-light), #ffffff);
+            border: 2px solid var(--brand-color);
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 12px;
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        .agendamento-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .agendamento-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--brand-color);
+            color: white;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+        
+        .agendamento-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .agendamento-servico {
+            font-weight: 700;
+            color: var(--brand-dark);
+            font-size: 1rem;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+        
+        .agendamento-data {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        
+        .agendamento-preco {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--brand-color);
+            flex-shrink: 0;
+        }
+        
+        @media (max-width: 767px) {
+            .agendamento-card {
+                padding: 14px;
+                border-radius: 16px;
+                margin-bottom: 10px;
+            }
+            
+            .agendamento-header {
+                gap: 8px;
+            }
+            
+            .agendamento-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.1rem;
+                border-radius: 12px;
+            }
+            
+            .agendamento-servico {
+                font-size: 0.9rem;
+            }
+            
+            .agendamento-data {
+                font-size: 0.8rem;
+            }
+            
+            .agendamento-preco {
+                font-size: 1rem;
+            }
+        }
+        
+        /* Ajustes extras para telas bem pequenas (celular) */
+        @media (max-width: 480px) {
+            body {
+                font-size: 0.9rem;
+            }
+
+            .sidebar {
+                padding: 24px 18px;
+            }
+
+            .business-logo {
+                width: 88px;
+                height: 88px;
+                border-radius: 999px;
+            }
+
+            .business-name {
+                font-size: 1.3rem;
+            }
+
+            .business-bio {
+                font-size: 0.8rem;
+            }
+
+            .card-title {
+                font-size: 1.3rem;
+            }
+
+            .card-subtitle {
+                font-size: 0.85rem;
+                margin-bottom: 20px;
+            }
+
+            .form-control {
+                padding: 12px 14px;
+                font-size: 0.9rem;
+                border-radius: 999px;
+            }
+
+            .btn-action {
+                padding: 14px 18px;
+                font-size: 0.9rem;
+                border-radius: 999px;
+                margin-top: 18px;
+            }
+
+            .btn-back {
+                padding: 8px 14px;
+                font-size: 0.8rem;
+                border-radius: 999px;
+            }
+
+            .service-card {
+                border-radius: 18px;
+                gap: 10px;
+            }
+
+            .service-img {
+                width: 68px;
+                height: 68px;
+                border-radius: 999px;
+            }
+
+            .service-title {
+                font-size: 0.9rem;
+            }
+
+            .service-description {
+                font-size: 0.75rem;
+            }
+
+            .time-slot {
+                padding: 10px 8px;
+                font-size: 0.9rem;
+                border-radius: 999px;
+            }
+
+            .consulta-content,
+            .error-content {
+                padding: 22px 18px;
+                border-radius: 20px;
+            }
+
+            .welcome-title {
+                font-size: 1.6rem;
+            }
+
+            .welcome-subtitle {
+                font-size: 0.9rem;
+            }
+        }
+        
+        .no-agendamento {
+            text-align: center;
+            padding: 24px 16px;
+            background: rgba(148,163,184,0.1);
+            border-radius: 20px;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .no-agendamento-icon {
+            font-size: 2.5rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+        
+        .no-agendamento-text {
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        
+        @media (max-width: 767px) {
+            .no-agendamento {
+                padding: 20px 14px;
+                border-radius: 16px;
+            }
+            
+            .no-agendamento-icon {
+                font-size: 2rem;
+            }
+            
+            .no-agendamento-text {
+                font-size: 0.9rem;
+            }
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Error Modal */
+        .error-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .error-modal.active {
+            display: flex;
+        }
+        
+        .error-content {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 420px;
+            width: 100%;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.25);
+            animation: slideUp 0.4s ease-out;
+            text-align: center;
+        }
+        
+        .error-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: #dc2626;
+        }
+        
+        .error-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 12px;
+        }
+        
+        .error-message {
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+        
+        .error-btn {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .error-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Selected Services Badge */
+        .selected-services-badge {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, var(--brand-color), var(--brand-dark));
+            color: white;
+            padding: 12px 20px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: none;
+            align-items: center;
+            gap: 8px;
+            z-index: 100;
+            animation: bounceIn 0.5s ease-out;
+            cursor: pointer;
+        }
+        
+        .selected-services-badge.show {
+            display: flex;
+        }
+        
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
     </style> 
 </head> 
 <body>
+    <!-- Splash Screen -->
+    <div class="splash-screen" id="splashScreen">
+        <div class="splash-logo">
+            <?php echo $iniciais; ?>
+        </div>
+        <div class="splash-text"><?php echo htmlspecialchars($nomeEstabelecimento); ?></div>
+        <div class="splash-spinner"></div>
+    </div>
+
+    <!-- Welcome Screen -->
+    <?php if (!$sucesso): ?>
+    <div class="welcome-screen" id="welcomeScreen">
+        <div class="welcome-logo">
+            <?php if ($temFoto): ?>
+                <img src="<?php echo htmlspecialchars($fotoPerfil); ?>" 
+                     style="width:100%;height:100%;object-fit:cover;border-radius:50%;"
+                     alt="<?php echo htmlspecialchars($nomeEstabelecimento); ?>">
+            <?php else: ?>
+                <?php echo $iniciais; ?>
+            <?php endif; ?>
+        </div>
+        <h1 class="welcome-title"><?php echo htmlspecialchars($nomeEstabelecimento); ?></h1>
+        <?php if ($nomeEstabelecimento !== $nomeProfissional): ?>
+        <p class="welcome-subtitle" style="margin-bottom:8px;">
+            <i class="bi bi-person-badge" style="opacity:0.7;"></i> <?php echo htmlspecialchars($nomeProfissional); ?>
+        </p>
+        <?php endif; ?>
+        <p class="welcome-subtitle">Escolha como deseja continuar</p>
+        <div class="welcome-options">
+            <button class="btn-welcome" onclick="iniciarAgendamento()">
+                <i class="bi bi-calendar-plus"></i>
+                Novo Agendamento
+            </button>
+            <button class="btn-welcome secondary" onclick="abrirConsulta()">
+                <i class="bi bi-search"></i>
+                Consultar Meu Agendamento
+            </button>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Modal Consultar Agendamento -->
+    <div class="consulta-modal" id="consultaModal">
+        <div class="consulta-content">
+            <button class="consulta-close" onclick="fecharConsulta()">
+                <i class="bi bi-x-lg"></i>
+            </button>
+            <h2 class="card-title" style="margin-bottom:8px;">Consultar Agendamento</h2>
+            <p class="card-subtitle" style="margin-bottom:24px;">Digite seu telefone para buscar</p>
+            
+            <div class="form-group">
+                <label class="form-label">Telefone / WhatsApp</label>
+                <input type="tel" id="consultaTelefone" class="form-control" 
+                       placeholder="(11) 99999-9999" maxlength="15"
+                       oninput="maskPhone(this)">
+            </div>
+            
+            <div id="consultaLoading" style="display:none; text-align:center; padding:20px; color:var(--brand-color);">
+                <i class="bi bi-arrow-repeat" style="animation:spin 1s infinite; display:inline-block; font-size:1.5rem;"></i>
+                <p style="margin-top:10px; color:var(--text-muted);">Buscando...</p>
+            </div>
+            
+            <div id="consultaResult" style="margin-top:20px;"></div>
+            
+            <button class="btn-action" onclick="buscarAgendamento()" id="btnBuscarAgendamento" style="margin-top:20px;">
+                <i class="bi bi-search"></i>
+                Buscar
+            </button>
+        </div>
+    </div>
+
     <div class="aurora-bg">
         <div class="aurora-blob blob-1"></div>
         <div class="aurora-blob blob-2"></div>
     </div> 
  
-<div class="app-container"> 
+<div class="app-container" id="mainApp" style="display:none;"> 
     <div class="sidebar"> 
         <div class="business-logo"> 
             <?php if ($temFoto): ?> 
-                <img src="<?php echo htmlspecialchars($fotoPerfil); ?>" alt="Logo" class="logo-img"> 
+                <img src="<?php echo htmlspecialchars($fotoPerfil); ?>" 
+                     alt="<?php echo htmlspecialchars($nomeEstabelecimento); ?>" 
+                     class="logo-img"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"> 
+                <div class="logo-initial" style="display:none;"><?php echo $iniciais; ?></div>
             <?php else: ?> 
                 <div class="logo-initial"><?php echo $iniciais; ?></div> 
             <?php endif; ?> 
@@ -864,12 +1759,22 @@ $servicos = $stmt->fetchAll();
         <h1 class="business-name"><?php echo htmlspecialchars($nomeEstabelecimento); ?></h1> 
  
         <?php if ($nomeEstabelecimento !== $nomeProfissional): ?> 
-            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;"> 
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px; font-weight:500;"> 
+                <i class="bi bi-person-badge" style="opacity:0.7;"></i>
                 Responsável: <?php echo htmlspecialchars($nomeProfissional); ?> 
             </p> 
         <?php endif; ?> 
  
-        <p class="business-bio"><?php echo htmlspecialchars($biografia); ?></p> 
+        <?php if (!empty($biografia) && $biografia !== 'Agende seu horário com a gente!'): ?>
+            <p class="business-bio">
+                <i class="bi bi-quote" style="opacity:0.5; font-size:1.1rem; margin-right:4px;"></i>
+                <?php echo htmlspecialchars($biografia); ?>
+            </p>
+        <?php else: ?>
+            <p class="business-bio" style="opacity:0.8;">
+                <?php echo htmlspecialchars($biografia); ?>
+            </p>
+        <?php endif; ?> 
  
         <?php if ($telefone): ?> 
             <div class="info-pill"> 
@@ -967,15 +1872,32 @@ $servicos = $stmt->fetchAll();
                         <?php foreach ($servicos as $s): ?> 
                             <div class="service-card" 
                                  onclick="selectService(this, '<?php echo $s['id']; ?>', '<?php echo $s['nome']; ?>', '<?php echo $s['preco']; ?>', '<?php echo $s['duracao']; ?>')"> 
-                                <div> 
-                                    <h3 style="font-size:1rem; font-weight:700;"><?php echo htmlspecialchars($s['nome']); ?></h3> 
-                                    <div style="font-size:0.85rem; color:var(--text-muted);"> 
-                                        <?php echo $s['duracao']; ?> min 
-                                    </div> 
-                                </div> 
-                                <div class="service-price"> 
-                                    R$ <?php echo number_format($s['preco'], 2, ',', '.'); ?> 
-                                </div> 
+                                
+                                <div class="service-img">
+                                    <?php if (!empty($s['foto']) && file_exists(__DIR__ . '/' . $s['foto'])): ?>
+                                        <img src="<?php echo htmlspecialchars($s['foto']); ?>" alt="<?php echo htmlspecialchars($s['nome']); ?>">
+                                    <?php else: ?>
+                                        <i class="bi bi-scissors service-img-placeholder"></i>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <div class="service-content">
+                                    <h3 class="service-title"><?php echo htmlspecialchars($s['nome']); ?></h3>
+                                    <?php if (!empty($s['observacao'])): ?>
+                                        <div class="service-description"><?php echo htmlspecialchars($s['observacao']); ?></div>
+                                    <?php endif; ?>
+                                    <span class="service-duration">
+                                        <i class="bi bi-clock"></i>
+                                        <?php echo $s['duracao']; ?> min
+                                    </span>
+                                </div>
+                                
+                                <div class="service-price-wrapper">
+                                    <div class="service-price"> 
+                                        R$ <?php echo number_format($s['preco'], 2, ',', '.'); ?> 
+                                    </div>
+                                </div>
+                                
                             </div> 
                         <?php endforeach; ?> 
  
@@ -984,7 +1906,12 @@ $servicos = $stmt->fetchAll();
                                 Nenhum serviço disponível. 
                             </div> 
                         <?php endif; ?> 
-                    </div> 
+                    </div>
+
+                    <button type="button" class="btn-action" onclick="continuarParaHorario()" id="btnContinuar" disabled style="opacity: 0.5">
+                        <span id="btnContinuarText">Selecione um serviço</span>
+                        <i class="bi bi-arrow-right"></i>
+                    </button>
                 </div> 
  
                 <div class="step-screen" id="step2"> 
@@ -1008,7 +1935,12 @@ $servicos = $stmt->fetchAll();
                     <div id="noTimesMsg" 
                          style="display:none; text-align:center; color:#ef4444; margin-top:20px;"> 
                         Sem horários livres nesta data. 
-                    </div> 
+                    </div>
+
+                    <button type="button" class="btn-action" onclick="confirmarHorario()" id="btnConfirmarHorario" disabled style="opacity: 0.5; margin-top: 20px;">
+                        <span>Confirmar Horário</span>
+                        <i class="bi bi-arrow-right"></i>
+                    </button>
                 </div> 
  
                 <div class="step-screen" id="step3"> 
@@ -1021,8 +1953,8 @@ $servicos = $stmt->fetchAll();
                     <div class="form-group"> 
                         <label class="form-label">Celular / WhatsApp</label> 
                         <input type="tel" name="cliente_telefone" id="telInput" class="form-control" 
-                               placeholder="(11) 99999-9999" maxlength="15" 
-                               oninput="maskPhone(this)" onblur="checkClient()"> 
+                               placeholder="(11) 99999-9999" maxlength="15" required
+                               oninput="maskPhone(this); validateForm()" onblur="checkClient()"> 
                         <div id="cpfLoading" 
                              style="display:none; font-size:0.85rem; color:var(--text-muted); margin-top:5px;"> 
                             Verificando... 
@@ -1041,7 +1973,7 @@ $servicos = $stmt->fetchAll();
                     <div id="newClientFields" style="margin-top: 20px;">
                         <div class="form-group" style="margin-bottom: 20px;">
                             <label class="form-label">Nome Completo</label>
-                            <input type="text" name="cliente_nome" id="nomeInput" class="form-control" required>
+                            <input type="text" name="cliente_nome" id="nomeInput" class="form-control" required oninput="validateForm()">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Nascimento (Opcional)</label>
@@ -1054,7 +1986,7 @@ $servicos = $stmt->fetchAll();
                         <textarea name="cliente_obs" class="form-control" rows="2"></textarea> 
                     </div> 
  
-                    <button type="submit" id="btnConfirmar" class="btn-action" disabled> 
+                    <button type="submit" id="btnConfirmar" class="btn-action" disabled style="opacity: 0.5"> 
                         Confirmar Agendamento 
                     </button> 
                 </div> 
@@ -1066,8 +1998,182 @@ $servicos = $stmt->fetchAll();
 <script>
     const PROF_ID = <?php echo $profissionalId; ?>;
     const CURRENT_PAGE = "<?php echo basename($_SERVER['PHP_SELF']); ?>";
+    let selectedServices = [];
     let currentServiceDuration = 0;
 
+    // ===== SPLASH & WELCOME =====
+    window.addEventListener('DOMContentLoaded', () => {
+        <?php if ($sucesso): ?>
+            document.getElementById('splashScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'grid';
+        <?php else: ?>
+            setTimeout(() => {
+                document.getElementById('splashScreen').style.display = 'none';
+            }, 2600);
+        <?php endif; ?>
+    });
+
+    function iniciarAgendamento() {
+        document.getElementById('welcomeScreen').classList.add('hidden');
+        document.getElementById('mainApp').style.display = 'grid';
+        setTimeout(() => {
+            document.getElementById('mainApp').style.animation = 'fadeIn 0.5s ease-out';
+        }, 50);
+    }
+
+    function abrirConsulta() {
+        document.getElementById('consultaModal').classList.add('active');
+    }
+
+    function fecharConsulta() {
+        document.getElementById('consultaModal').classList.remove('active');
+        document.getElementById('consultaTelefone').value = '';
+        document.getElementById('consultaResult').innerHTML = '';
+    }
+
+    let dadosClienteConsulta = null;
+
+    async function buscarAgendamento() {
+        const tel = document.getElementById('consultaTelefone').value.replace(/\D/g, '');
+        if (tel.length < 10) {
+            mostrarErro('Telefone Inválido', 'Digite um telefone válido com DDD.');
+            return;
+        }
+
+        const result = document.getElementById('consultaResult');
+        const loading = document.getElementById('consultaLoading');
+        const btnBuscar = document.getElementById('btnBuscarAgendamento');
+        
+        loading.style.display = 'block';
+        result.innerHTML = '';
+        btnBuscar.disabled = true;
+
+        try {
+            const res = await fetch(`${CURRENT_PAGE}?user=${PROF_ID}&action=buscar_agendamentos&telefone=${tel}`);
+            const data = await res.json();
+            
+            loading.style.display = 'none';
+            btnBuscar.disabled = false;
+
+            if (!data.found) {
+                // Cliente não existe
+                result.innerHTML = `
+                    <div class="no-agendamento">
+                        <div class="no-agendamento-icon"><i class="bi bi-calendar-x"></i></div>
+                        <p class="no-agendamento-text">Nenhum cadastro encontrado com este telefone.</p>
+                        <button class="btn-action" onclick="fecharConsulta();iniciarAgendamento();" style="margin-top:0;">
+                            <i class="bi bi-calendar-plus"></i> Fazer Primeiro Agendamento
+                        </button>
+                    </div>
+                `;
+                dadosClienteConsulta = null;
+                return;
+            }
+
+            // Cliente existe - salvar dados
+            dadosClienteConsulta = {
+                nome: data.cliente.nome,
+                telefone: tel,
+                data_nascimento: data.cliente.data_nascimento
+            };
+
+            if (data.agendamentos.length === 0) {
+                // Tem cadastro mas sem agendamentos futuros
+                result.innerHTML = `
+                    <div style="background:var(--brand-light);padding:20px 16px;border-radius:20px;border:2px solid var(--brand-color);text-align:center;">
+                        <i class="bi bi-person-check-fill" style="font-size:2.5rem;color:var(--brand-color);margin-bottom:10px;display:block;"></i>
+                        <strong style="color:var(--brand-color);font-size:1.1rem;display:block;margin-bottom:8px;">Olá, ${data.cliente.nome.split(' ')[0]}!</strong>
+                        <p style="color:var(--text-muted);margin-bottom:18px;font-size:0.9rem;line-height:1.5;">Você não tem agendamentos futuros.</p>
+                        <button class="btn-action" onclick="agendarComDados();" style="margin-top:0;font-size:0.95rem;">
+                            <i class="bi bi-calendar-plus"></i> Agendar Agora
+                        </button>
+                    </div>
+                `;
+            } else {
+                // Tem agendamentos
+                let html = `
+                    <div style="background:var(--brand-light);padding:14px;border-radius:16px;margin-bottom:16px;border:1px solid var(--brand-color);">
+                        <strong style="color:var(--brand-color);display:block;margin-bottom:4px;font-size:0.95rem;">
+                            <i class="bi bi-person-check-fill"></i> ${data.cliente.nome}
+                        </strong>
+                        <small style="color:var(--text-muted);font-size:0.85rem;">Você tem ${data.agendamentos.length} agendamento(s) futuro(s)</small>
+                    </div>
+                `;
+
+                data.agendamentos.forEach(ag => {
+                    const [ano, mes, dia] = ag.data_agendamento.split('-');
+                    const dataFormatada = `${dia}/${mes}/${ano}`;
+                    const preco = parseFloat(ag.valor || 0).toFixed(2).replace('.', ',');
+                    
+                    html += `
+                        <div class="agendamento-card">
+                            <div class="agendamento-header">
+                                <div class="agendamento-icon">
+                                    <i class="bi bi-calendar-check"></i>
+                                </div>
+                                <div class="agendamento-info">
+                                    <div class="agendamento-servico">${ag.servico || 'Serviço'}</div>
+                                    <div class="agendamento-data">
+                                        <i class="bi bi-clock"></i> ${dataFormatada} às ${ag.horario}
+                                    </div>
+                                </div>
+                                <div class="agendamento-preco">R$ ${preco}</div>
+                            </div>
+                            ${ag.observacoes ? `<p style="color:var(--text-muted);font-size:0.85rem;margin:0;line-height:1.4;padding-top:4px;"><i class="bi bi-chat-left-text" style="font-size:0.9rem;"></i> ${ag.observacoes}</p>` : ''}
+                        </div>
+                    `;
+                });
+
+                html += `
+                    <button class="btn-action" onclick="agendarComDados();" style="margin-top:12px;width:100%;font-size:0.95rem;">
+                        <i class="bi bi-calendar-plus"></i> Fazer Novo Agendamento
+                    </button>
+                `;
+
+                result.innerHTML = html;
+            }
+        } catch (error) {
+            loading.style.display = 'none';
+            btnBuscar.disabled = false;
+            console.error('Erro ao buscar agendamentos:', error);
+            mostrarErro('Erro ao Buscar', 'Não foi possível buscar os agendamentos. Verifique sua conexão e tente novamente.');
+        }
+    }
+
+    function agendarComDados() {
+        fecharConsulta();
+        iniciarAgendamento();
+        
+        // Preencher dados após um pequeno delay para garantir que o DOM está pronto
+        setTimeout(() => {
+            if (dadosClienteConsulta) {
+                const telInput = document.getElementById('telInput');
+                const nomeInput = document.getElementById('nomeInput');
+                const nascInput = document.getElementById('nascInput');
+                
+                if (telInput) {
+                    telInput.value = dadosClienteConsulta.telefone;
+                    maskPhone(telInput);
+                }
+                if (nomeInput) nomeInput.value = dadosClienteConsulta.nome;
+                if (nascInput && dadosClienteConsulta.data_nascimento) {
+                    nascInput.value = dadosClienteConsulta.data_nascimento;
+                }
+                
+                // Mostrar card de boas-vindas
+                const welcomeCard = document.getElementById('welcomeCard');
+                const clientNameDisplay = document.getElementById('clientNameDisplay');
+                if (welcomeCard && clientNameDisplay) {
+                    clientNameDisplay.innerText = dadosClienteConsulta.nome.split(' ')[0];
+                    welcomeCard.style.display = 'flex';
+                }
+                
+                validateForm();
+            }
+        }, 300);
+    }
+
+    // ===== SELEÇÃO MÚLTIPLA DE SERVIÇOS =====
     function goToStep(step) {
         document.querySelectorAll('.step-screen').forEach(el => el.classList.remove('active'));
         document.getElementById('step' + step).classList.add('active');
@@ -1080,22 +2186,84 @@ $servicos = $stmt->fetchAll();
     }
 
     function selectService(el, id, nome, preco, duracao) {
-        document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected'));
-        el.classList.add('selected');
+        const isSelected = el.classList.contains('selected');
+        
+        if (isSelected) {
+            // Desselecionar
+            el.classList.remove('selected');
+            selectedServices = selectedServices.filter(s => s.id !== id);
+        } else {
+            // Selecionar
+            el.classList.add('selected');
+            selectedServices.push({ id, nome, preco: parseFloat(preco), duracao: parseInt(duracao) });
+        }
 
-        document.getElementById('inServicoId').value = id;
-        currentServiceDuration = parseInt(duracao);
+        updateSummary();
+    }
 
-        document.getElementById('bookingSummary').style.display = 'block';
-        document.getElementById('sumServico').innerText = nome;
-        document.getElementById('sumPreco').innerText =
-            'R$ ' + parseFloat(preco).toFixed(2).replace('.', ',');
+    function updateSummary() {
+        const summary = document.getElementById('bookingSummary');
+        const btnText = document.getElementById('btnContinuarText');
+        const btnContinuar = document.getElementById('btnContinuar');
+        
+        if (selectedServices.length === 0) {
+            summary.style.display = 'none';
+            if (btnText) btnText.innerText = 'Selecione um serviço';
+            if (btnContinuar) {
+                btnContinuar.disabled = true;
+                btnContinuar.style.opacity = '0.5';
+            }
+            // Esconde badge
+            const badge = document.getElementById('selectedBadge');
+            if (badge) badge.style.display = 'none';
+            return;
+        }
 
+        summary.style.display = 'block';
+        if (btnContinuar) {
+            btnContinuar.disabled = false;
+            btnContinuar.style.opacity = '1';
+        }
+        
+        const totalPreco = selectedServices.reduce((sum, s) => sum + s.preco, 0);
+        currentServiceDuration = selectedServices.reduce((sum, s) => sum + s.duracao, 0);
+        
+        const servicosIds = selectedServices.map(s => s.id).join(',');
+        document.getElementById('inServicoId').value = servicosIds;
+        
+        const nomesServicos = selectedServices.length === 1 
+            ? selectedServices[0].nome 
+            : `${selectedServices.length} serviços`;
+        
+        if (btnText) {
+            btnText.innerText = selectedServices.length === 1 
+                ? 'Continuar com 1 serviço'
+                : `Continuar com ${selectedServices.length} serviços`;
+        }
+        
+        document.getElementById('sumServico').innerText = nomesServicos;
+        document.getElementById('sumPreco').innerText = 'R$ ' + totalPreco.toFixed(2).replace('.', ',');
+        
+        // Atualiza badge flutuante
+        const badge = document.getElementById('selectedBadge');
+        const badgeCount = document.getElementById('selectedCount');
+        if (badge && badgeCount) {
+            badgeCount.innerText = selectedServices.length;
+            badge.style.display = 'flex';
+            badge.style.animation = 'bounceIn 0.5s ease-out';
+        }
+        
         document.getElementById('inData').value = '';
         document.getElementById('inHorario').value = '';
         document.getElementById('sumDataHora').innerText = '';
+    }
 
-        setTimeout(() => goToStep(2), 200);
+    function continuarParaHorario() {
+        if (selectedServices.length === 0) {
+            alert('Selecione pelo menos um serviço');
+            return;
+        }
+        goToStep(2);
     }
 
     function fetchTimes() {
@@ -1105,20 +2273,44 @@ $servicos = $stmt->fetchAll();
         const loader = document.getElementById('loadingTimes');
         const container = document.getElementById('timesContainer');
         const noTimes = document.getElementById('noTimesMsg');
+        const btnConfirmarHorario = document.getElementById('btnConfirmarHorario');
 
         container.innerHTML = '';
         noTimes.style.display = 'none';
         loader.style.display = 'block';
+        if (btnConfirmarHorario) {
+            btnConfirmarHorario.disabled = true;
+            btnConfirmarHorario.style.opacity = '0.5';
+        }
 
         fetch(`${CURRENT_PAGE}?user=${PROF_ID}&action=buscar_horarios&data=${dateVal}&duracao=${currentServiceDuration}`)
             .then(res => res.json())
             .then(slots => {
                 loader.style.display = 'none';
 
-                if (!slots.length) {
+                // Filtrar horários passados se a data for hoje
+                const selectedDate = new Date(dateVal + 'T00:00:00');
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                let availableSlots = slots;
+                if (selectedDate.getTime() === today.getTime()) {
+                    const now = new Date();
+                    const currentHour = now.getHours();
+                    const currentMinute = now.getMinutes();
+                    
+                    availableSlots = slots.filter(time => {
+                        const [hour, minute] = time.split(':').map(Number);
+                        const slotMinutes = hour * 60 + minute;
+                        const currentMinutes = currentHour * 60 + currentMinute;
+                        return slotMinutes > currentMinutes;
+                    });
+                }
+
+                if (!availableSlots.length) {
                     noTimes.style.display = 'block';
                 } else {
-                    slots.forEach(time => {
+                    availableSlots.forEach(time => {
                         const div = document.createElement('div');
                         div.className = 'time-slot';
                         div.innerText = time;
@@ -1139,7 +2331,77 @@ $servicos = $stmt->fetchAll();
         const [y, m, d] = dateVal.split('-');
         document.getElementById('sumDataHora').innerText = `${d}/${m}/${y} às ${time}`;
 
-        setTimeout(() => goToStep(3), 200);
+        // Habilitar botão confirmar horário
+        const btnConfirmarHorario = document.getElementById('btnConfirmarHorario');
+        if (btnConfirmarHorario) {
+            btnConfirmarHorario.disabled = false;
+            btnConfirmarHorario.style.opacity = '1';
+        }
+    }
+
+    function confirmarHorario() {
+        const dateVal = document.getElementById('inData').value;
+        const timeVal = document.getElementById('inHorario').value;
+        
+        if (!dateVal || !timeVal) {
+            mostrarErro('Selecione uma data e horário', 'Por favor, escolha um horário disponível antes de continuar.');
+            return;
+        }
+        
+        // Validar se a data não é passada
+        const [year, month, day] = dateVal.split('-').map(Number);
+        const [hour, minute] = timeVal.split(':').map(Number);
+        
+        const selectedDateTime = new Date(year, month - 1, day, hour, minute);
+        const now = new Date();
+        
+        if (selectedDateTime < now) {
+            mostrarErro(
+                'Horário Inválido', 
+                `Não é possível agendar para ${day.toString().padStart(2,'0')}/${month.toString().padStart(2,'0')}/${year} às ${timeVal} pois este horário já passou. Por favor, escolha um horário futuro.`
+            );
+            // Limpar seleção
+            document.querySelectorAll('.time-slot').forEach(t => t.classList.remove('selected'));
+            document.getElementById('inHorario').value = '';
+            document.getElementById('sumDataHora').innerText = '';
+            const btnConfirmarHorario = document.getElementById('btnConfirmarHorario');
+            if (btnConfirmarHorario) {
+                btnConfirmarHorario.disabled = true;
+                btnConfirmarHorario.style.opacity = '0.5';
+            }
+            return;
+        }
+        
+        // Horário válido, avançar para próxima etapa
+        goToStep(3);
+    }
+    
+    function mostrarErro(titulo, mensagem) {
+        document.getElementById('errorTitle').innerText = titulo;
+        document.getElementById('errorMessage').innerText = mensagem;
+        document.getElementById('errorModal').classList.add('active');
+    }
+    
+    function fecharErro() {
+        document.getElementById('errorModal').classList.remove('active');
+    }
+
+    function validateForm() {
+        const telInput = document.getElementById('telInput');
+        const nomeInput = document.getElementById('nomeInput');
+        const btn = document.getElementById('btnConfirmar');
+        
+        const tel = telInput.value.replace(/\D/g, '');
+        const nome = nomeInput.value.trim();
+        
+        // Habilita botão se telefone (10+ dígitos) e nome estiverem preenchidos
+        if (tel.length >= 10 && nome.length >= 3) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+        } else {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+        }
     }
 
     function checkClient() {
@@ -1153,7 +2415,6 @@ $servicos = $stmt->fetchAll();
         const loading = document.getElementById('cpfLoading');
 
         if (tel.length < 10) {
-            btn.disabled = true;
             return;
         }
 
@@ -1178,12 +2439,12 @@ $servicos = $stmt->fetchAll();
                     nomeIn.value = '';
                     nascIn.value = '';
                 }
-                btn.disabled = false;
+                validateForm();
             })
             .catch(() => {
                 loading.style.display = 'none';
                 newFields.style.display = 'block';
-                btn.disabled = false;
+                validateForm();
             });
     }
 
@@ -1218,6 +2479,24 @@ $servicos = $stmt->fetchAll();
         </a>
     </div>
 </footer>
+
+<!-- Floating Badge de Serviços Selecionados -->
+<div class="selected-services-badge" id="selectedBadge" style="display:none;">
+    <i class="bi bi-check2-circle"></i>
+    <span id="selectedCount">0</span>
+</div>
+
+<!-- Modal de Erro -->
+<div class="error-modal" id="errorModal">
+    <div class="error-content">
+        <div class="error-icon">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <div class="error-title" id="errorTitle">Atenção!</div>
+        <div class="error-message" id="errorMessage"></div>
+        <button class="error-btn" onclick="fecharErro()">Entendi</button>
+    </div>
+</div>
 
 </body> 
 </html>
