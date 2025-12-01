@@ -83,6 +83,23 @@ if (!empty($profissional['foto'])) {
     // Debug apenas em desenvolvimento (comentar em produção)
     // if ($temFoto) error_log("Foto encontrada: $fotoPerfil");
     // else error_log("Foto não encontrada. Valor no banco: " . $profissional['foto']);
+}
+
+// 🔹 NORMALIZAÇÃO DO CAMINHO DA FOTO PARA COMPARTILHAMENTO
+if ($temFoto) {
+    // Se já é uma URL absoluta (http/https), deixa como está
+    if (preg_match('#^https?://#', $fotoPerfil)) {
+        // URL absoluta, não mexe
+    } else {
+        // Garante que é um caminho relativo começando com /
+        // Remove possíveis duplicações de /karen_site/controle-salao
+        $fotoPerfil = '/' . ltrim($fotoPerfil, '/');
+        
+        // Se estiver em localhost e tiver /karen_site no path, remove duplicações
+        if (!$isProd && strpos($fotoPerfil, '/karen_site/controle-salao/') !== false) {
+            $fotoPerfil = preg_replace('#^(/karen_site/controle-salao)+#', '/karen_site/controle-salao', $fotoPerfil);
+        }
+    }
 } 
  
 // --- CONFIGURAÇÃO DE CORES (AGORA VEM DO BANCO) --- 
@@ -593,18 +610,38 @@ foreach ($todosServicos as $s) {
         <meta property="og:type" content="website">
         <meta property="og:title" content="<?php echo htmlspecialchars($nomeEstabelecimento); ?> - Agende Online">
         <meta property="og:description" content="<?php echo htmlspecialchars($biografia); ?> Agende seu horário de forma rápida e fácil.">
-        <?php if ($temFoto): ?>
-        <meta property="og:image" content="<?php echo $isProd ? 'https://salao.develoi.com' : 'http://'.$_SERVER['HTTP_HOST'].'/karen_site/controle-salao'; ?><?php echo htmlspecialchars($fotoPerfil); ?>">
-        <?php endif; ?>
+        <?php 
+        // Base da aplicação
+        $baseUrl = $isProd 
+            ? 'https://salao.develoi.com' 
+            : 'http://' . $_SERVER['HTTP_HOST'] . '/karen_site/controle-salao';
+
+        // Monta a URL da imagem para compartilhamento
+        if ($temFoto) {
+            // Se já é URL absoluta (https://...), usa direto
+            if (preg_match('#^https?://#', $fotoPerfil)) {
+                $imagemCompartilhamento = $fotoPerfil;
+            } else {
+                // Caminho relativo → remove barras duplicadas e junta com a base
+                $fotoPerfil = '/' . ltrim($fotoPerfil, '/');
+                $imagemCompartilhamento = rtrim($baseUrl, '/') . $fotoPerfil;
+            }
+        } else {
+            // Sem foto → usa logo do sistema
+            $imagemCompartilhamento = $baseUrl . '/img/logo-azul.png';
+        }
+        ?>
+        <meta property="og:image" content="<?php echo $imagemCompartilhamento; ?>">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
+        <meta property="og:image:alt" content="<?php echo htmlspecialchars($nomeEstabelecimento); ?>">
         <meta property="og:url" content="<?php echo $isProd ? 'https://salao.develoi.com/agendar?user=' : 'http://'.$_SERVER['HTTP_HOST'].'/karen_site/controle-salao/agendar.php?user='; ?><?php echo $profissionalId; ?>">
         
         <!-- Twitter -->
         <meta property="twitter:card" content="summary_large_image">
         <meta property="twitter:title" content="<?php echo htmlspecialchars($nomeEstabelecimento); ?> - Agende Online">
         <meta property="twitter:description" content="<?php echo htmlspecialchars($biografia); ?>">
-        <?php if ($temFoto): ?>
-        <meta property="twitter:image" content="<?php echo $isProd ? 'https://salao.develoi.com' : 'http://'.$_SERVER['HTTP_HOST'].'/karen_site/controle-salao'; ?><?php echo htmlspecialchars($fotoPerfil); ?>">
-        <?php endif; ?>
+        <meta property="twitter:image" content="<?php echo $imagemCompartilhamento; ?>">
         
         <!-- Canonical URL -->
         <link rel="canonical" href="<?php echo $isProd ? 'https://salao.develoi.com/agendar?user=' : 'http://'.$_SERVER['HTTP_HOST'].'/karen_site/controle-salao/agendar.php?user='; ?><?php echo $profissionalId; ?>">
@@ -616,7 +653,7 @@ foreach ($todosServicos as $s) {
           "@type": "LocalBusiness",
           "name": "<?php echo htmlspecialchars($nomeEstabelecimento); ?>",
           "description": "<?php echo htmlspecialchars($biografia); ?>",
-          <?php if ($temFoto): ?>"image": "<?php echo $isProd ? 'https://salao.develoi.com' : 'http://'.$_SERVER['HTTP_HOST'].'/karen_site/controle-salao'; ?><?php echo htmlspecialchars($fotoPerfil); ?>",<?php endif; ?>
+          "image": "<?php echo $imagemCompartilhamento; ?>",
           <?php if ($telefone): ?>"telephone": "<?php echo htmlspecialchars($telefone); ?>",<?php endif; ?>
           <?php if ($enderecoCompleto): ?>"address": "<?php echo htmlspecialchars($enderecoCompleto); ?>",<?php endif; ?>
           "priceRange": "$$",
