@@ -777,7 +777,7 @@ include '../../includes/menu.php';
         </div>
         <div class="link-input-group">
             <input type="text" class="link-input" id="linkAgendamento" value="<?php echo htmlspecialchars($linkAgendamento); ?>" readonly>
-            <button class="btn-copy-link" onclick="copiarLink()">
+            <button class="btn-copy-link" onclick="copiarLink(event)">
                 <i class="bi bi-clipboard-check"></i>
                 Copiar
             </button>
@@ -1054,13 +1054,16 @@ function renderCard($ag, $clientes) {
     }
 
     // --- FUNÇÕES DO LINK DE AGENDAMENTO ---
-    function copiarLink() {
+    function copiarLink(ev) {
         const linkInput = document.getElementById('linkAgendamento');
+        if (!linkInput) return;
+
         linkInput.select();
-        linkInput.setSelectionRange(0, 99999); // Para mobile
-        
-        navigator.clipboard.writeText(linkInput.value).then(() => {
-            const btn = event.target.closest('.btn-copy-link');
+        linkInput.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(linkInput.value);
+
+        const btn = ev.currentTarget;
+        if (btn) {
             const originalHTML = btn.innerHTML;
             btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Copiado!';
             btn.style.background = 'rgba(16,185,129,0.95)';
@@ -1071,9 +1074,7 @@ function renderCard($ag, $clientes) {
                 btn.style.background = 'rgba(255,255,255,0.95)';
                 btn.style.color = '#667eea';
             }, 2000);
-        }).catch(err => {
-            alert('Erro ao copiar. Tente selecionar e copiar manualmente.');
-        });
+        }
     }
 
     function compartilharLink() {
