@@ -54,8 +54,19 @@ if (!empty($profissional['bairro'])) $enderecoCompleto .= ' - ' . $profissional[
  
 // Foto / Logo 
 $fotoPerfil = ''; 
-$iniciais   = strtoupper(mb_substr($nomeEstabelecimento, 0, 1)); 
-$temFoto    = false; 
+$temFoto    = false;
+
+// Gerar iniciais (primeira letra do primeiro nome + primeira letra do último nome)
+$partesNome = explode(' ', trim($nomeEstabelecimento));
+if (count($partesNome) > 1) {
+    // Tem nome e sobrenome
+    $primeiraLetra = mb_substr($partesNome[0], 0, 1);
+    $ultimaLetra = mb_substr(end($partesNome), 0, 1);
+    $iniciais = strtoupper($primeiraLetra . $ultimaLetra);
+} else {
+    // Só tem um nome
+    $iniciais = strtoupper(mb_substr($nomeEstabelecimento, 0, 1));
+} 
  
 if (!empty($profissional['foto'])) {
     $caminhosFoto = [
@@ -847,6 +858,40 @@ foreach ($todosServicos as $s) {
             height: 100%;
             font-family: 'Outfit', sans-serif;
             letter-spacing: -0.02em;
+        }
+
+        .success-logo {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 24px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 20px 60px rgba(16, 185, 129, 0.3);
+            border: 5px solid #10b981;
+            overflow: hidden;
+        }
+
+        .success-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .success-logo .logo-initial {
+            font-size: 2.6rem;
+            font-weight: 800;
+            color: var(--brand-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            font-family: 'Outfit', sans-serif;
+            letter-spacing: -0.02em;
         } 
  
         .business-name { 
@@ -1390,10 +1435,52 @@ foreach ($todosServicos as $s) {
             max-width: 800px;
             margin: 0 auto;
             display: flex;
-            flex-direction: row;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
+        }
+        
+        .footer-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .footer-action {
+            flex-shrink: 0;
+        }
+        
+        .footer-action-btn {
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(135deg, var(--brand-color), var(--brand-dark));
+            color: #ffffff;
+            font-size: 0.9rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        .footer-action-btn i {
+            font-size: 1rem;
+        }
+        
+        .footer-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.25);
+        }
+        
+        .footer-action-btn:disabled {
+            background: #cbd5e1;
+            box-shadow: none;
+            cursor: not-allowed;
         }
         
         .footer-logo {
@@ -1427,6 +1514,50 @@ foreach ($todosServicos as $s) {
             color: var(--text-muted);
         }
         
+        .footer-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            text-align: center;
+        }
+        
+        .footer-action {
+            flex-shrink: 0;
+        }
+        
+        .footer-action-btn {
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(135deg, var(--brand-color), var(--brand-dark));
+            color: #ffffff;
+            font-size: 0.9rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        .footer-action-btn i {
+            font-size: 1rem;
+        }
+        
+        .footer-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.25);
+        }
+        
+        .footer-action-btn:disabled {
+            background: #cbd5e1;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+        
         @media (max-width: 640px) {
             .footer-develoi {
                 padding: 12px 16px;
@@ -1439,6 +1570,12 @@ foreach ($todosServicos as $s) {
             
             .footer-text {
                 font-size: 0.65rem;
+                display: none;
+            }
+            
+            .footer-action-btn {
+                padding: 10px 14px;
+                font-size: 0.85rem;
             }
             
             .footer-logo {
@@ -2090,7 +2227,7 @@ foreach ($todosServicos as $s) {
         /* Selected Services Badge */
         .selected-services-badge {
             position: fixed;
-            bottom: 20px;
+            bottom: 90px;
             right: 20px;
             background: linear-gradient(135deg, var(--brand-color), var(--brand-dark));
             color: white;
@@ -2102,7 +2239,7 @@ foreach ($todosServicos as $s) {
             display: none;
             align-items: center;
             gap: 8px;
-            z-index: 100;
+            z-index: 1001;
             animation: bounceIn 0.5s ease-out;
             cursor: pointer;
         }
@@ -2125,11 +2262,11 @@ foreach ($todosServicos as $s) {
             <?php if ($temFoto): ?>
                 <img src="<?php echo htmlspecialchars($fotoPerfil); ?>" 
                      style="width:100%;height:100%;object-fit:cover;border-radius:50%;"
-                     alt="<?php echo htmlspecialchars($nomeEstabelecimento); ?>">
+                     alt="<?php echo htmlspecialchars($nomeEstabelecimento); ?>"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="logo-initial" style="display:none;"><?php echo $iniciais; ?></div>
             <?php else: ?>
-                <img src="img/logo-D.png" 
-                     style="width:70%;height:70%;object-fit:contain;"
-                     alt="Develoi">
+                <div class="logo-initial"><?php echo $iniciais; ?></div>
             <?php endif; ?>
         </div>
         <div class="splash-text"><?php echo htmlspecialchars($nomeEstabelecimento); ?></div>
@@ -2296,15 +2433,14 @@ foreach ($todosServicos as $s) {
         <?php if ($sucesso): ?> 
             <div style="text-align:center; padding:50px 20px;">
                 <!-- Logo/Foto do Estabelecimento -->
-                <div style="width:120px; height:120px; margin:0 auto 24px; background:white; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 20px 60px rgba(16, 185, 129, 0.3); border:5px solid #10b981; overflow:hidden;">
+                <div class="success-logo">
                     <?php if ($temFoto): ?>
                         <img src="<?php echo htmlspecialchars($fotoPerfil); ?>" 
-                             style="width:100%;height:100%;object-fit:cover;"
-                             alt="<?php echo htmlspecialchars($nomeEstabelecimento); ?>">
+                             alt="<?php echo htmlspecialchars($nomeEstabelecimento); ?>"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="logo-initial" style="display:none;"><?php echo $iniciais; ?></div>
                     <?php else: ?>
-                        <img src="img/logo-D.png" 
-                             style="width:70%;height:70%;object-fit:contain;"
-                             alt="Develoi">
+                        <div class="logo-initial"><?php echo $iniciais; ?></div>
                     <?php endif; ?>
                 </div>
                 <h2 class="card-title" style="color:#10b981; margin-bottom:16px;">Agendamento Confirmado!</h2> 
@@ -2770,6 +2906,37 @@ foreach ($todosServicos as $s) {
             if (index + 1 === step) el.classList.add('active');
             if (index + 1 < step) el.classList.add('done');
         });
+
+        // controla visibilidade do botão no rodapé
+        const footerAction = document.getElementById('footerAction');
+        const footerActionBtn = document.getElementById('footerActionButton');
+        const footerActionText = document.getElementById('footerActionText');
+        
+        if (footerAction && footerActionBtn && footerActionText) {
+            if (step === 1 && selectedServices.length > 0) {
+                // Passo 1: Botão "Continuar com X serviços"
+                footerAction.style.display = 'flex';
+                footerActionBtn.onclick = continuarParaHorario;
+                footerActionText.innerText = selectedServices.length === 1
+                    ? 'Continuar com 1 serviço'
+                    : `Continuar com ${selectedServices.length} serviços`;
+            } else if (step === 2) {
+                // Passo 2: Botão "Confirmar Horário"
+                const horarioSelecionado = document.getElementById('inHorario').value;
+                if (horarioSelecionado) {
+                    footerAction.style.display = 'flex';
+                    footerActionBtn.onclick = confirmarHorario;
+                    footerActionText.innerText = 'Confirmar Horário';
+                } else {
+                    footerAction.style.display = 'none';
+                }
+            } else if (step === 3) {
+                // Passo 3: Esconde o botão (usa o botão do formulário)
+                footerAction.style.display = 'none';
+            } else {
+                footerAction.style.display = 'none';
+            }
+        }
     }
 
     function selectService(el, id, nome, preco, duracao) {
@@ -2792,6 +2959,10 @@ foreach ($todosServicos as $s) {
         const summary = document.getElementById('bookingSummary');
         const btnText = document.getElementById('btnContinuarText');
         const btnContinuar = document.getElementById('btnContinuar');
+
+        const footerAction     = document.getElementById('footerAction');
+        const footerActionBtn  = document.getElementById('footerActionButton');
+        const footerActionText = document.getElementById('footerActionText');
         
         if (selectedServices.length === 0) {
             summary.style.display = 'none';
@@ -2800,6 +2971,11 @@ foreach ($todosServicos as $s) {
                 btnContinuar.disabled = true;
                 btnContinuar.style.opacity = '0.5';
             }
+
+            // some o botão do rodapé
+            if (footerAction) footerAction.style.display = 'none';
+            if (footerActionBtn) footerActionBtn.disabled = true;
+
             // Esconde badge
             const badge = document.getElementById('selectedBadge');
             if (badge) badge.style.display = 'none';
@@ -2831,6 +3007,15 @@ foreach ($todosServicos as $s) {
         document.getElementById('sumServico').innerText = nomesServicos;
         document.getElementById('sumPreco').innerText = 'R$ ' + totalPreco.toFixed(2).replace('.', ',');
         
+        // Atualiza botão do rodapé
+        if (footerAction && footerActionBtn && footerActionText) {
+            footerAction.style.display = 'flex';
+            footerActionBtn.disabled = false;
+            footerActionText.innerText = selectedServices.length === 1
+                ? 'Continuar com 1 serviço'
+                : `Continuar com ${selectedServices.length} serviços`;
+        }
+
         // Atualiza badge flutuante
         const badge = document.getElementById('selectedBadge');
         const badgeCount = document.getElementById('selectedCount');
@@ -2924,6 +3109,16 @@ foreach ($todosServicos as $s) {
             btnConfirmarHorario.disabled = false;
             btnConfirmarHorario.style.opacity = '1';
         }
+
+        // Mostrar botão no rodapé
+        const footerAction = document.getElementById('footerAction');
+        const footerActionBtn = document.getElementById('footerActionButton');
+        const footerActionText = document.getElementById('footerActionText');
+        if (footerAction && footerActionBtn && footerActionText) {
+            footerAction.style.display = 'flex';
+            footerActionBtn.onclick = confirmarHorario;
+            footerActionText.innerText = 'Confirmar Horário';
+        }
     }
 
     function confirmarHorario() {
@@ -2935,14 +3130,20 @@ foreach ($todosServicos as $s) {
             return;
         }
         
-        // Validar se a data não é passada
+        // Validar se a data/hora não é passada (apenas para data de HOJE)
         const [year, month, day] = dateVal.split('-').map(Number);
         const [hour, minute] = timeVal.split(':').map(Number);
         
         const selectedDateTime = new Date(year, month - 1, day, hour, minute);
         const now = new Date();
         
-        if (selectedDateTime < now) {
+        // Apenas valida se for HOJE
+        const selectedDate = new Date(year, month - 1, day);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        selectedDate.setHours(0, 0, 0, 0);
+        
+        if (selectedDate.getTime() === today.getTime() && selectedDateTime < now) {
             mostrarErro(
                 'Horário Inválido', 
                 `Não é possível agendar para ${day.toString().padStart(2,'0')}/${month.toString().padStart(2,'0')}/${year} às ${timeVal} pois este horário já passou. Por favor, escolha um horário futuro.`
@@ -3060,13 +3261,26 @@ foreach ($todosServicos as $s) {
 
 <footer class="footer-develoi">
     <div class="footer-content">
-        <div class="footer-text">
-            Tecnologia desenvolvida por
+        <div class="footer-info">
+            <div class="footer-text">
+                Tecnologia desenvolvida por
+            </div>
+            <a href="https://develoi.com/" target="_blank" rel="noopener noreferrer" class="footer-logo">
+                <img src="img/logo-D.png" alt="Develoi">
+                <span>Develoi</span>
+            </a>
         </div>
-        <a href="https://develoi.com/" target="_blank" rel="noopener noreferrer" class="footer-logo">
-            <img src="img/logo-D.png" alt="Develoi">
-            <span>Develoi</span>
-        </a>
+
+        <!-- NOVA ÁREA DE AÇÃO -->
+        <div class="footer-action" id="footerAction" style="display:none;">
+            <button type="button"
+                    class="footer-action-btn"
+                    id="footerActionButton"
+                    onclick="continuarParaHorario()">
+                <span id="footerActionText">Continuar</span>
+                <i class="bi bi-arrow-right"></i>
+            </button>
+        </div>
     </div>
 </footer>
 
