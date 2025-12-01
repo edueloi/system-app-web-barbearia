@@ -812,26 +812,33 @@ $servicos = $stmt->fetchAll();
                 gap: 10px;
             }
             .main-content {
-                padding: 16px;
+                padding: 14px 12px;
             }
             .service-card {
-                grid-template-columns: 70px 1fr;
-                gap: 12px;
+                grid-template-columns: 1fr auto;
+                padding: 12px 14px;
+                border-radius: 16px;
+                box-shadow: 0 6px 16px rgba(15,23,42,0.08);
+                gap: 10px;
+            }
+            .service-card.no-image {
+                padding: 12px 14px;
             }
             .service-img {
-                width: 70px;
-                height: 70px;
-                border-radius: 50%;
-                border-width: 2px;
+                width: 56px;
+                height: 56px;
+                border-radius: 999px;
+                box-shadow: 0 3px 8px rgba(15,23,42,0.15);
             }
             .service-content {
-                padding: 12px 0;
+                padding: 0;
             }
             .service-title {
                 font-size: 0.95rem;
+                margin-bottom: 4px;
             }
             .service-description {
-                font-size: 0.8rem;
+                font-size: 0.78rem;
                 -webkit-line-clamp: 1;
                 margin-bottom: 6px;
             }
@@ -840,14 +847,13 @@ $servicos = $stmt->fetchAll();
                 padding: 3px 8px;
             }
             .service-price-wrapper {
-                grid-column: 2;
-                padding: 0 12px 12px 0;
-                flex-direction: row;
-                justify-content: space-between;
+                padding: 0;
                 align-items: center;
+                justify-content: flex-end;
+                gap: 4px;
             }
             .service-price {
-                font-size: 1.1rem;
+                font-size: 1.05rem;
             }
         }
 
@@ -1052,6 +1058,20 @@ $servicos = $stmt->fetchAll();
             border: 3px solid white;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
+        }
+        
+        /* Card quando não tem imagem do serviço */
+        .service-card.no-image {
+            grid-template-columns: 1fr auto;
+            padding: 16px 18px;
+        }
+        
+        .service-card.no-image .service-content {
+            padding: 0;
+        }
+        
+        .service-card.no-image .service-price-wrapper {
+            padding: 0;
         }
         
         .service-img img {
@@ -1460,12 +1480,12 @@ $servicos = $stmt->fetchAll();
         }
         
         .btn-welcome {
-            padding: 20px 32px;
+            padding: 16px 26px;
             background: linear-gradient(135deg, var(--brand-color), var(--brand-dark));
             color: white;
             border: none;
             border-radius: 999px;
-            font-size: 1.05rem;
+            font-size: 1rem;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -1474,6 +1494,21 @@ $servicos = $stmt->fetchAll();
             justify-content: center;
             gap: 12px;
             box-shadow: 0 10px 30px -5px rgba(0,0,0,0.2);
+        }
+        
+        .btn-welcome-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.18);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .btn-welcome-icon i {
+            font-size: 0.95rem;
         }
         
         .btn-welcome:hover {
@@ -1703,6 +1738,29 @@ $servicos = $stmt->fetchAll();
             .btn-action {
                 padding: 14px 18px;
                 font-size: 0.9rem;
+            }
+            
+            .service-card {
+                padding: 10px 12px;
+                border-radius: 14px;
+                box-shadow: 0 4px 12px rgba(15,23,42,0.06);
+            }
+            
+            .service-img {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .service-title {
+                font-size: 0.9rem;
+            }
+            
+            .service-description {
+                font-size: 0.74rem;
+            }
+            
+            .service-price {
+                font-size: 1rem;
                 border-radius: 999px;
                 margin-top: 18px;
             }
@@ -1785,6 +1843,51 @@ $servicos = $stmt->fetchAll();
             }
             
             .no-agendamento-text {
+                font-size: 0.9rem;
+            }
+        }
+        
+        /* Botões menores e mais delicados no celular */
+        @media (max-width: 480px) {
+            .welcome-screen {
+                padding: 24px 16px;
+            }
+
+            .welcome-logo {
+                width: 80px;
+                height: 80px;
+                margin-bottom: 18px;
+            }
+
+            .welcome-title {
+                font-size: 1.4rem;
+            }
+
+            .welcome-subtitle {
+                font-size: 0.9rem;
+                margin-bottom: 24px;
+            }
+
+            .welcome-options {
+                gap: 10px;
+                max-width: 320px;
+                margin: 0 auto;
+            }
+
+            .btn-welcome {
+                padding: 12px 18px;
+                font-size: 0.9rem;
+                border-radius: 999px;
+                gap: 8px;
+                box-shadow: 0 6px 18px -4px rgba(0,0,0,0.2);
+            }
+            
+            .btn-welcome-icon {
+                width: 26px;
+                height: 26px;
+            }
+
+            .btn-welcome-icon i {
                 font-size: 0.9rem;
             }
         }
@@ -1926,11 +2029,15 @@ $servicos = $stmt->fetchAll();
         <p class="welcome-subtitle">Escolha como deseja continuar</p>
         <div class="welcome-options">
             <button class="btn-welcome" onclick="iniciarAgendamento()">
-                <i class="bi bi-calendar-plus"></i>
+                <span class="btn-welcome-icon">
+                    <i class="bi bi-calendar-plus"></i>
+                </span>
                 Novo Agendamento
             </button>
             <button class="btn-welcome secondary" onclick="abrirConsulta()">
-                <i class="bi bi-search"></i>
+                <span class="btn-welcome-icon">
+                    <i class="bi bi-search"></i>
+                </span>
                 Consultar Meu Agendamento
             </button>
         </div>
@@ -2057,8 +2164,19 @@ $servicos = $stmt->fetchAll();
                 </div>
                 <?php
                 $whats = preg_replace('/[^0-9]/', '', $profissional['telefone'] ?? '');
-                $msg   = rawurlencode(
-                    "Olá! Acabei de agendar o serviço: {$servicoConfirmado} para {$dataConfirmada} às {$horaConfirmada}. Obrigado!"
+                
+                // Formata data em português
+                $dataFormatada = date('d/m/Y', strtotime($dataConfirmada));
+                $diasSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+                $diaSemana = $diasSemana[date('w', strtotime($dataConfirmada))];
+                
+                $msg = rawurlencode(
+                    "Olá! 👋\n\n" .
+                    "Gostaria de *confirmar meu agendamento*:\n\n" .
+                    "📌 *Serviço:* {$servicoConfirmado}\n" .
+                    "📅 *Data:* {$diaSemana}, {$dataFormatada}\n" .
+                    "🕐 *Horário:* {$horaConfirmada}\n\n" .
+                    "Aguardo a confirmação. Obrigado! 😊"
                 );
                 ?>
                 <?php if ($whats): ?>
@@ -2100,17 +2218,20 @@ $servicos = $stmt->fetchAll();
  
                     <div> 
                         <?php foreach ($servicos as $s): ?> 
-                            <div class="service-card" 
+                            <?php
+                                $caminhoFotoServico = !empty($s['foto']) ? __DIR__ . '/' . ltrim($s['foto'], '/') : '';
+                                $temFotoServico = !empty($s['foto']) && file_exists($caminhoFotoServico);
+                            ?>
+                            <div class="service-card <?php echo $temFotoServico ? '' : 'no-image'; ?>"
                                  onclick="selectService(this, '<?php echo $s['id']; ?>', '<?php echo $s['nome']; ?>', '<?php echo $s['preco']; ?>', '<?php echo $s['duracao']; ?>')"> 
-                                
-                                <div class="service-img">
-                                    <?php if (!empty($s['foto']) && file_exists(__DIR__ . '/' . $s['foto'])): ?>
-                                        <img src="<?php echo htmlspecialchars($s['foto']); ?>" alt="<?php echo htmlspecialchars($s['nome']); ?>">
-                                    <?php else: ?>
-                                        <i class="bi <?php echo $iconeServico; ?> service-img-placeholder"></i>
-                                    <?php endif; ?>
-                                </div>
-                                
+
+                                <?php if ($temFotoServico): ?>
+                                    <div class="service-img">
+                                        <img src="<?php echo htmlspecialchars($s['foto']); ?>"
+                                             alt="<?php echo htmlspecialchars($s['nome']); ?>">
+                                    </div>
+                                <?php endif; ?>
+
                                 <div class="service-content">
                                     <h3 class="service-title"><?php echo htmlspecialchars($s['nome']); ?></h3>
                                     <?php if (!empty($s['observacao'])): ?>
