@@ -356,6 +356,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmtNotif->execute([$profissionalId, $mensagemNotif, $linkNotif]);
 
         // ===============================
+        // NOTIFICAR BOT WHATSAPP
+        // ===============================
+        require_once __DIR__ . '/includes/notificar_bot.php';
+        notificarBotNovoAgendamento($pdo, $idAgendamento);
+
+        // ===============================
         // ENVIAR EMAIL DE NOTIFICAÇÃO
         // ===============================
         
