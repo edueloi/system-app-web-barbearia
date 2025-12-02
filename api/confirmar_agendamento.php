@@ -15,6 +15,8 @@ $userId = $_SESSION['user_id'];
 
 // Incluir conexão com banco
 require_once __DIR__ . '/../includes/db.php';
+// 🔔 incluir helper do BOT
+require_once __DIR__ . '/../includes/notificar_bot.php';
 
 // Verificar se ID foi enviado
 if (!isset($_POST['id']) || empty($_POST['id'])) {
@@ -62,6 +64,10 @@ try {
     
     // Verificar se atualizou
     if ($stmt->rowCount() > 0) {
+
+        // ✅ Notifica o bot sobre a confirmação (envia mensagem para o CLIENTE)
+        notificarBotAgendamentoConfirmado($pdo, $agendamentoId);
+
         echo json_encode([
             'success' => true, 
             'message' => 'Agendamento confirmado com sucesso!'
