@@ -264,6 +264,52 @@ try {
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN indicado_por TEXT"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN valor_mensal REAL DEFAULT 19.90"); } catch (Exception $e) {}
 
+    // ========================================================= 
+    // RECORRÊNCIA DE AGENDAMENTOS
+    // ========================================================= 
+    
+    // Campos de recorrência na tabela servicos
+    try { $pdo->exec("ALTER TABLE servicos ADD COLUMN permite_recorrencia INTEGER DEFAULT 0"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE servicos ADD COLUMN tipo_recorrencia TEXT DEFAULT 'sem_recorrencia'"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE servicos ADD COLUMN intervalo_dias INTEGER DEFAULT 1"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE servicos ADD COLUMN duracao_meses INTEGER DEFAULT 1"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE servicos ADD COLUMN qtd_ocorrencias INTEGER DEFAULT 1"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE servicos ADD COLUMN dias_semana TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE servicos ADD COLUMN dia_fixo_mes INTEGER"); } catch (Exception $e) {}
+    
+    // Tabela de séries de agendamentos recorrentes
+    $pdo->exec("CREATE TABLE IF NOT EXISTS agendamentos_recorrentes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        serie_id TEXT NOT NULL UNIQUE,
+        cliente_id INTEGER,
+        cliente_nome TEXT NOT NULL,
+        servico_id INTEGER,
+        servico_nome TEXT NOT NULL,
+        valor REAL DEFAULT 0,
+        horario TIME NOT NULL,
+        tipo_recorrencia TEXT NOT NULL,
+        intervalo_dias INTEGER DEFAULT 1,
+        dias_semana TEXT,
+        dia_fixo_mes INTEGER,
+        data_inicio DATE NOT NULL,
+        data_fim DATE,
+        qtd_total INTEGER NOT NULL,
+        observacoes TEXT,
+        ativo INTEGER DEFAULT 1,
+        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+    
+    // Campos para vincular agendamentos com séries recorrentes
+    try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN serie_id TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN indice_serie INTEGER DEFAULT 1"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN e_recorrente INTEGER DEFAULT 0"); } catch (Exception $e) {}
+    
+    // Índices para performance
+    try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_agendamentos_serie ON agendamentos(serie_id)"); } catch (Exception $e) {}
+    try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_agendamentos_recorrentes_serie ON agendamentos_recorrentes(serie_id)"); } catch (Exception $e) {}
+    try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_agendamentos_recorrentes_user ON agendamentos_recorrentes(user_id)"); } catch (Exception $e) {}
+
     // =========================================================
     // SEED ADMIN (usuário ID 1, vitalício)
     // =========================================================

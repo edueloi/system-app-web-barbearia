@@ -59,9 +59,34 @@ function redirect($data, $view) {
 try {
     // 2.1 Excluir Agendamento
     if (isset($_GET['delete'])) {
+        require_once __DIR__ . '/../../includes/recorrencia_helper.php';
+        
         $id = (int)$_GET['delete'];
-        $stmt = $pdo->prepare("DELETE FROM agendamentos WHERE id=? AND user_id=?");
+        $tipoExclusao = $_GET['tipo_exclusao'] ?? 'unico'; // 'unico', 'proximos', 'serie'
+        
+        // Verificar se é agendamento recorrente
+        $stmt = $pdo->prepare("SELECT serie_id, e_recorrente FROM agendamentos WHERE id=? AND user_id=?");
         $stmt->execute([$id, $userId]);
+        $agendamento = $stmt->fetch();
+        
+        if ($agendamento && $agendamento['e_recorrente'] && !empty($agendamento['serie_id'])) {
+            // É recorrente - aplicar lógica de exclusão
+            if ($tipoExclusao === 'serie') {
+                // Excluir toda a série
+                cancelarSerieCompleta($pdo, $agendamento['serie_id'], $userId);
+            } elseif ($tipoExclusao === 'proximos') {
+                // Excluir este e os próximos
+                cancelarOcorrenciaEProximas($pdo, $id, $userId);
+            } else {
+                // Excluir apenas este
+                cancelarOcorrencia($pdo, $id, $userId);
+            }
+        } else {
+            // Agendamento único - exclusão simples
+            $stmt = $pdo->prepare("DELETE FROM agendamentos WHERE id=? AND user_id=?");
+            $stmt->execute([$id, $userId]);
+        }
+        
         redirect($dataExibida, $viewType);
     }
 
@@ -74,30 +99,54 @@ try {
 
     // 2.3 Novo Agendamento (POST)
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['novo_agendamento'])) {
+        require_once __DIR__ . '/../../includes/recorrencia_helper.php';
+        
         $cliente   = trim($_POST['cliente']);
+        $servicoId = !empty($_POST['servico_id']) ? (int)$_POST['servico_id'] : null;
         $servicoNome = trim($_POST['servico_nome'] ?? '');
         $valor     = str_replace(',', '.', $_POST['valor']);
         $horario   = $_POST['horario'];
         $obs       = trim($_POST['obs']);
         $dataAg    = $_POST['data_agendamento'] ?? $dataExibida;
+        $clienteId = !empty($_POST['cliente_id']) ? (int)$_POST['cliente_id'] : null;
 
         // Validação de segurança: Impede data passada no backend
         if ($dataAg < $hoje) { 
             $dataAg = $hoje; 
         }
 
-        // Busca nome do serviço
-        if ($servicoNome) {
-            $nomeServico = $servicoNome;
-        } else {
+        // Busca nome do serviço se não foi fornecido
+        if ($servicoId && !$servicoNome) {
             $stmt = $pdo->prepare("SELECT nome FROM servicos WHERE id=? AND user_id=?");
             $stmt->execute([$servicoId, $userId]);
-            $nomeServico = $stmt->fetchColumn() ?: 'Serviço';
+            $servicoNome = $stmt->fetchColumn() ?: 'Serviço';
         }
 
         if ($cliente && $horario) {
-            $sql = "INSERT INTO agendamentos (user_id, cliente_nome, servico, valor, data_agendamento, horario, observacoes, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'Confirmado')";
-            $pdo->prepare($sql)->execute([$userId, $cliente, $nomeServico, $valor, $dataAg, $horario, $obs]);
+            // Preparar dados para criar agendamento (pode ser único ou recorrente)
+            $dadosAgendamento = [
+                'cliente_id' => $clienteId,
+                'cliente_nome' => $cliente,
+                'servico_id' => $servicoId,
+                'servico_nome' => $servicoNome,
+                'valor' => $valor,
+                'horario' => $horario,
+                'data_inicio' => $dataAg,
+                'observacoes' => $obs
+            ];
+
+            // Criar agendamento (verifica automaticamente se é recorrente)
+            $resultado = criarAgendamentosRecorrentes($pdo, $userId, $dadosAgendamento);
+            
+            if ($resultado['sucesso']) {
+                if (!empty($resultado['serie_id'])) {
+                    // É recorrente - redirecionar com mensagem de sucesso
+                    $msg = "Série criada com {$resultado['qtd_criados']} agendamentos!";
+                    $_SESSION['mensagem_sucesso'] = $msg;
+                }
+            } else {
+                $_SESSION['mensagem_erro'] = $resultado['erro'] ?? 'Erro ao criar agendamento';
+            }
         }
         // Redireciona para o dia que foi agendado para o usuário ver
         redirect($dataAg, 'day');
@@ -147,7 +196,7 @@ $stmt->execute([$userId, $start, $end]);
 $raw = $stmt->fetchAll();
 
 // Listas para os Modais
-$servicos = $pdo->query("SELECT * FROM servicos WHERE user_id=$userId ORDER BY nome ASC")->fetchAll();
+$servicos = $pdo->query("SELECT id, nome, preco, duracao, permite_recorrencia, tipo_recorrencia, dias_semana FROM servicos WHERE user_id=$userId ORDER BY nome ASC")->fetchAll();
 $clientes = $pdo->query("SELECT nome, telefone FROM clientes WHERE user_id=$userId ORDER BY nome ASC")->fetchAll();
 
 // Processamento dos dados (Correção de Preço 0 e Organização)
@@ -1225,6 +1274,9 @@ include '../../includes/menu.php';
             <div class="form-group">
                 <label class="form-label">Data</label>
                 <input type="date" name="data_agendamento" value="<?php echo ($viewType==='day'?$dataExibida:$hoje); ?>" min="<?php echo $hoje; ?>" class="form-input" required>
+                <small id="infoDiaSemana" style="display:block; margin-top:6px; color:#6366f1; font-size:0.75rem; font-weight:600;">
+                    <!-- Preenchido por JavaScript -->
+                </small>
             </div>
 
             <div class="form-group">
@@ -1269,26 +1321,121 @@ include '../../includes/menu.php';
             <div class="form-group">
                 <label class="form-label">Serviço</label>
                 <input type="text" name="servico_nome" id="inputServicoNome" class="form-input" list="datalistServicos" placeholder="Digite ou escolha o serviço" required oninput="atualizaPrecoPorNome()">
+                <input type="hidden" name="servico_id" id="inputServicoId">
                 <datalist id="datalistServicos">
-                    <?php foreach($servicos as $s) echo "<option value='".htmlspecialchars($s['nome'])."' data-preco='{$s['preco']}'>"; ?>
+                    <!-- Serviços filtrados por JavaScript -->
                 </datalist>
+                <small id="avisoRecorrencia" style="display:none; color:#0369a1; font-size:0.75rem; margin-top:4px;">
+                    <i class="bi bi-info-circle-fill"></i> Este serviço criará múltiplos agendamentos automaticamente
+                </small>
             </div>
             <script>
-            // Atualiza preço ao digitar serviço
+            // Array completo de serviços
+            var todosServicos = <?php echo json_encode($servicos); ?>;
+            
+            // Filtra serviços baseado no dia da semana da data selecionada
+            function filtrarServicosPorData() {
+                var dataInput = document.querySelector('input[name="data_agendamento"]');
+                if (!dataInput || !dataInput.value) return;
+                
+                var dataSelecionada = new Date(dataInput.value + 'T00:00:00');
+                var diaSemana = dataSelecionada.getDay(); // 0=Dom, 1=Seg, 2=Ter...
+                var nomesDias = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+                
+                var datalist = document.getElementById('datalistServicos');
+                datalist.innerHTML = ''; // Limpar
+                
+                var servicosDisponiveis = [];
+                var servicosFiltrados = 0;
+                
+                todosServicos.forEach(function(s) {
+                    var disponivel = true;
+                    
+                    // Se o serviço tem recorrência configurada, verificar dias
+                    if (s.permite_recorrencia && s.tipo_recorrencia && s.tipo_recorrencia !== 'sem_recorrencia') {
+                        
+                        // Para recorrências com dias específicos
+                        if ((s.tipo_recorrencia === 'semanal' || s.tipo_recorrencia === 'personalizada') && s.dias_semana) {
+                            try {
+                                var diasPermitidos = JSON.parse(s.dias_semana);
+                                // Verifica se o dia da semana está na lista
+                                disponivel = diasPermitidos.includes(diaSemana.toString());
+                                if (!disponivel) servicosFiltrados++;
+                            } catch(e) {
+                                // Se não conseguir parsear, permite o serviço
+                                disponivel = true;
+                            }
+                        }
+                        // Outros tipos de recorrência (diária, quinzenal, mensal) estão sempre disponíveis
+                    }
+                    
+                    if (disponivel) {
+                        servicosDisponiveis.push(s);
+                        var option = document.createElement('option');
+                        option.value = s.nome;
+                        option.setAttribute('data-preco', s.preco);
+                        option.setAttribute('data-id', s.id);
+                        option.setAttribute('data-recorrente', s.permite_recorrencia ? '1' : '0');
+                        datalist.appendChild(option);
+                    }
+                });
+                
+                // Atualizar informação do dia da semana
+                var infoDia = document.getElementById('infoDiaSemana');
+                if (infoDia) {
+                    if (servicosFiltrados > 0) {
+                        infoDia.innerHTML = `<i class="bi bi-calendar-check"></i> ${nomesDias[diaSemana]} - ${servicosDisponiveis.length} serviço(s) disponível(is)`;
+                        infoDia.style.color = '#0369a1';
+                    } else {
+                        infoDia.innerHTML = `<i class="bi bi-calendar"></i> ${nomesDias[diaSemana]}`;
+                        infoDia.style.color = '#64748b';
+                    }
+                }
+            }
+            
+            // Atualiza preço e ID ao digitar serviço
             function atualizaPrecoPorNome() {
                 var servicoInput = document.getElementById('inputServicoNome');
                 var valorInput = document.getElementById('inputValor');
+                var servicoIdInput = document.getElementById('inputServicoId');
+                var avisoRecorrencia = document.getElementById('avisoRecorrencia');
                 var nome = servicoInput.value.trim().toLowerCase();
                 var found = false;
-                <?php echo "var servicos = ".json_encode($servicos).";"; ?>
-                servicos.forEach(function(s) {
+                
+                todosServicos.forEach(function(s) {
                     if (s.nome && s.nome.toLowerCase() === nome) {
                         valorInput.value = s.preco;
+                        servicoIdInput.value = s.id;
+                        
+                        // Mostrar aviso se for recorrente
+                        if (s.permite_recorrencia && s.tipo_recorrencia && s.tipo_recorrencia !== 'sem_recorrencia') {
+                            avisoRecorrencia.style.display = 'block';
+                        } else {
+                            avisoRecorrencia.style.display = 'none';
+                        }
+                        
                         found = true;
                     }
                 });
-                if (!found) valorInput.value = '';
+                
+                if (!found) {
+                    valorInput.value = '';
+                    servicoIdInput.value = '';
+                    avisoRecorrencia.style.display = 'none';
+                }
             }
+            
+            // Escutar mudança na data
+            document.addEventListener('DOMContentLoaded', function() {
+                var dataInput = document.querySelector('input[name="data_agendamento"]');
+                if (dataInput) {
+                    dataInput.addEventListener('change', filtrarServicosPorData);
+                    // Filtrar na abertura se já houver data
+                    if (dataInput.value) {
+                        filtrarServicosPorData();
+                    }
+                }
+            });
             </script>
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
@@ -1327,6 +1474,62 @@ include '../../includes/menu.php';
     </div>
 </div>
 
+<!-- Modal para Exclusão de Agendamentos Recorrentes -->
+<div class="modal-overlay" id="deleteRecorrenteModal" style="align-items:center;">
+    <div class="sheet-modal" style="border-radius:22px; max-width:420px; padding:28px 24px;">
+        <div style="text-align:center; margin-bottom:20px;">
+            <div style="width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
+                <i class="bi bi-exclamation-triangle-fill" style="font-size:2rem; color:#dc2626;"></i>
+            </div>
+            <h3 style="margin:0 0 8px 0; font-size:1.1rem; color:#0f172a;">Excluir Agendamento Recorrente</h3>
+            <p id="deleteRecorrenteDesc" style="margin:0; font-size:0.85rem; color:#64748b; line-height:1.5;">
+                Este agendamento faz parte de uma série recorrente. Como deseja proceder?
+            </p>
+        </div>
+        
+        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+            <label style="display:flex; align-items:center; gap:12px; background:#f8fafc; padding:14px; border-radius:12px; cursor:pointer; border:2px solid transparent; transition:all 0.2s;" onclick="selecionarOpcaoDelete('unico')">
+                <input type="radio" name="opcao_delete" value="unico" checked style="width:18px; height:18px;">
+                <div style="flex:1;">
+                    <div style="font-weight:600; color:#0f172a; font-size:0.9rem; margin-bottom:2px;">
+                        <i class="bi bi-calendar-x"></i> Apenas esta ocorrência
+                    </div>
+                    <div style="font-size:0.75rem; color:#64748b;">Remove somente este agendamento</div>
+                </div>
+            </label>
+            
+            <label style="display:flex; align-items:center; gap:12px; background:#f8fafc; padding:14px; border-radius:12px; cursor:pointer; border:2px solid transparent; transition:all 0.2s;" onclick="selecionarOpcaoDelete('proximos')">
+                <input type="radio" name="opcao_delete" value="proximos" style="width:18px; height:18px;">
+                <div style="flex:1;">
+                    <div style="font-weight:600; color:#0f172a; font-size:0.9rem; margin-bottom:2px;">
+                        <i class="bi bi-calendar-range"></i> Esta e as próximas
+                    </div>
+                    <div style="font-size:0.75rem; color:#64748b;">Remove este agendamento e todos os futuros</div>
+                </div>
+            </label>
+            
+            <label style="display:flex; align-items:center; gap:12px; background:#f8fafc; padding:14px; border-radius:12px; cursor:pointer; border:2px solid transparent; transition:all 0.2s;" onclick="selecionarOpcaoDelete('serie')">
+                <input type="radio" name="opcao_delete" value="serie" style="width:18px; height:18px;">
+                <div style="flex:1;">
+                    <div style="font-weight:600; color:#0f172a; font-size:0.9rem; margin-bottom:2px;">
+                        <i class="bi bi-trash3"></i> Toda a série
+                    </div>
+                    <div style="font-size:0.75rem; color:#64748b;">Remove todos os agendamentos desta série</div>
+                </div>
+            </label>
+        </div>
+        
+        <div style="display:flex; gap:10px;">
+            <button onclick="fecharDeleteRecorrenteModal()" class="btn-main" style="flex:1; background:#f1f5f9; color:#0f172a; box-shadow:none;">
+                <i class="bi bi-x-circle"></i> Cancelar
+            </button>
+            <button onclick="confirmarDeleteRecorrente()" class="btn-main" style="flex:1; background:linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
+                <i class="bi bi-trash3-fill"></i> Excluir
+            </button>
+        </div>
+    </div>
+</div>
+
 <?php
 // Função para renderizar o Card HTML
 function renderCard($ag, $clientes) {
@@ -1347,9 +1550,17 @@ function renderCard($ag, $clientes) {
         'serv'=>$ag['servico'], 
         'val'=>$valStr,
         'data'=>date('d/m', strtotime($ag['data_agendamento'])), 
-        'hora'=>date('H:i', strtotime($ag['horario']))
+        'hora'=>date('H:i', strtotime($ag['horario'])),
+        'e_recorrente'=>!empty($ag['e_recorrente']) && $ag['e_recorrente'] == 1,
+        'serie_id'=>$ag['serie_id'] ?? null
     ]));
 
+    // Badge de recorrência
+    $badgeRecorrente = '';
+    if (!empty($ag['e_recorrente']) && $ag['e_recorrente'] == 1) {
+        $badgeRecorrente = "<span style='display:inline-flex; align-items:center; gap:4px; background:#dbeafe; color:#1e40af; font-size:0.7rem; padding:2px 8px; border-radius:12px; font-weight:600; margin-left:6px;'><i class='bi bi-arrow-repeat'></i> Recorrente</span>";
+    }
+    
     echo "
     <div class='appt-card'>
         <div class='status-badge {$stClass}'></div>
@@ -1358,7 +1569,7 @@ function renderCard($ag, $clientes) {
             <span class='time-min'>".date('i', strtotime($ag['horario']))."</span>
         </div>
         <div class='info-col'>
-            <div class='client-name'>".htmlspecialchars($ag['cliente_nome'])."</div>
+            <div class='client-name'>".htmlspecialchars($ag['cliente_nome']).$badgeRecorrente."</div>
             <div class='service-row'>
                 ".htmlspecialchars($ag['servico'])."
                 <span class='price-tag'>R$ {$valStr}</span>
@@ -1372,7 +1583,25 @@ function renderCard($ag, $clientes) {
 <script>
     // --- LÓGICA DE ABERTURA DE MODAIS ---
     function openModal() { 
-        document.getElementById('modalAdd').classList.add('active'); 
+        document.getElementById('modalAdd').classList.add('active');
+        // Filtrar serviços baseado na data atual do campo
+        setTimeout(() => {
+            var dataInput = document.querySelector('input[name="data_agendamento"]');
+            if (dataInput && dataInput.value) {
+                filtrarServicosPorData();
+            } else {
+                // Se não tiver data, mostrar todos os serviços
+                var datalist = document.getElementById('datalistServicos');
+                datalist.innerHTML = '';
+                todosServicos.forEach(function(s) {
+                    var option = document.createElement('option');
+                    option.value = s.nome;
+                    option.setAttribute('data-preco', s.preco);
+                    option.setAttribute('data-id', s.id);
+                    datalist.appendChild(option);
+                });
+            }
+        }, 50);
     }
     
     function closeModal() { 
@@ -1402,6 +1631,8 @@ function renderCard($ag, $clientes) {
             inputData.value = data;
             inputData.classList.add('auto-filled');
             setTimeout(() => inputData.classList.remove('auto-filled'), 800);
+            // Filtrar serviços após preencher a data
+            setTimeout(() => filtrarServicosPorData(), 100);
         }
         if (inputHorario) {
             inputHorario.value = horario;
@@ -1428,12 +1659,20 @@ function renderCard($ag, $clientes) {
         if(opt && opt.dataset.preco) document.getElementById('inputValor').value = opt.dataset.preco;
     }
 
+    // Variáveis globais para modal de delete recorrente
+    let agendamentoAtualId = null;
+    let agendamentoAtualRecorrente = false;
+    
     // --- LÓGICA DO MENU DE AÇÕES ---
     function openActions(data) {
         document.getElementById('sheetClientName').innerText = data.cliente;
         var isProd = window.location.hostname === 'salao.develoi.com';
         var agendaUrl = isProd ? '/agenda' : '/karen_site/controle-salao/pages/agenda/agenda.php';
         const base = `${agendaUrl}?data=<?php echo $dataExibida; ?>&view=<?php echo $viewType; ?>&id=${data.id}`;
+
+        // Armazenar ID e se é recorrente
+        agendamentoAtualId = data.id;
+        agendamentoAtualRecorrente = data.e_recorrente || false;
 
         // Ação: Confirmar
         document.getElementById('actConfirm').onclick = () => {
@@ -1446,7 +1685,22 @@ function renderCard($ag, $clientes) {
 
         // Ação: Status/Excluir
         document.getElementById('actCancel').href = base + '&status=Cancelado';
-        document.getElementById('actDelete').onclick = () => { if(confirm('Tem certeza que deseja excluir?')) window.location.href = base + '&delete=1'; };
+        
+        // Ação: Excluir (verificar se é recorrente)
+        document.getElementById('actDelete').onclick = () => {
+            document.getElementById('actionSheet').classList.remove('active');
+            
+            if (agendamentoAtualRecorrente) {
+                // Abrir modal de opções para recorrente
+                abrirDeleteRecorrenteModal();
+            } else {
+                // Confirmação simples para não recorrente
+                if(confirm('Tem certeza que deseja excluir este agendamento?')) {
+                    window.location.href = base + '&delete=' + agendamentoAtualId + '&tipo_exclusao=unico';
+                }
+            }
+        };
+        
         // Corrige o link para emitir nota: em produção usa /nota?id=XX (com redirecionamento), local usa nota.php
         var notaUrl = isProd ? '/nota' : 'nota.php';
         document.getElementById('actNota').href = `${notaUrl}?id=${data.id}`;
@@ -1503,4 +1757,48 @@ function renderCard($ag, $clientes) {
             window.open(whatsappUrl, '_blank');
         }
     }
+
+    // --- FUNÇÕES PARA MODAL DE DELETE RECORRENTE ---
+    function abrirDeleteRecorrenteModal() {
+        document.getElementById('deleteRecorrenteModal').classList.add('active');
+        // Reset para primeira opção
+        document.querySelector('input[name="opcao_delete"][value="unico"]').checked = true;
+    }
+
+    function fecharDeleteRecorrenteModal() {
+        document.getElementById('deleteRecorrenteModal').classList.remove('active');
+    }
+
+    function selecionarOpcaoDelete(opcao) {
+        document.querySelector(`input[name="opcao_delete"][value="${opcao}"]`).checked = true;
+        
+        // Destacar visualmente a opção selecionada
+        const labels = document.querySelectorAll('#deleteRecorrenteModal label');
+        labels.forEach(label => {
+            label.style.borderColor = 'transparent';
+            label.style.background = '#f8fafc';
+        });
+        
+        const labelSelecionado = document.querySelector(`input[name="opcao_delete"][value="${opcao}"]`).parentElement;
+        labelSelecionado.style.borderColor = '#6366f1';
+        labelSelecionado.style.background = '#eef2ff';
+    }
+
+    function confirmarDeleteRecorrente() {
+        const opcaoSelecionada = document.querySelector('input[name="opcao_delete"]:checked').value;
+        
+        var isProd = window.location.hostname === 'salao.develoi.com';
+        var agendaUrl = isProd ? '/agenda' : '/karen_site/controle-salao/pages/agenda/agenda.php';
+        
+        const url = `${agendaUrl}?data=<?php echo $dataExibida; ?>&view=<?php echo $viewType; ?>&delete=${agendamentoAtualId}&tipo_exclusao=${opcaoSelecionada}`;
+        
+        window.location.href = url;
+    }
+
+    // Fechar modal ao clicar fora
+    document.getElementById('deleteRecorrenteModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            fecharDeleteRecorrenteModal();
+        }
+    });
 </script>

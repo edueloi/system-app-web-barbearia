@@ -71,6 +71,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $itens = isset($_POST['itens_selecionados']) ? implode(',', $_POST['itens_selecionados']) : '';
 
+    // Campos de recorrência
+    $permiteRecorrencia = isset($_POST['permite_recorrencia']) ? 1 : 0;
+    $tipoRecorrencia = $_POST['tipo_recorrencia'] ?? 'sem_recorrencia';
+    $intervaloDias = isset($_POST['intervalo_dias']) ? (int)$_POST['intervalo_dias'] : 1;
+    $duracaoMeses = isset($_POST['duracao_meses']) ? (int)$_POST['duracao_meses'] : 1;
+    $qtdOcorrencias = isset($_POST['qtd_ocorrencias']) ? (int)$_POST['qtd_ocorrencias'] : 1;
+    $diasSemana = isset($_POST['dias_semana']) ? json_encode($_POST['dias_semana']) : null;
+    $diaFixoMes = isset($_POST['dia_fixo_mes']) ? (int)$_POST['dia_fixo_mes'] : null;
+
     // Caminho FÍSICO da pasta uploads (no servidor)
     $uploadDirFs = __DIR__ . '/../../uploads/';
     if (!is_dir($uploadDirFs)) { mkdir($uploadDirFs, 0777, true); }
@@ -125,19 +134,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // ATUALIZAR
             $sql = "UPDATE servicos 
                        SET nome=?, preco=?, duracao=?, foto=?, observacao=?, itens_pacote=?, calculo_servico_id=?,
-                           qtd_sessoes=?, desconto_tipo=?, desconto_valor=?, preco_original=?
+                           qtd_sessoes=?, desconto_tipo=?, desconto_valor=?, preco_original=?,
+                           permite_recorrencia=?, tipo_recorrencia=?, intervalo_dias=?, duracao_meses=?,
+                           qtd_ocorrencias=?, dias_semana=?, dia_fixo_mes=?
                      WHERE id=? AND user_id=?";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$nome, $preco, $duracao, $fotoPath, $obs, $itens, $calculoServicoId, 
-                           $qtdSessoes, $descontoTipo, $descontoValor, $precoOriginal, $idEdit, $userId]);
+                           $qtdSessoes, $descontoTipo, $descontoValor, $precoOriginal,
+                           $permiteRecorrencia, $tipoRecorrencia, $intervaloDias, $duracaoMeses,
+                           $qtdOcorrencias, $diasSemana, $diaFixoMes, $idEdit, $userId]);
         } else {
             // CRIAR NOVO
             $sql = "INSERT INTO servicos (user_id, nome, preco, duracao, foto, observacao, tipo, itens_pacote, calculo_servico_id,
-                                         qtd_sessoes, desconto_tipo, desconto_valor, preco_original)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                                         qtd_sessoes, desconto_tipo, desconto_valor, preco_original,
+                                         permite_recorrencia, tipo_recorrencia, intervalo_dias, duracao_meses,
+                                         qtd_ocorrencias, dias_semana, dia_fixo_mes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$userId, $nome, $preco, $duracao, $fotoPath, $obs, $tipo, $itens, $calculoServicoId,
-                           $qtdSessoes, $descontoTipo, $descontoValor, $precoOriginal]);
+                           $qtdSessoes, $descontoTipo, $descontoValor, $precoOriginal,
+                           $permiteRecorrencia, $tipoRecorrencia, $intervaloDias, $duracaoMeses,
+                           $qtdOcorrencias, $diasSemana, $diaFixoMes]);
         }
 
         header("Location: {$servicosUrl}?status=saved");
@@ -1233,6 +1250,121 @@ $listaPacotes  = array_filter($todosRegistros, function($item){ return $item['ti
                 </div>
             </div>
 
+            <!-- CONFIGURAÇÕES DE RECORRÊNCIA (só aparece para pacotes) -->
+            <div id="areaRecorrencia" style="display:none;">
+                <div style="background:#f0f9ff; border:2px solid #0ea5e9; border-radius:16px; padding:16px; margin-bottom:16px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                        <i class="bi bi-arrow-repeat" style="color:#0369a1; font-size:1.3rem;"></i>
+                        <h4 style="margin:0; color:#0369a1; font-size:0.95rem; font-weight:700;">Agendamento Recorrente</h4>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="bi bi-check2-square"></i>
+                            Permitir agendamento recorrente
+                        </label>
+                        <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                            <input type="checkbox" name="permite_recorrencia" id="inputPermiteRecorrencia" value="1" onchange="toggleRecorrenciaOpcoes()">
+                            <span style="font-size:0.85rem; color:#64748b;">Ativar repetição automática deste serviço</span>
+                        </label>
+                    </div>
+
+                    <div id="opcoesRecorrencia" style="display:none;">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-calendar-event"></i>
+                                Tipo de recorrência
+                            </label>
+                            <select name="tipo_recorrencia" id="inputTipoRecorrencia" class="form-control" onchange="ajustarCamposRecorrencia()">
+                                <option value="sem_recorrencia">Sem recorrência</option>
+                                <option value="diaria">A cada dia</option>
+                                <option value="semanal">Semanal (mesmos dias da semana)</option>
+                                <option value="quinzenal">Quinzenal (a cada 15 dias)</option>
+                                <option value="mensal_dia">Mensal (mesmo dia do mês)</option>
+                                <option value="mensal_semana">Mensal (mesma semana e dia da semana)</option>
+                                <option value="personalizada">Personalizada (escolher dias)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="campoDiasSemana" style="display:none;">
+                            <label class="form-label">
+                                <i class="bi bi-calendar-week"></i>
+                                Dias da semana
+                            </label>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <label style="display:flex; align-items:center; gap:6px; background:#f1f5f9; padding:8px 12px; border-radius:8px; cursor:pointer;">
+                                    <input type="checkbox" name="dias_semana[]" value="0"> Dom
+                                </label>
+                                <label style="display:flex; align-items:center; gap:6px; background:#f1f5f9; padding:8px 12px; border-radius:8px; cursor:pointer;">
+                                    <input type="checkbox" name="dias_semana[]" value="1"> Seg
+                                </label>
+                                <label style="display:flex; align-items:center; gap:6px; background:#f1f5f9; padding:8px 12px; border-radius:8px; cursor:pointer;">
+                                    <input type="checkbox" name="dias_semana[]" value="2"> Ter
+                                </label>
+                                <label style="display:flex; align-items:center; gap:6px; background:#f1f5f9; padding:8px 12px; border-radius:8px; cursor:pointer;">
+                                    <input type="checkbox" name="dias_semana[]" value="3"> Qua
+                                </label>
+                                <label style="display:flex; align-items:center; gap:6px; background:#f1f5f9; padding:8px 12px; border-radius:8px; cursor:pointer;">
+                                    <input type="checkbox" name="dias_semana[]" value="4"> Qui
+                                </label>
+                                <label style="display:flex; align-items:center; gap:6px; background:#f1f5f9; padding:8px 12px; border-radius:8px; cursor:pointer;">
+                                    <input type="checkbox" name="dias_semana[]" value="5"> Sex
+                                </label>
+                                <label style="display:flex; align-items:center; gap:6px; background:#f1f5f9; padding:8px 12px; border-radius:8px; cursor:pointer;">
+                                    <input type="checkbox" name="dias_semana[]" value="6"> Sáb
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="campoDiaFixo" style="display:none;">
+                            <label class="form-label">
+                                <i class="bi bi-calendar-day"></i>
+                                Dia fixo do mês
+                            </label>
+                            <input type="number" min="1" max="31" name="dia_fixo_mes" id="inputDiaFixo" class="form-control" placeholder="Ex: 10 (dia 10 de cada mês)">
+                        </div>
+
+                        <div class="form-group" id="campoIntervaloDias" style="display:none;">
+                            <label class="form-label">
+                                <i class="bi bi-arrow-left-right"></i>
+                                Intervalo em dias
+                            </label>
+                            <input type="number" min="1" name="intervalo_dias" id="inputIntervaloDias" class="form-control" placeholder="Ex: 3 (a cada 3 dias)" value="1">
+                        </div>
+
+                        <div class="dual-input-row">
+                            <div class="form-group" style="flex:1;">
+                                <label class="form-label">
+                                    <i class="bi bi-calendar-range"></i>
+                                    Duração (meses)
+                                </label>
+                                <input type="number" min="1" name="duracao_meses" id="inputDuracaoMeses" class="form-control" placeholder="Ex: 3" value="1">
+                                <small style="color:#64748b; font-size:0.75rem; display:block; margin-top:4px;">
+                                    Por quantos meses o serviço se repetirá
+                                </small>
+                            </div>
+                            <div class="form-group" style="flex:1;">
+                                <label class="form-label">
+                                    <i class="bi bi-hash"></i>
+                                    Nº de ocorrências
+                                </label>
+                                <input type="number" min="1" name="qtd_ocorrencias" id="inputQtdOcorrencias" class="form-control" placeholder="Ex: 12" value="1">
+                                <small style="color:#64748b; font-size:0.75rem; display:block; margin-top:4px;">
+                                    Quantas vezes o serviço ocorrerá
+                                </small>
+                            </div>
+                        </div>
+
+                        <div style="background:#fef3c7; border-left:4px solid #f59e0b; padding:10px 12px; border-radius:8px; margin-top:12px;">
+                            <p style="margin:0; font-size:0.8rem; color:#92400e; line-height:1.4;">
+                                <i class="bi bi-info-circle-fill"></i>
+                                <strong>Atenção:</strong> Ao agendar este pacote, todos os horários serão criados automaticamente conforme a configuração de recorrência.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="dual-input-row">
                 <div class="form-group" style="flex:1;">
                     <label class="form-label">
@@ -1569,4 +1701,63 @@ $listaPacotes  = array_filter($todosRegistros, function($item){ return $item['ti
             }
         }
     }
+
+    // 8. CONTROLE DE RECORRÊNCIA
+    function toggleRecorrenciaOpcoes() {
+        const checkbox = document.getElementById('inputPermiteRecorrencia');
+        const opcoes = document.getElementById('opcoesRecorrencia');
+        
+        if (checkbox.checked) {
+            opcoes.style.display = 'block';
+        } else {
+            opcoes.style.display = 'none';
+        }
+    }
+
+    function ajustarCamposRecorrencia() {
+        const tipo = document.getElementById('inputTipoRecorrencia').value;
+        const campoDiasSemana = document.getElementById('campoDiasSemana');
+        const campoDiaFixo = document.getElementById('campoDiaFixo');
+        const campoIntervaloDias = document.getElementById('campoIntervaloDias');
+        
+        // Ocultar todos primeiro
+        campoDiasSemana.style.display = 'none';
+        campoDiaFixo.style.display = 'none';
+        campoIntervaloDias.style.display = 'none';
+        
+        // Mostrar campos conforme tipo selecionado
+        switch(tipo) {
+            case 'semanal':
+            case 'personalizada':
+                campoDiasSemana.style.display = 'block';
+                break;
+            case 'mensal_dia':
+                campoDiaFixo.style.display = 'block';
+                break;
+            case 'personalizada':
+                campoIntervaloDias.style.display = 'block';
+                break;
+        }
+    }
+
+    // Detectar mudança de tipo (serviço/pacote) e mostrar/ocultar área de recorrência
+    document.addEventListener('DOMContentLoaded', function() {
+        // Observer para detectar quando o modal abre
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.target.classList.contains('active')) {
+                    const tipo = inputTipo.value;
+                    const areaRecorrencia = document.getElementById('areaRecorrencia');
+                    
+                    if (tipo === 'pacote') {
+                        areaRecorrencia.style.display = 'block';
+                    } else {
+                        areaRecorrencia.style.display = 'none';
+                    }
+                }
+            });
+        });
+        
+        observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
+    });
 </script>

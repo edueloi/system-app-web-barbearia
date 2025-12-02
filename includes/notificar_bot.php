@@ -25,8 +25,8 @@ if (!function_exists('notificarBotNovoAgendamento')) {
             // $WEBHOOK_PROD = 'http://123.456.789.10:3333/webhook/novo-agendamento';
             // 
             // Opção 2 - Com subdomínio apontando para VPS:
-            // $WEBHOOK_PROD = 'http://bot.salao.develoi.com:3333/webhook/novo-agendamento';
-            $WEBHOOK_PROD = 'http://bot.salao.develoi.com:3333/webhook/novo-agendamento';
+            // $WEBHOOK_PROD = 'http://bot.develoi.com:3333/webhook/novo-agendamento';
+            $WEBHOOK_PROD = 'http://bot.develoi.com:3333/webhook/novo-agendamento';
 
 
             $webhookUrl = $isProd ? $WEBHOOK_PROD : $WEBHOOK_LOCAL;
@@ -137,7 +137,7 @@ if (!function_exists('notificarBotAgendamentoConfirmado')) {
             $isProd = ($host === 'salao.develoi.com');
 
             $WEBHOOK_LOCAL = 'http://localhost:3333/webhook/agendamento-confirmado';
-            $WEBHOOK_PROD = 'http://bot.salao.develoi.com:3333/webhook/agendamento-confirmado';
+            $WEBHOOK_PROD = 'http://bot.develoi.com:3333/webhook/agendamento-confirmado';
 
             $webhookUrl = $isProd ? $WEBHOOK_PROD : $WEBHOOK_LOCAL;
 

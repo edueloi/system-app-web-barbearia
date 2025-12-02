@@ -702,6 +702,10 @@ include '../../includes/menu.php';
                             </a>
                         <?php endif; ?>
 
+                        <a href="recorrencias.php?cliente_id=<?php echo $c['id']; ?>" class="btn-icon" style="background:#dbeafe; color:#1e40af;" onclick="event.stopPropagation()" title="Agendamentos Recorrentes">
+                            <i class="bi bi-arrow-repeat"></i>
+                        </a>
+                        
                         <button class="btn-icon btn-edit" onclick="event.stopPropagation(); abrirModalEdit(<?php echo $jsonCliente; ?>)">
                             <i class="bi bi-pencil-fill"></i>
                         </button>
