@@ -202,7 +202,81 @@ if (isset($_GET['action'])) {
         } 
         echo json_encode($slots); 
         exit; 
-    } 
+    }
+    
+    // Verificar disponibilidade do mês (novo)
+    if ($_GET['action'] === 'verificar_mes') {
+        $ano = (int)$_GET['ano'];
+        $mes = (int)$_GET['mes'];
+        $duracaoServico = (int)($_GET['duracao'] ?? 30);
+        
+        $disponibilidade = [];
+        $diasNoMes = cal_days_in_month(CAL_GREGORIAN, $mes, $ano);
+        
+        for ($dia = 1; $dia <= $diasNoMes; $dia++) {
+            $data = sprintf('%04d-%02d-%02d', $ano, $mes, $dia);
+            $diaSemana = date('w', strtotime($data));
+            
+            // Verifica se tem horário de atendimento neste dia
+            $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM horarios_atendimento WHERE user_id = ? AND dia_semana = ?");
+            $stmt->execute([$profissionalId, $diaSemana]);
+            $temAtendimento = $stmt->fetch()['total'] > 0;
+            
+            if (!$temAtendimento) {
+                $disponibilidade[$dia] = 'fechado';
+                continue;
+            }
+            
+            // Busca turnos e horários ocupados
+            $stmt = $pdo->prepare("SELECT inicio, fim, intervalo_minutos FROM horarios_atendimento WHERE user_id = ? AND dia_semana = ?");
+            $stmt->execute([$profissionalId, $diaSemana]);
+            $turnos = $stmt->fetchAll();
+            
+            $stmt = $pdo->prepare("SELECT horario FROM agendamentos WHERE user_id = ? AND data_agendamento = ? AND status != 'Cancelado'");
+            $stmt->execute([$profissionalId, $data]);
+            $ocupados = $stmt->fetchAll();
+            
+            $minutosOcupados = [];
+            foreach ($ocupados as $ag) {
+                $hm = explode(':', $ag['horario']);
+                $inicioMin = ((int)$hm[0] * 60) + (int)$hm[1];
+                for ($m = $inicioMin; $m < ($inicioMin + $duracaoServico); $m++) {
+                    $minutosOcupados[$m] = true;
+                }
+            }
+            
+            $horariosDisponiveis = 0;
+            foreach ($turnos as $turno) {
+                $ini = explode(':', $turno['inicio']);
+                $fim = explode(':', $turno['fim']);
+                $start = ($ini[0] * 60) + $ini[1];
+                $end = ($fim[0] * 60) + $fim[1];
+                $intervalo = !empty($turno['intervalo_minutos']) ? (int)$turno['intervalo_minutos'] : 30;
+                
+                for ($time = $start; $time <= ($end - $duracaoServico); $time += $intervalo) {
+                    $livre = true;
+                    for ($check = $time; $check < ($time + $duracaoServico); $check++) {
+                        if (isset($minutosOcupados[$check])) {
+                            $livre = false;
+                            break;
+                        }
+                    }
+                    if ($livre) $horariosDisponiveis++;
+                }
+            }
+            
+            if ($horariosDisponiveis === 0) {
+                $disponibilidade[$dia] = 'lotado';
+            } else if ($horariosDisponiveis <= 3) {
+                $disponibilidade[$dia] = 'poucos';
+            } else {
+                $disponibilidade[$dia] = 'disponivel';
+            }
+        }
+        
+        echo json_encode($disponibilidade);
+        exit;
+    }
  
     // Buscar Cliente 
     if ($_GET['action'] === 'buscar_cliente') { 
@@ -1402,6 +1476,254 @@ foreach ($todosServicos as $s) {
             to   { opacity:1; transform:translateY(0); } 
         } 
  
+        /* Calendário Visual */
+        .calendar-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-card);
+            border: 2px solid rgba(148,163,184,0.1);
+            position: relative;
+        }
+        
+        .calendar-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 10;
+        }
+        
+        .calendar-loading.active {
+            display: flex;
+        }
+        
+        .calendar-loading i {
+            color: var(--brand-color);
+            font-size: 1.2rem;
+            animation: spin 1s infinite linear;
+        }
+        
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid rgba(148,163,184,0.1);
+        }
+        
+        .calendar-month-year {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            letter-spacing: -0.02em;
+        }
+        
+        .calendar-nav-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px solid var(--border);
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+        
+        .calendar-nav-btn:hover {
+            background: linear-gradient(135deg, var(--brand-color), var(--brand-dark));
+            color: white;
+            border-color: var(--brand-color);
+            transform: scale(1.1);
+        }
+        
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+        
+        .calendar-weekday {
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            padding: 8px 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+        
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9375rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: white;
+            border: 2px solid transparent;
+            color: var(--text-main);
+            position: relative;
+        }
+        
+        .calendar-day:hover:not(.disabled):not(.empty) {
+            background: var(--brand-light);
+            border-color: var(--brand-color);
+            color: var(--brand-color);
+            transform: scale(1.08);
+        }
+        
+        .calendar-day.today {
+            border-color: var(--brand-color);
+            background: rgba(79, 70, 229, 0.05);
+            font-weight: 800;
+        }
+        
+        .calendar-day.today::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--brand-color);
+        }
+        
+        .calendar-day.disabled {
+            color: #cbd5e1;
+            cursor: not-allowed;
+            background: #f8fafc;
+        }
+        
+        .calendar-day.fechado {
+            background: repeating-linear-gradient(
+                45deg,
+                #fee2e2,
+                #fee2e2 3px,
+                #fef2f2 3px,
+                #fef2f2 6px
+            );
+            color: #ef4444;
+            cursor: not-allowed;
+            position: relative;
+            text-decoration: line-through;
+            font-weight: 500;
+        }
+        
+        .calendar-day.fechado::before {
+            content: '✕';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.5rem;
+            color: #ef4444;
+            font-weight: 900;
+        }
+        
+        .calendar-day.lotado {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+            cursor: not-allowed;
+            position: relative;
+            border: 2px solid #fbbf24;
+        }
+        
+        .calendar-day.lotado::after {
+            content: '🔒';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.6rem;
+        }
+        
+        .calendar-day.poucos {
+            background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+            border: 2px solid #fb923c;
+            color: #9a3412;
+            font-weight: 700;
+            position: relative;
+        }
+        
+        .calendar-day.poucos::after {
+            content: '⚡';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.6rem;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+        
+        .calendar-day.disponivel {
+            background: white;
+            border: 2px solid transparent;
+        }
+        
+        /* Selected state must come AFTER all other states to override them */
+        .calendar-day.selected {
+            background: linear-gradient(135deg, var(--brand-color) 0%, var(--brand-dark) 100%) !important;
+            color: white !important;
+            border-color: var(--brand-color) !important;
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+            font-weight: 800;
+        }
+        
+        .calendar-day.empty {
+            cursor: default;
+            background: transparent;
+        }
+        
+        @media (max-width: 640px) {
+            .calendar-container {
+                padding: 16px;
+            }
+            
+            .calendar-month-year {
+                font-size: 1.1rem;
+            }
+            
+            .calendar-nav-btn {
+                width: 36px;
+                height: 36px;
+            }
+            
+            .calendar-day {
+                font-size: 0.875rem;
+            }
+        }
+        
         .time-slots-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
@@ -2724,23 +3046,87 @@ foreach ($todosServicos as $s) {
                     <button type="button" class="btn-back" onclick="goToStep(1)"> 
                         <i class="bi bi-arrow-left"></i> Escolher outro serviço 
                     </button> 
-                    <h2 class="card-title">Escolha o horário</h2> 
-                    <p class="card-subtitle">Toque na data e veja os horários livres.</p> 
+                    <h2 class="card-title">Escolha a data</h2> 
+                    <p class="card-subtitle">Selecione o dia desejado no calendário abaixo.</p> 
  
-                    <div style="margin-bottom:20px;"> 
-                        <input type="date" id="dateInput" class="form-control" 
-                               onchange="fetchTimes()" style="padding:16px;"> 
-                    </div> 
+                    <!-- Calendário Visual Interativo -->
+                    <div class="calendar-container">
+                        <div class="calendar-loading" id="calendarLoading">
+                            <i class="bi bi-arrow-repeat"></i>
+                            <span style="font-weight: 600; color: var(--text-main);">Verificando disponibilidade...</span>
+                        </div>
+                        
+                        <div class="calendar-header">
+                            <button type="button" class="calendar-nav-btn" onclick="changeMonth(-1)" id="prevMonthBtn">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                <div class="calendar-month-year" id="calendarMonthYear"></div>
+                                <button type="button" onclick="goToToday()" 
+                                        style="background: none; border: none; color: var(--brand-color); font-size: 0.75rem; font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: all 0.2s;">
+                                    <i class="bi bi-calendar-day"></i> Hoje
+                                </button>
+                            </div>
+                            <button type="button" class="calendar-nav-btn" onclick="changeMonth(1)" id="nextMonthBtn">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="calendar-weekdays">
+                            <div class="calendar-weekday">Dom</div>
+                            <div class="calendar-weekday">Seg</div>
+                            <div class="calendar-weekday">Ter</div>
+                            <div class="calendar-weekday">Qua</div>
+                            <div class="calendar-weekday">Qui</div>
+                            <div class="calendar-weekday">Sex</div>
+                            <div class="calendar-weekday">Sáb</div>
+                        </div>
+                        
+                        <div class="calendar-days" id="calendarDays"></div>
+                        
+                        <!-- Legenda -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 2px solid rgba(148,163,184,0.1);">
+                            <div style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem;">
+                                <div style="width: 16px; height: 16px; border-radius: 4px; background: white; border: 2px solid var(--border);"></div>
+                                <span style="color: var(--text-muted); font-weight: 600;">Livre</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem;">
+                                <div style="width: 16px; height: 16px; border-radius: 4px; background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%); border: 2px solid #fb923c;"></div>
+                                <span style="color: var(--text-muted); font-weight: 600;">Poucos ⚡</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem;">
+                                <div style="width: 16px; height: 16px; border-radius: 4px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 2px solid #fbbf24;"></div>
+                                <span style="color: var(--text-muted); font-weight: 600;">Lotado 🔒</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem;">
+                                <div style="width: 16px; height: 16px; border-radius: 4px; background: repeating-linear-gradient(45deg, #fee2e2, #fee2e2 2px, #fef2f2 2px, #fef2f2 4px); text-decoration: line-through;"></div>
+                                <span style="color: var(--text-muted); font-weight: 600;">Fechado ✕</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" id="dateInput">
  
-                    <div id="loadingTimes" style="display:none; text-align:center; padding:20px; color:var(--brand-color);"> 
-                        <i class="bi bi-arrow-repeat" 
-                           style="animation:spin 1s infinite; display:inline-block; font-size:1.5rem;"></i> 
-                    </div> 
- 
-                    <div id="timesContainer" class="time-slots-grid"></div> 
-                    <div id="noTimesMsg" 
-                         style="display:none; text-align:center; color:#ef4444; margin-top:20px;"> 
-                        Sem horários livres nesta data. 
+                    <div id="horariosSection" style="display: none; margin-top: 24px;">
+                        <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px; font-family: 'Outfit', sans-serif;">
+                            <i class="bi bi-clock-history"></i> Horários disponíveis
+                        </h3>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">
+                            Toque no horário desejado para continuar.
+                        </p>
+                        
+                        <div id="loadingTimes" style="display:none; text-align:center; padding:20px; color:var(--brand-color);"> 
+                            <i class="bi bi-arrow-repeat" 
+                               style="animation:spin 1s infinite; display:inline-block; font-size:1.5rem;"></i> 
+                        </div> 
+     
+                        <div id="timesContainer" class="time-slots-grid"></div>
+                        <div id="noTimesMsg" 
+                             style="display:none; text-align:center; color:#ef4444; margin-top:20px; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 12px; border: 2px solid rgba(239, 68, 68, 0.2);"> 
+                            <i class="bi bi-calendar-x" style="font-size: 2rem; display: block; margin-bottom: 8px;"></i>
+                            <strong>Sem horários disponíveis</strong><br>
+                            <small>Tente outra data ou entre em contato.</small>
+                        </div>
                     </div>
                 </div> 
  
@@ -2797,6 +3183,271 @@ foreach ($todosServicos as $s) {
     const CURRENT_PAGE = <?php echo json_encode($isProd ? '/agendar' : '/karen_site/controle-salao/agendar.php'); ?>;
     let selectedServices = [];
     let currentServiceDuration = 0;
+    
+    // ===== CALENDÁRIO INTERATIVO =====
+    let currentCalendarDate = new Date();
+    let monthAvailability = {}; // Armazena disponibilidade do mês
+    let selectedDateStr = null; // Armazena data selecionada (YYYY-MM-DD)
+    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    
+    function initCalendar() {
+        currentCalendarDate = new Date();
+        renderCalendar();
+    }
+    
+    function changeMonth(direction) {
+        const newDate = new Date(currentCalendarDate);
+        newDate.setMonth(newDate.getMonth() + direction);
+        
+        // Limita navegação (não permite voltar antes de hoje e não mais que 3 meses no futuro)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const maxDate = new Date(today);
+        maxDate.setMonth(maxDate.getMonth() + 3);
+        
+        if (newDate >= today && newDate <= maxDate) {
+            currentCalendarDate = newDate;
+            renderCalendar();
+        }
+    }
+    
+    function goToToday() {
+        currentCalendarDate = new Date();
+        renderCalendar();
+    }
+    
+    function renderCalendar() {
+        const year = currentCalendarDate.getFullYear();
+        const month = currentCalendarDate.getMonth();
+        
+        // Atualiza cabeçalho
+        document.getElementById('calendarMonthYear').textContent = 
+            `${monthNames[month]} ${year}`;
+        
+        // Busca disponibilidade do mês
+        fetchMonthAvailability(year, month + 1);
+        
+        // Controla botões de navegação
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const maxDate = new Date(today);
+        maxDate.setMonth(maxDate.getMonth() + 3);
+        
+        const prevBtn = document.getElementById('prevMonthBtn');
+        const nextBtn = document.getElementById('nextMonthBtn');
+        
+        // Desabilita prev se estiver no mês atual
+        const currentMonth = new Date(currentCalendarDate);
+        currentMonth.setDate(1);
+        currentMonth.setHours(0, 0, 0, 0);
+        const todayMonth = new Date(today);
+        todayMonth.setDate(1);
+        todayMonth.setHours(0, 0, 0, 0);
+        
+        if (currentMonth.getTime() <= todayMonth.getTime()) {
+            prevBtn.disabled = true;
+            prevBtn.style.opacity = '0.3';
+            prevBtn.style.cursor = 'not-allowed';
+        } else {
+            prevBtn.disabled = false;
+            prevBtn.style.opacity = '1';
+            prevBtn.style.cursor = 'pointer';
+        }
+        
+        // Desabilita next se estiver 3 meses no futuro
+        const nextMonth = new Date(currentCalendarDate);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        if (nextMonth > maxDate) {
+            nextBtn.disabled = true;
+            nextBtn.style.opacity = '0.3';
+            nextBtn.style.cursor = 'not-allowed';
+        } else {
+            nextBtn.disabled = false;
+            nextBtn.style.opacity = '1';
+            nextBtn.style.cursor = 'pointer';
+        }
+        
+        // Primeiro dia do mês
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        const startDayOfWeek = firstDay.getDay();
+        
+        // Limpa grid
+        const daysContainer = document.getElementById('calendarDays');
+        daysContainer.innerHTML = '';
+        
+        // Células vazias antes do primeiro dia
+        for (let i = 0; i < startDayOfWeek; i++) {
+            const emptyDay = document.createElement('div');
+            emptyDay.className = 'calendar-day empty';
+            daysContainer.appendChild(emptyDay);
+        }
+        
+        // Dias do mês
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayDate = new Date(year, month, day);
+            dayDate.setHours(0, 0, 0, 0);
+            
+            const dayElement = document.createElement('div');
+            dayElement.className = 'calendar-day';
+            dayElement.textContent = day;
+            
+            // Verifica se é o dia selecionado
+            const currentDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const isSelectedDay = selectedDateStr === currentDateStr;
+            
+            // Marca hoje
+            if (dayDate.getTime() === today.getTime()) {
+                dayElement.classList.add('today');
+            }
+            
+            // Desabilita datas passadas
+            if (dayDate < today) {
+                dayElement.classList.add('disabled');
+            } else {
+                // Verifica disponibilidade
+                const availability = monthAvailability[day];
+                
+                if (availability === 'fechado') {
+                    dayElement.classList.add('fechado');
+                    dayElement.title = '❌ Não abrimos neste dia';
+                    dayElement.onclick = () => {
+                        mostrarErro('Dia Fechado', 'Não temos atendimento neste dia da semana. Por favor, escolha outro dia.');
+                    };
+                } else if (availability === 'lotado') {
+                    dayElement.classList.add('lotado');
+                    dayElement.title = '🔒 Agenda totalmente ocupada';
+                    dayElement.onclick = () => {
+                        mostrarErro('Agenda Lotada', 'Infelizmente todos os horários deste dia já estão ocupados. Por favor, escolha outro dia.');
+                    };
+                } else if (availability === 'poucos') {
+                    dayElement.classList.add('poucos');
+                    dayElement.title = '⚡ Últimos horários! Reserve agora';
+                    dayElement.onclick = () => selectDate(year, month, day);
+                } else if (availability === 'disponivel') {
+                    dayElement.classList.add('disponivel');
+                    dayElement.title = '✅ Vários horários disponíveis';
+                    dayElement.onclick = () => selectDate(year, month, day);
+                } else {
+                    // Loading ou não carregado ainda
+                    dayElement.onclick = () => selectDate(year, month, day);
+                }
+            }
+            
+            // Marca como selecionado se for o dia escolhido
+            if (isSelectedDay) {
+                dayElement.classList.add('selected');
+            }
+            
+            daysContainer.appendChild(dayElement);
+        }
+    }
+    
+    function fetchMonthAvailability(year, month) {
+        const loading = document.getElementById('calendarLoading');
+        if (loading) loading.classList.add('active');
+        
+        fetch(`${CURRENT_PAGE}?user=${PROF_ID}&action=verificar_mes&ano=${year}&mes=${month}&duracao=${currentServiceDuration}`)
+            .then(res => res.json())
+            .then(data => {
+                monthAvailability = data;
+                if (loading) loading.classList.remove('active');
+                // Re-renderiza apenas os dias com as classes corretas
+                updateCalendarDays();
+            })
+            .catch(err => {
+                console.error('Erro ao buscar disponibilidade:', err);
+                if (loading) loading.classList.remove('active');
+            });
+    }
+    
+    function updateCalendarDays() {
+        const year = currentCalendarDate.getFullYear();
+        const month = currentCalendarDate.getMonth();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const dayElements = document.querySelectorAll('.calendar-day:not(.empty)');
+        dayElements.forEach(el => {
+            const day = parseInt(el.textContent);
+            if (isNaN(day)) return;
+            
+            const dayDate = new Date(year, month, day);
+            dayDate.setHours(0, 0, 0, 0);
+            
+            // Verifica se é o dia selecionado
+            const currentDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const isSelected = selectedDateStr === currentDateStr;
+            
+            // Não atualiza datas passadas
+            if (dayDate < today) return;
+            
+            // Remove classes antigas (mas mantém selected se for o caso)
+            el.classList.remove('fechado', 'lotado', 'poucos', 'disponivel');
+            
+            const availability = monthAvailability[day];
+            
+            if (availability === 'fechado') {
+                el.classList.add('fechado');
+                el.title = '❌ Não abrimos neste dia';
+                el.onclick = () => {
+                    mostrarErro('Dia Fechado', 'Não temos atendimento neste dia da semana. Por favor, escolha outro dia.');
+                };
+            } else if (availability === 'lotado') {
+                el.classList.add('lotado');
+                el.title = '🔒 Agenda totalmente ocupada';
+                el.onclick = () => {
+                    mostrarErro('Agenda Lotada', 'Infelizmente todos os horários deste dia já estão ocupados. Por favor, escolha outro dia.');
+                };
+            } else if (availability === 'poucos') {
+                el.classList.add('poucos');
+                el.title = '⚡ Últimos horários! Reserve agora';
+                el.onclick = () => selectDate(year, month, day);
+            } else if (availability === 'disponivel') {
+                el.classList.add('disponivel');
+                el.title = '✅ Vários horários disponíveis';
+                el.onclick = () => selectDate(year, month, day);
+            }
+            
+            // Restaura seleção visual se for o dia selecionado
+            if (isSelected) {
+                el.classList.add('selected');
+            }
+        });
+    }
+    
+    function selectDate(year, month, day) {
+        // Formata data para YYYY-MM-DD
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        // Salva data selecionada globalmente
+        selectedDateStr = dateStr;
+        
+        // Atualiza input hidden
+        document.getElementById('dateInput').value = dateStr;
+        
+        // Atualiza também o input normal para o resumo
+        document.getElementById('inData').value = dateStr;
+        
+        // Remove seleção anterior
+        document.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('selected'));
+        
+        // Marca dia selecionado
+        event.target.classList.add('selected');
+        
+        // Mostra horários
+        fetchTimes();
+        
+        // Scroll suave para horários (após 300ms para dar tempo de renderizar)
+        setTimeout(() => {
+            const horariosSection = document.getElementById('horariosSection');
+            if (horariosSection) {
+                horariosSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }, 300);
+    }
 
     // ===== SPLASH & WELCOME =====
     window.addEventListener('DOMContentLoaded', () => {
@@ -3029,6 +3680,11 @@ foreach ($todosServicos as $s) {
             if (index + 1 < step) el.classList.add('done');
         });
 
+        // Inicializa calendário quando entrar no step 2
+        if (step === 2) {
+            initCalendar();
+        }
+
         configureFooterForStep(step);
     }
 
@@ -3112,10 +3768,14 @@ foreach ($todosServicos as $s) {
         const dateVal = document.getElementById('dateInput').value;
         if (!dateVal) return;
 
+        const horariosSection = document.getElementById('horariosSection');
         const loader = document.getElementById('loadingTimes');
         const container = document.getElementById('timesContainer');
         const noTimes = document.getElementById('noTimesMsg');
 
+        // Mostra seção de horários
+        horariosSection.style.display = 'block';
+        
         container.innerHTML = '';
         noTimes.style.display = 'none';
         loader.style.display = 'block';
