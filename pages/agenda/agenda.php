@@ -190,8 +190,19 @@ if ($viewType === 'month') {
     $tituloData = $diasSemana[date('w', strtotime($dataExibida))] . ', ' . date('d/m', strtotime($dataExibida));
 }
 
-// Busca principal
-$stmt = $pdo->prepare("SELECT * FROM agendamentos WHERE user_id = ? AND data_agendamento BETWEEN ? AND ? ORDER BY data_agendamento ASC, horario ASC");
+// Busca principal com dados de recorrência
+$stmt = $pdo->prepare("
+    SELECT 
+        a.*,
+        s.tipo_recorrencia,
+        s.dias_semana as recorrencia_dias_semana,
+        s.intervalo_dias
+    FROM agendamentos a
+    LEFT JOIN servicos s ON s.nome = a.servico AND s.user_id = a.user_id
+    WHERE a.user_id = ? 
+    AND a.data_agendamento BETWEEN ? AND ? 
+    ORDER BY a.data_agendamento ASC, a.horario ASC
+");
 $stmt->execute([$userId, $start, $end]);
 $raw = $stmt->fetchAll();
 
@@ -218,8 +229,11 @@ $agendamentosPorDia = [];
 
 // Organiza array final baseado na View
 if ($viewType === 'day') {
-    $agendamentos = $raw;
-    foreach ($raw as $ag) if(($ag['status']??'')!=='Cancelado') $faturamento += $ag['valor'];
+    // Filtrar apenas agendamentos do dia específico
+    $agendamentos = array_filter($raw, function($ag) use ($dataExibida) {
+        return $ag['data_agendamento'] === $dataExibida;
+    });
+    foreach ($agendamentos as $ag) if(($ag['status']??'')!=='Cancelado') $faturamento += $ag['valor'];
 
 } elseif ($viewType === 'week') {
     for($i=0; $i<=6; $i++) {
@@ -900,9 +914,34 @@ include '../../includes/menu.php';
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
         padding: 24px 20px 28px;
         animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-        max-height: 88vh;
+        max-height: 85vh;
         overflow-y: auto;
         box-shadow: 0 -10px 40px rgba(15,23,42,0.2);
+    }
+    
+    @media (max-width: 768px) {
+        .sheet-modal {
+            max-height: 92vh;
+            padding: 20px 16px 24px;
+        }
+        
+        .sheet-modal h3 {
+            font-size: 0.95rem !important;
+        }
+        
+        .form-group {
+            margin-bottom: 14px;
+        }
+        
+        .form-label {
+            font-size: 0.7rem;
+            margin-bottom: 5px;
+        }
+        
+        .form-input {
+            padding: 11px 14px;
+            font-size: 0.8125rem;
+        }
     }
     @keyframes slideUp { 
         from { 
@@ -937,6 +976,18 @@ include '../../includes/menu.php';
         font-family: inherit;
         font-weight: 500;
         transition: all 0.2s ease;
+    }
+    
+    @media (max-width: 768px) {
+        .form-group { margin-bottom: 14px; }
+        .form-label {
+            font-size: 0.7rem;
+            margin-bottom: 5px;
+        }
+        .form-input {
+            padding: 11px 14px;
+            font-size: 0.8125rem;
+        }
     }
     .form-input:focus {
         border-color: var(--primary);
@@ -978,6 +1029,8 @@ include '../../includes/menu.php';
         box-shadow: 0 8px 24px rgba(99,102,241,0.4);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         letter-spacing: -0.01em;
+        position: relative;
+        z-index: 100;
     }
     .btn-main:hover {
         transform: translateY(-2px);
@@ -1000,6 +1053,8 @@ include '../../includes/menu.php';
         cursor: pointer;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         letter-spacing: -0.01em;
+        position: relative;
+        z-index: 100;
     }
     .btn-cancel:hover {
         background: #f8fafc;
@@ -1664,6 +1719,46 @@ include '../../includes/menu.php';
 </div>
 
 <?php
+// Função para formatar texto de recorrência
+function formatarRecorrencia($tipoRecorrencia, $diasSemana = null, $intervaloDias = null) {
+    if (empty($tipoRecorrencia) || $tipoRecorrencia === 'sem_recorrencia') {
+        return '';
+    }
+    
+    $textos = [
+        'diaria' => 'Todos os dias',
+        'semanal' => 'Toda semana',
+        'quinzenal' => 'A cada 15 dias',
+        'mensal' => 'Todo mês',
+        'personalizada' => 'Personalizado'
+    ];
+    
+    $texto = $textos[$tipoRecorrencia] ?? 'Recorrente';
+    
+    // Se for semanal ou personalizada e tiver dias específicos
+    if (($tipoRecorrencia === 'semanal' || $tipoRecorrencia === 'personalizada') && !empty($diasSemana)) {
+        try {
+            $dias = json_decode($diasSemana, true);
+            if (is_array($dias) && count($dias) > 0) {
+                $nomesDias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                $diasTexto = array_map(function($d) use ($nomesDias) {
+                    return $nomesDias[(int)$d] ?? '';
+                }, $dias);
+                $texto .= ' (' . implode(', ', $diasTexto) . ')';
+            }
+        } catch (Exception $e) {
+            // Ignora erro de parse
+        }
+    }
+    
+    // Se tiver intervalo personalizado
+    if ($tipoRecorrencia === 'personalizada' && !empty($intervaloDias) && $intervaloDias > 1) {
+        $texto = "A cada {$intervaloDias} dias";
+    }
+    
+    return $texto;
+}
+
 // Função para renderizar o Card HTML
 function renderCard($ag, $clientes) {
     $stClass = 'st-' . ($ag['status'] ?? 'Pendente');
@@ -1690,8 +1785,21 @@ function renderCard($ag, $clientes) {
 
     // Badge de recorrência
     $badgeRecorrente = '';
+    $infoRecorrencia = '';
+    
     if (!empty($ag['e_recorrente']) && $ag['e_recorrente'] == 1) {
+        $textoRecorrencia = formatarRecorrencia(
+            $ag['tipo_recorrencia'] ?? null, 
+            $ag['recorrencia_dias_semana'] ?? null,
+            $ag['intervalo_dias'] ?? null
+        );
+        
         $badgeRecorrente = "<span style='display:inline-flex; align-items:center; gap:4px; background:#dbeafe; color:#1e40af; font-size:0.7rem; padding:2px 8px; border-radius:12px; font-weight:600; margin-left:6px;'><i class='bi bi-arrow-repeat'></i> Recorrente</span>";
+        
+        // Informação detalhada de recorrência abaixo do serviço
+        if (!empty($textoRecorrencia)) {
+            $infoRecorrencia = "<div style='font-size:0.7rem; color:#0369a1; margin-top:4px; display:flex; align-items:center; gap:4px; font-weight:600;'><i class='bi bi-clock-history'></i> {$textoRecorrencia}</div>";
+        }
     }
     
     echo "
@@ -1707,6 +1815,7 @@ function renderCard($ag, $clientes) {
                 ".htmlspecialchars($ag['servico'])."
                 <span class='price-tag'>R$ {$valStr}</span>
             </div>
+            {$infoRecorrencia}
         </div>
         <button onclick='openActions($jsonData)'><i class='bi bi-three-dots-vertical'></i></button>
     </div>";

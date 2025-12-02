@@ -585,6 +585,46 @@ foreach ($todosServicos as $s) {
     $servicosPorId[$s['id']] = $s;
 }
 
+// Função para formatar texto de recorrência
+function formatarRecorrenciaAgendamento($tipoRecorrencia, $diasSemana = null, $intervaloDias = null) {
+    if (empty($tipoRecorrencia) || $tipoRecorrencia === 'sem_recorrencia') {
+        return '';
+    }
+    
+    $textos = [
+        'diaria' => 'Todos os dias',
+        'semanal' => 'Toda semana',
+        'quinzenal' => 'A cada 15 dias',
+        'mensal' => 'Todo mês',
+        'personalizada' => 'Personalizado'
+    ];
+    
+    $texto = $textos[$tipoRecorrencia] ?? 'Recorrente';
+    
+    // Se for semanal ou personalizada e tiver dias específicos
+    if (($tipoRecorrencia === 'semanal' || $tipoRecorrencia === 'personalizada') && !empty($diasSemana)) {
+        try {
+            $dias = json_decode($diasSemana, true);
+            if (is_array($dias) && count($dias) > 0) {
+                $nomesDias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                $diasTexto = array_map(function($d) use ($nomesDias) {
+                    return $nomesDias[(int)$d] ?? '';
+                }, $dias);
+                $texto .= ' (' . implode(', ', $diasTexto) . ')';
+            }
+        } catch (Exception $e) {
+            // Ignora erro de parse
+        }
+    }
+    
+    // Se tiver intervalo personalizado
+    if ($tipoRecorrencia === 'personalizada' && !empty($intervaloDias) && $intervaloDias > 1) {
+        $texto = "A cada {$intervaloDias} dias";
+    }
+    
+    return $texto;
+}
+
 // Separa em duas listas: Pacotes e Serviços Únicos
 $pacotes = [];
 $servicosUnicos = [];
@@ -2549,7 +2589,14 @@ foreach ($todosServicos as $s) {
                                     <?php endif; ?>
 
                                     <div class="service-content">
-                                        <h3 class="service-title"><?php echo htmlspecialchars($s['nome']); ?></h3>
+                                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                            <h3 class="service-title" style="margin: 0;"><?php echo htmlspecialchars($s['nome']); ?></h3>
+                                            <?php if (!empty($s['permite_recorrencia']) && $s['permite_recorrencia'] == 1): ?>
+                                                <span style="display: inline-flex; align-items: center; gap: 4px; background: #dbeafe; color: #1e40af; font-size: 0.7rem; padding: 3px 8px; border-radius: 12px; font-weight: 600;">
+                                                    <i class="bi bi-arrow-repeat"></i> Recorrente
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
                                         <?php if (!empty($s['itens_detalhados'])): ?>
                                             <div class="service-description" style="font-size: 0.8rem; color: var(--text-muted);">
                                                 Inclui: 
@@ -2562,6 +2609,20 @@ foreach ($todosServicos as $s) {
                                             </div>
                                         <?php elseif (!empty($s['observacao'])): ?>
                                             <div class="service-description"><?php echo htmlspecialchars($s['observacao']); ?></div>
+                                        <?php endif; ?>
+                                        <?php if (!empty($s['permite_recorrencia']) && $s['permite_recorrencia'] == 1): ?>
+                                            <?php 
+                                                $textoRecorrencia = formatarRecorrenciaAgendamento(
+                                                    $s['tipo_recorrencia'] ?? null,
+                                                    $s['dias_semana'] ?? null,
+                                                    $s['intervalo_dias'] ?? null
+                                                );
+                                            ?>
+                                            <?php if (!empty($textoRecorrencia)): ?>
+                                                <div style="font-size: 0.75rem; color: #0369a1; margin-top: 6px; display: flex; align-items: center; gap: 4px; font-weight: 600;">
+                                                    <i class="bi bi-clock-history"></i> <?php echo $textoRecorrencia; ?>
+                                                </div>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                         <span class="service-duration">
                                             <i class="bi bi-clock"></i>
@@ -2610,9 +2671,30 @@ foreach ($todosServicos as $s) {
                                     <?php endif; ?>
 
                                     <div class="service-content">
-                                        <h3 class="service-title"><?php echo htmlspecialchars($s['nome']); ?></h3>
+                                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                            <h3 class="service-title" style="margin: 0;"><?php echo htmlspecialchars($s['nome']); ?></h3>
+                                            <?php if (!empty($s['permite_recorrencia']) && $s['permite_recorrencia'] == 1): ?>
+                                                <span style="display: inline-flex; align-items: center; gap: 4px; background: #dbeafe; color: #1e40af; font-size: 0.7rem; padding: 3px 8px; border-radius: 12px; font-weight: 600;">
+                                                    <i class="bi bi-arrow-repeat"></i> Recorrente
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
                                         <?php if (!empty($s['observacao'])): ?>
                                             <div class="service-description"><?php echo htmlspecialchars($s['observacao']); ?></div>
+                                        <?php endif; ?>
+                                        <?php if (!empty($s['permite_recorrencia']) && $s['permite_recorrencia'] == 1): ?>
+                                            <?php 
+                                                $textoRecorrencia = formatarRecorrenciaAgendamento(
+                                                    $s['tipo_recorrencia'] ?? null,
+                                                    $s['dias_semana'] ?? null,
+                                                    $s['intervalo_dias'] ?? null
+                                                );
+                                            ?>
+                                            <?php if (!empty($textoRecorrencia)): ?>
+                                                <div style="font-size: 0.75rem; color: #0369a1; margin-top: 6px; display: flex; align-items: center; gap: 4px; font-weight: 600;">
+                                                    <i class="bi bi-clock-history"></i> <?php echo $textoRecorrencia; ?>
+                                                </div>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                         <span class="service-duration">
                                             <i class="bi bi-clock"></i>
