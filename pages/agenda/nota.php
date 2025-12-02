@@ -150,57 +150,119 @@ $enderecoProfissional = implode(' • ', array_filter($enderecoPartes));
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary: #8b5cf6;
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --secondary: #ec4899;
+            --accent: #8b5cf6;
             --success: #10b981;
             --warning: #f59e0b;
             --bg-body: #f8fafc;
             --text-main: #0f172a;
             --text-light: #64748b;
             --white: #ffffff;
-            --radius-lg: 20px;
-            --radius-md: 16px;
+            --radius-lg: 24px;
+            --radius-md: 18px;
             --radius-sm: 12px;
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --shadow-soft: 0 20px 40px -10px rgba(0,0,0,0.08);
+            --shadow-strong: 0 25px 60px -15px rgba(15, 23, 42, 0.15);
         }
         
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
+        /* Scrollbar Personalizada */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', system-ui, sans-serif;
+            background: #eef2ff;
             color: var(--text-main);
             padding: 20px;
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* Fundo Aurora Gradient */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -10%;
+            left: -10%;
+            width: 60vw;
+            height: 60vw;
+            background: radial-gradient(circle, rgba(199, 210, 254, 0.6) 0%, transparent 70%);
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 0;
+            animation: float-blob 25s infinite alternate;
+        }
+        
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -10%;
+            right: -10%;
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, rgba(251, 207, 232, 0.5) 0%, transparent 70%);
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 0;
+            animation: float-blob 20s infinite alternate-reverse;
+        }
+        
+        @keyframes float-blob {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(40px, -40px); }
         }
         
         .container {
-            max-width: 900px;
+            max-width: 950px;
             margin: 0 auto;
+            position: relative;
+            z-index: 10;
         }
         
         .header {
             text-align: center;
-            margin-bottom: 32px;
-            animation: fadeIn 0.4s ease-out;
+            margin-bottom: 40px;
+            animation: fadeIn 0.6s ease-out;
         }
         
         .header h1 {
-            font-size: 2rem;
+            font-size: 2.5rem;
             font-weight: 800;
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
             letter-spacing: -0.03em;
+            filter: drop-shadow(0 2px 8px rgba(79, 70, 229, 0.15));
         }
         
         .header p {
             color: var(--text-light);
-            font-size: 0.9375rem;
+            font-size: 1rem;
             font-weight: 500;
+            letter-spacing: -0.01em;
+        }
+        
+        .header-icon {
+            font-size: 3.5rem;
+            margin-bottom: 16px;
+            display: inline-block;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
         }
         
         .cards-grid {
@@ -211,18 +273,19 @@ $enderecoProfissional = implode(' • ', array_filter($enderecoPartes));
         }
         
         .option-card {
-            background: white;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
             border-radius: var(--radius-lg);
-            padding: 28px 24px;
-            box-shadow: 0 4px 20px rgba(15,23,42,0.08);
-            border: 3px solid transparent;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 32px 28px;
+            box-shadow: var(--shadow-soft);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
             text-decoration: none;
             display: block;
             position: relative;
             overflow: hidden;
-            animation: slideUp 0.5s ease-out;
+            animation: slideUp 0.6s ease-out;
         }
         
         .option-card::before {
@@ -231,35 +294,42 @@ $enderecoProfissional = implode(' • ', array_filter($enderecoPartes));
             inset: 0;
             background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.4s ease;
         }
         
         .option-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 32px rgba(99,102,241,0.2);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: var(--shadow-strong);
             border-color: var(--primary);
         }
         
         .option-card:hover::before {
-            opacity: 0.05;
+            opacity: 0.08;
+        }
+        
+        .option-card:active {
+            transform: translateY(-4px) scale(0.98);
         }
         
         .option-icon {
-            width: 64px;
-            height: 64px;
+            width: 72px;
+            height: 72px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+            background: linear-gradient(135deg, #eef2ff 0%, #ddd6fe 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 1.75rem;
+            margin: 0 auto 24px;
+            font-size: 2rem;
             position: relative;
             z-index: 1;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.15);
         }
         
         .option-card:hover .option-icon {
-            transform: scale(1.1) rotate(5deg);
+            transform: scale(1.15) rotate(8deg);
+            box-shadow: 0 12px 32px rgba(79, 70, 229, 0.25);
         }
         
         .option-card h2 {
@@ -283,26 +353,49 @@ $enderecoProfissional = implode(' • ', array_filter($enderecoPartes));
         }
         
         .form-card {
-            background: white;
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
             border-radius: var(--radius-lg);
-            padding: 32px 28px;
-            box-shadow: 0 8px 32px rgba(15,23,42,0.12);
-            animation: fadeIn 0.5s ease-out;
+            padding: 40px 32px;
+            box-shadow: var(--shadow-strong);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            animation: fadeIn 0.6s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .form-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+            animation: shimmer 3s linear infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
         }
         
         .form-card h2 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 8px;
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin-bottom: 12px;
             color: var(--text-main);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
+            letter-spacing: -0.02em;
         }
         
         .form-card h2 i {
-            font-size: 1.75rem;
-            color: var(--primary);
+            font-size: 2rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
         
         .form-subtitle {
@@ -328,22 +421,29 @@ $enderecoProfissional = implode(' • ', array_filter($enderecoPartes));
         
         .form-input, .form-select, .form-textarea {
             width: 100%;
-            padding: 14px 16px;
+            padding: 16px 18px;
             border: 2px solid #e2e8f0;
             border-radius: var(--radius-md);
-            font-size: 0.9375rem;
+            font-size: 1rem;
             font-family: inherit;
             font-weight: 500;
-            background: #f8fafc;
-            transition: all 0.2s ease;
+            background: rgba(248, 250, 252, 0.8);
+            backdrop-filter: blur(4px);
+            transition: all 0.3s ease;
             color: var(--text-main);
+        }
+        
+        .form-input:hover, .form-select:hover, .form-textarea:hover {
+            border-color: #cbd5e1;
+            background: rgba(255, 255, 255, 0.9);
         }
         
         .form-input:focus, .form-select:focus, .form-textarea:focus {
             outline: none;
             border-color: var(--primary);
             background: white;
-            box-shadow: 0 0 0 4px rgba(99,102,241,0.1);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+            transform: translateY(-2px);
         }
         
         .form-textarea {
@@ -359,60 +459,116 @@ $enderecoProfissional = implode(' • ', array_filter($enderecoPartes));
         
         .btn-primary {
             width: 100%;
-            padding: 16px 24px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            padding: 18px 28px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             color: white;
             border: none;
-            border-radius: var(--radius-md);
+            border-radius: 999px;
             font-weight: 700;
-            font-size: 1rem;
+            font-size: 1.05rem;
             cursor: pointer;
-            box-shadow: 0 8px 24px rgba(99,102,241,0.4);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            margin-top: 12px;
+            box-shadow: 0 10px 30px rgba(79, 70, 229, 0.4);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 12px;
+            letter-spacing: -0.01em;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--secondary), var(--accent));
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+        
+        .btn-primary:hover::before {
+            opacity: 1;
         }
         
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 32px rgba(99,102,241,0.5);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(236, 72, 153, 0.5);
         }
         
         .btn-primary:active {
-            transform: scale(0.98);
+            transform: translateY(-2px) scale(0.98);
+        }
+        
+        .btn-primary i,
+        .btn-primary span {
+            position: relative;
+            z-index: 1;
         }
         
         .btn-back {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             color: var(--text-light);
             text-decoration: none;
-            font-size: 0.875rem;
+            font-size: 0.9375rem;
             font-weight: 600;
-            padding: 8px 16px;
-            border-radius: var(--radius-sm);
-            transition: all 0.2s ease;
-            margin-bottom: 20px;
+            padding: 12px 20px;
+            border-radius: 999px;
+            transition: all 0.3s ease;
+            margin-bottom: 24px;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(8px);
+            border: 2px solid rgba(255, 255, 255, 0.8);
         }
         
         .btn-back:hover {
             color: var(--primary);
-            background: #f8fafc;
+            background: rgba(255, 255, 255, 0.95);
+            transform: translateX(-4px);
+            border-color: var(--primary);
         }
         
+        .btn-back i {
+            transition: transform 0.3s;
+        }
+        
+        .btn-back:hover i {
+            transform: translateX(-3px);
+        }
+        
+        /* Badge de Status */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1.5px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        /* Animações */
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from { 
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to { 
+                opacity: 1;
+                transform: scale(1);
+            }
         }
         
         @keyframes slideUp {
             from {
                 opacity: 0;
-                transform: translateY(20px);
+                transform: translateY(30px);
             }
             to {
                 opacity: 1;
@@ -420,9 +576,25 @@ $enderecoProfissional = implode(' • ', array_filter($enderecoPartes));
             }
         }
         
+        /* Responsividade */
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .header-icon {
+                font-size: 2.5rem;
+            }
+        }
+        
         @media (max-width: 640px) {
             .cards-grid {
                 grid-template-columns: 1fr;
+                gap: 16px;
             }
             
             .form-grid {
@@ -430,7 +602,21 @@ $enderecoProfissional = implode(' • ', array_filter($enderecoPartes));
             }
             
             .header h1 {
+                font-size: 1.75rem;
+            }
+            
+            .option-icon {
+                width: 60px;
+                height: 60px;
                 font-size: 1.5rem;
+            }
+            
+            .option-card {
+                padding: 24px 20px;
+            }
+            
+            .form-card {
+                padding: 28px 24px;
             }
         }
     </style>
@@ -440,7 +626,8 @@ $enderecoProfissional = implode(' • ', array_filter($enderecoPartes));
         <?php if ($modoLivre): ?>
             <!-- FORMULÁRIO NOTA LIVRE -->
             <a href="<?php echo $notaUrl . '?id=' . ($id ?? ($_GET['id'] ?? '')); ?>" class="btn-back">
-                <i class="bi bi-arrow-left"></i> Voltar para Opções
+                <i class="bi bi-arrow-left"></i> 
+                <span>Voltar para Opções</span>
             </a>
             
             <div class="form-card">
@@ -487,7 +674,7 @@ $enderecoProfissional = implode(' • ', array_filter($enderecoPartes));
                     
                     <button type="submit" class="btn-primary">
                         <i class="bi bi-file-earmark-pdf-fill"></i>
-                        Gerar Nota em PDF
+                        <span>Gerar Nota em PDF</span>
                     </button>
                 </form>
             </div>
@@ -495,36 +682,46 @@ $enderecoProfissional = implode(' • ', array_filter($enderecoPartes));
         <?php else: ?>
             <!-- TELA DE ESCOLHA -->
             <a href="<?php echo $isProd ? '/agenda' : '/karen_site/controle-salao/pages/agenda/agenda.php'; ?>" class="btn-back">
-                <i class="bi bi-arrow-left"></i> Voltar para Agenda
+                <i class="bi bi-arrow-left"></i> 
+                <span>Voltar para Agenda</span>
             </a>
             
             <div class="header">
-                <h1>📄 Emitir Nota de Serviço</h1>
+                <div class="header-icon">📄</div>
+                <h1>Emitir Nota de Serviço</h1>
                 <p>Escolha o tipo de nota que deseja gerar</p>
             </div>
             
             <div class="cards-grid">
-                <a href="?id=<?php echo $ag['id']; ?>&gerar=1" class="option-card">
+                <a href="?id=<?php echo $ag['id']; ?>&gerar=1" class="option-card" style="animation-delay: 0.1s;">
                     <div class="option-icon">
                         <i class="bi bi-calendar-check" style="color: var(--primary);"></i>
                     </div>
                     <h2>Nota do Agendamento</h2>
-                    <p>
-                        <strong><?php echo htmlspecialchars($ag['servico']); ?></strong><br>
-                        R$ <?php echo number_format($ag['valor'], 2, ',', '.'); ?><br>
-                        Cliente: <?php echo htmlspecialchars($ag['cliente_nome']); ?>
+                    <p style="margin-bottom: 12px;">
+                        <strong style="font-size: 1.05rem; color: var(--text-main);"><?php echo htmlspecialchars($ag['servico']); ?></strong><br>
+                        <span style="font-size: 1.25rem; font-weight: 700; color: var(--primary);">R$ <?php echo number_format($ag['valor'], 2, ',', '.'); ?></span><br>
+                        <span style="color: var(--text-light);">Cliente: <strong><?php echo htmlspecialchars($ag['cliente_nome']); ?></strong></span>
                     </p>
+                    <span class="status-badge">
+                        <i class="bi bi-lightning-charge-fill"></i>
+                        Gerar Rápido
+                    </span>
                 </a>
                 
-                <a href="?id=<?php echo $ag['id']; ?>&livre=1" class="option-card">
+                <a href="?id=<?php echo $ag['id']; ?>&livre=1" class="option-card" style="animation-delay: 0.2s;">
                     <div class="option-icon">
                         <i class="bi bi-receipt-cutoff" style="color: var(--secondary);"></i>
                     </div>
                     <h2>Nota Livre</h2>
-                    <p>
+                    <p style="margin-bottom: 12px;">
                         Edite o serviço e o valor antes de emitir.<br>
-                        Ideal para ajustes e serviços personalizados.
+                        <strong>Ideal para ajustes e serviços personalizados.</strong>
                     </p>
+                    <span class="status-badge" style="background: rgba(236, 72, 153, 0.1); color: var(--secondary); border-color: rgba(236, 72, 153, 0.3);">
+                        <i class="bi bi-pencil-fill"></i>
+                        Personalizável
+                    </span>
                 </a>
             </div>
         <?php endif; ?>
