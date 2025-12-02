@@ -315,6 +315,25 @@ try {
     try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_agendamentos_lembrete ON agendamentos(lembrete_enviado, data_agendamento, horario)"); } catch (Exception $e) {}
 
     // =========================================================
+    // DIAS ESPECIAIS DE FECHAMENTO (FERIADOS)
+    // =========================================================
+    
+    // Tabela para armazenar feriados e dias especiais de fechamento
+    $pdo->exec("CREATE TABLE IF NOT EXISTS dias_especiais_fechamento (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        data DATE NOT NULL,
+        tipo VARCHAR(50) NOT NULL,
+        nome VARCHAR(255) NOT NULL,
+        recorrente INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE
+    )");
+    
+    // Índice para busca rápida por usuário e data
+    try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_dias_especiais_user_data ON dias_especiais_fechamento(user_id, data)"); } catch (Exception $e) {}
+
+    // =========================================================
     // SEED ADMIN (usuário ID 1, vitalício)
     // =========================================================
     $check = $pdo->query("SELECT COUNT(*) FROM usuarios WHERE id = 1")->fetchColumn();

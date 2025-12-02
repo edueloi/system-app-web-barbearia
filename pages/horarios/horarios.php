@@ -18,6 +18,40 @@ $horariosUrl = $isProd
     ? '/horarios' // em produção usa rota amigável
     : '/karen_site/controle-salao/pages/horarios/horarios.php';
 
+// 🔹 PROCESSAR ADIÇÃO DE DIA ESPECIAL (AJAX)
+if (isset($_POST['action']) && $_POST['action'] === 'adicionar_dia_especial') {
+    header('Content-Type: application/json');
+    try {
+        $data = $_POST['data'];
+        $nome = $_POST['nome'];
+        $tipo = $_POST['tipo'] ?? 'data_especial';
+        $recorrente = isset($_POST['recorrente']) ? 1 : 0;
+
+        $stmt = $pdo->prepare("INSERT INTO dias_especiais_fechamento (user_id, data, tipo, nome, recorrente) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$userId, $data, $tipo, $nome, $recorrente]);
+
+        echo json_encode(['success' => true, 'id' => $pdo->lastInsertId()]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// 🔹 PROCESSAR REMOÇÃO DE DIA ESPECIAL (AJAX)
+if (isset($_POST['action']) && $_POST['action'] === 'remover_dia_especial') {
+    header('Content-Type: application/json');
+    try {
+        $id = (int)$_POST['id'];
+        $stmt = $pdo->prepare("DELETE FROM dias_especiais_fechamento WHERE id = ? AND user_id = ?");
+        $stmt->execute([$id, $userId]);
+
+        echo json_encode(['success' => true]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo->prepare("DELETE FROM horarios_atendimento WHERE user_id = ?")->execute([$userId]);
@@ -58,6 +92,11 @@ foreach ($registros as $reg) {
     ];
 }
 
+// --- BUSCAR DIAS ESPECIAIS DE FECHAMENTO ---
+$stmt = $pdo->prepare("SELECT * FROM dias_especiais_fechamento WHERE user_id = ? ORDER BY data ASC");
+$stmt->execute([$userId]);
+$diasEspeciais = $stmt->fetchAll();
+
 $diasSemana = [
     1 => 'Segunda-feira',
     2 => 'Terça-feira',
@@ -77,169 +116,259 @@ include '../../includes/menu.php';
 
 <style>
     :root {
-        --primary-color: #4f46e5; /* Indigo */
+        --primary-color: #4f46e5;
+        --primary-dark: #4338ca;
         --primary-soft: #eef2ff;
+        --accent: #ec4899;
         --bg-page: #f8fafc;
         --bg-card: #ffffff;
         --text-main: #0f172a;
         --text-muted: #64748b;
         --border-color: #e2e8f0;
         --input-bg: #f1f5f9;
-        --shadow-soft: 0 10px 25px rgba(15,23,42,0.06);
+        --shadow-soft: 0 6px 18px rgba(15,23,42,0.06);
+        --shadow-hover: 0 14px 30px rgba(15,23,42,0.10);
     }
 
+    * {
+        box-sizing: border-box;
+    }
+
+    /* SEM GRADIENTE – usa o fundo padrão do sistema */
     body {
-        background: radial-gradient(circle at top, #e0e7ff 0, #f8fafc 45%, #f8fafc 100%);
-        font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
-        font-size: 12px; /* letras menores */
+        background: transparent;
+        font-family: -apple-system, BlinkMacSystemFont, "Outfit", "Inter", system-ui, sans-serif;
+        font-size: 14px;
         color: var(--text-main);
+        min-height: 100vh;
+        line-height: 1.5;
     }
 
     .main-wrapper {
-        max-width: 520px;
+        max-width: 640px;
         margin: 0 auto;
-        padding: 18px 14px 90px 14px;
+        padding: 20px 12px 110px 12px;
     }
 
     /* Cabeçalho da Página */
     .page-header {
+        background: var(--bg-card);
+        border-radius: 16px;
+        padding: 16px 18px;
+        margin-bottom: 16px;
+        box-shadow: var(--shadow-soft);
+        border: 1px solid rgba(148,163,184,0.18);
+    }
+    
+    .page-header-top {
         display: flex;
         justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 18px;
-        flex-wrap: wrap;
+        align-items: center;
         gap: 10px;
+        flex-wrap: wrap;
     }
+    
+    .page-title-wrapper {
+        flex: 1;
+        min-width: 180px;
+    }
+    
     .page-header h2 {
-        font-size: 1.25rem;
+        font-size: 1.35rem;
         font-weight: 800;
-        color: var(--text-main);
+        background: linear-gradient(135deg, var(--primary-color), var(--accent));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         margin: 0;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.03em;
+        line-height: 1.2;
     }
+    
     .page-header p {
-        margin: 3px 0 0;
+        margin: 6px 0 0;
         color: var(--text-muted);
-        font-size: 0.78rem;
+        font-size: 0.85rem;
+        line-height: 1.4;
     }
 
     .btn-auto-fill {
-        background: var(--primary-soft);
-        color: var(--primary-color);
-        border: 1px solid transparent;
-        padding: 6px 14px;
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        color: white;
+        border: none;
+        padding: 9px 14px;
         border-radius: 999px;
         font-weight: 600;
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         cursor: pointer;
-        transition: 0.18s;
+        transition: all 0.25s ease;
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        box-shadow: 0 2px 5px rgba(79,70,229,0.18);
+        box-shadow: 0 4px 10px rgba(79,70,229,0.25);
         white-space: nowrap;
     }
+    
+    .btn-auto-fill i {
+        font-size: 0.95rem;
+    }
+
     .btn-auto-fill:hover {
-        background: #e0e7ff;
-        border-color: #c7d2fe;
         transform: translateY(-1px);
+        box-shadow: 0 7px 16px rgba(79,70,229,0.35);
+    }
+    
+    .btn-auto-fill:active {
+        transform: translateY(0);
     }
 
     /* Cards dos Dias */
     .day-card {
         background: var(--bg-card);
         border-radius: 18px;
-        padding: 12px 12px 12px 12px;
-        margin-bottom: 10px;
+        padding: 16px 16px 14px;
+        margin-bottom: 12px;
         box-shadow: var(--shadow-soft);
-        border: 1px solid rgba(148,163,184,0.22);
-        transition: all 0.22s ease;
+        border: 1px solid rgba(148,163,184,0.20);
+        transition: all 0.25s ease;
+    }
+    
+    .day-card:hover {
+        box-shadow: var(--shadow-hover);
+        transform: translateY(-1px);
+        border-color: rgba(79,70,229,0.25);
     }
 
     /* Estado Fechado */
     .day-card.closed {
-        background: rgba(248,250,252,0.85);
-        border-color: transparent;
-        box-shadow: none;
+        background: #f9fafb;
+        border-color: rgba(148,163,184,0.28);
+        box-shadow: 0 4px 12px rgba(15,23,42,0.04);
         opacity: 0.9;
     }
+    
+    .day-card.closed:hover {
+        transform: translateY(0);
+        box-shadow: 0 4px 12px rgba(15,23,42,0.04);
+    }
+    
     .day-card.closed .day-title {
         color: #94a3b8;
-        font-weight: 500;
+        font-weight: 600;
     }
     
     .day-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        cursor: pointer; /* Permite clicar no header para ativar */
+        cursor: pointer;
+        margin-bottom: 2px;
     }
 
     .day-info {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
+        flex: 1;
     }
+    
+    .day-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--primary-color), var(--accent));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.05rem;
+        flex-shrink: 0;
+        color: #fff;
+    }
+    
+    .day-card.closed .day-icon {
+        background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+    }
+    
     .day-title {
-        font-size: 0.95rem;
+        font-size: 0.98rem;
         font-weight: 700;
         color: var(--text-main);
+        margin: 0;
     }
+    
     .status-badge {
-        font-size: 0.68rem;
-        padding: 2px 8px;
+        font-size: 0.65rem;
+        padding: 3px 9px;
         border-radius: 999px;
-        font-weight: 600;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.08em;
     }
+    
     .status-open {
         color: #16a34a;
         background: #dcfce7;
     }
+    
     .status-closed {
-        color: #94a3b8;
+        color: #6b7280;
         background: #e5e7eb;
     }
 
-    /* IOS Switch */
+    /* Switch estilo iOS */
     .switch {
         position: relative;
         display: inline-block;
-        width: 40px;
-        height: 22px;
+        width: 46px;
+        height: 24px;
         flex-shrink: 0;
     }
-    .switch input { opacity: 0; width: 0; height: 0; }
+    
+    .switch input { 
+        opacity: 0; 
+        width: 0; 
+        height: 0; 
+    }
+    
     .slider {
         position: absolute;
         cursor: pointer;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background-color: #cbd5e1;
-        transition: .25s;
+        top: 0; 
+        left: 0; 
+        right: 0; 
+        bottom: 0;
+        background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+        transition: all 0.25s ease;
         border-radius: 999px;
     }
+    
     .slider:before {
         position: absolute;
         content: "";
-        height: 18px;
-        width: 18px;
+        height: 20px;
+        width: 20px;
         left: 2px;
         bottom: 2px;
-        background-color: white;
-        transition: .25s;
+        background: #ffffff;
+        transition: all 0.25s ease;
         border-radius: 50%;
-        box-shadow: 0 1px 3px rgba(15,23,42,0.35);
+        box-shadow: 0 2px 6px rgba(15,23,42,0.25);
     }
-    input:checked + .slider { background-color: var(--primary-color); }
-    input:checked + .slider:before { transform: translateX(18px); }
+    
+    input:checked + .slider { 
+        background: linear-gradient(135deg, var(--primary-color), var(--accent));
+    }
+    
+    input:checked + .slider:before { 
+        transform: translateX(22px);
+    }
 
-    /* Área dos Slots (Horários) */
+    /* Área dos Slots */
     .day-body {
-        margin-top: 12px;
-        padding-top: 10px;
-        border-top: 1px dashed var(--border-color);
-        animation: slideDown 0.22s ease-out;
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid rgba(148,163,184,0.3);
+        animation: slideDown 0.25s ease-out;
     }
 
     .slots-list {
@@ -248,203 +377,570 @@ include '../../includes/menu.php';
         gap: 8px;
     }
 
-    /* O Visual "Cápsula" do Horário */
     .time-slot-row {
         display: flex;
         align-items: center;
         gap: 6px;
-        animation: fadeIn 0.22s;
+        animation: fadeIn 0.25s;
     }
 
     .time-capsule {
         flex: 1;
-        background: var(--input-bg);
-        border-radius: 999px;
-        padding: 6px 10px;
+        background: #f9fafb;
+        border-radius: 14px;
+        padding: 10px 12px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        border: 1px solid transparent;
-        transition: 0.18s;
+        border: 1px solid rgba(209,213,219,0.9);
+        transition: all 0.2s ease;
     }
+    
+    .time-capsule:hover {
+        background: #ffffff;
+        border-color: rgba(79,70,229,0.35);
+        box-shadow: 0 3px 10px rgba(15,23,42,0.06);
+    }
+    
     .time-capsule:focus-within {
-        background: #fff;
+        background: #ffffff;
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 2px rgba(79,70,229,0.18);
+        box-shadow: 0 0 0 3px rgba(79,70,229,0.18);
     }
 
     .time-input {
         background: transparent;
         border: none;
         font-family: inherit;
-        font-size: 0.8rem;
+        font-size: 0.94rem;
+        font-weight: 600;
         color: var(--text-main);
         width: 100%;
         text-align: center;
         outline: none;
         cursor: pointer;
-        padding: 2px 0;
+        padding: 3px 0;
     }
     
     .time-separator {
-        color: var(--text-muted);
-        font-size: 0.78rem;
+        color: var(--primary-color);
+        font-size: 0.95rem;
         padding: 0 4px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .time-separator i {
+        font-size: 1.1rem;
     }
 
     .interval-select {
-        background: transparent;
+        background: rgba(79,70,229,0.06);
         border: none;
         font-family: inherit;
-        font-size: 0.75rem;
-        color: var(--text-muted);
+        font-size: 0.8rem;
+        color: var(--primary-color);
         outline: none;
         cursor: pointer;
-        padding: 2px 4px;
-        font-weight: 600;
+        padding: 4px 8px;
+        font-weight: 700;
+        border-radius: 999px;
+        transition: all 0.2s;
     }
+    
     .interval-select:hover {
-        color: var(--primary-color);
+        background: rgba(79,70,229,0.12);
     }
 
     .btn-remove {
-        width: 32px;
-        height: 32px;
-        border-radius: 999px;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
         border: none;
-        background: transparent;
-        color: #9ca3af;
+        background: rgba(239,68,68,0.08);
+        color: #ef4444;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        transition: 0.18s;
+        transition: all 0.2s ease;
         flex-shrink: 0;
+        font-size: 0.95rem;
     }
+    
     .btn-remove:hover {
         background: #fee2e2;
-        color: #ef4444;
+        transform: translateY(-1px);
+    }
+    
+    .btn-remove:active {
+        transform: scale(0.96);
     }
 
     .btn-add {
         width: 100%;
         margin-top: 10px;
-        padding: 8px;
-        background: rgba(248,250,252,0.9);
-        border: 1px dashed #cbd5e1;
-        border-radius: 999px;
-        color: var(--text-muted);
+        padding: 10px 12px;
+        background: #f9fafb;
+        border: 1px dashed rgba(148,163,184,0.8);
+        border-radius: 12px;
+        color: var(--primary-color);
         font-weight: 600;
-        font-size: 0.8rem;
+        font-size: 0.85rem;
         cursor: pointer;
-        transition: 0.18s;
+        transition: all 0.2s ease;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 6px;
     }
+    
     .btn-add:hover {
         border-color: var(--primary-color);
-        color: var(--primary-color);
-        background: #eef2ff;
+        background: #ffffff;
+        box-shadow: 0 3px 10px rgba(15,23,42,0.05);
     }
 
     /* Barra Flutuante de Salvar */
     .sticky-save-bar {
         position: fixed;
-        bottom: 16px;
+        bottom: 14px;
         left: 50%;
         transform: translateX(-50%);
-        width: 90%;
-        max-width: 460px;
+        width: calc(100% - 24px);
+        max-width: 560px;
         background: #020617;
         color: white;
-        padding: 8px 14px;
-        border-radius: 999px;
-        box-shadow: 0 16px 35px rgba(15,23,42,0.65);
+        padding: 10px 14px;
+        border-radius: 14px;
+        box-shadow: 0 16px 40px rgba(15,23,42,0.6);
         display: flex;
         justify-content: space-between;
         align-items: center;
         z-index: 1000;
-        animation: floatUp 0.35s ease-out;
         gap: 10px;
+        flex-wrap: wrap;
     }
+    
     .save-text {
-        font-size: 0.8rem;
-        font-weight: 500;
-        opacity: 0.9;
-        white-space: nowrap;
+        font-size: 0.82rem;
+        font-weight: 600;
+        opacity: 0.95;
+        display: flex;
+        align-items: center;
+        gap: 6px;
     }
+    
+    .save-text::before {
+        content: '⚡';
+        font-size: 1rem;
+    }
+    
     .btn-save-action {
-        background: var(--primary-color);
+        background: linear-gradient(135deg, #10b981, #059669);
         color: white;
         border: none;
-        padding: 6px 16px;
+        padding: 8px 18px;
         border-radius: 999px;
         font-weight: 700;
-        font-size: 0.8rem;
+        font-size: 0.9rem;
         cursor: pointer;
-        transition: 0.18s;
+        transition: all 0.2s ease;
         white-space: nowrap;
+        box-shadow: 0 4px 12px rgba(16,185,129,0.4);
     }
+    
     .btn-save-action:hover {
-        background: #4338ca;
         transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(16,185,129,0.55);
+    }
+    
+    .btn-save-action:active {
+        transform: translateY(0);
     }
 
     @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(4px); }
+        from { opacity: 0; transform: translateY(6px); }
         to { opacity: 1; transform: translateY(0); }
     }
+    
     @keyframes slideDown {
-        from { opacity: 0; max-height: 0; }
-        to { opacity: 1; max-height: 480px; }
-    }
-    @keyframes floatUp {
-        from { transform: translate(-50%, 120%); }
-        to { transform: translate(-50%, 0); }
+        from { opacity: 0; max-height: 0; padding-top: 0; }
+        to { opacity: 1; max-height: 600px; padding-top: 14px; }
     }
 
-    /* Ajustes Mobile */
-    @media(max-width: 480px) {
-        .main-wrapper { padding: 14px 10px 80px 10px; }
-        .page-header h2 { font-size: 1.1rem; }
-        .sticky-save-bar {
-            padding-inline: 12px;
-            gap: 8px;
+    /* === SEÇÃO DIAS ESPECIAIS === */
+    .special-days-section {
+        margin-top: 20px;
+        background: var(--bg-card);
+        border-radius: 16px;
+        padding: 14px 16px 16px;
+        border: 1px solid #fed7aa;
+        box-shadow: var(--shadow-soft);
+    }
+
+    .special-days-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+
+    .special-days-header h3 {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #9a3412;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .special-days-header .icon {
+        font-size: 1.1rem;
+    }
+
+    .special-days-description {
+        color: #b45309;
+        font-size: 0.75rem;
+        margin-bottom: 10px;
+        opacity: 0.9;
+    }
+
+    .add-special-day-form {
+        background: #fff7ed;
+        border-radius: 12px;
+        padding: 10px 10px 12px;
+        margin-bottom: 10px;
+        border: 1px dashed #fdba74;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+
+    .form-input {
+        flex: 1;
+        min-width: 130px;
+        padding: 6px 10px;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-family: inherit;
+        background: #f9fafb;
+        transition: 0.15s ease;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: #fb923c;
+        background: #ffffff;
+        box-shadow: 0 0 0 2px rgba(251,146,60,0.18);
+    }
+
+    .form-select {
+        padding: 6px 10px;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-family: inherit;
+        background: #f9fafb;
+        cursor: pointer;
+        transition: 0.15s ease;
+    }
+
+    .form-select:focus {
+        outline: none;
+        border-color: #fb923c;
+        background: #ffffff;
+    }
+
+    .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 8px;
+        font-size: 0.75rem;
+        color: #6b7280;
+        flex-wrap: wrap;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        accent-color: #fb923c;
+    }
+
+    .btn-add-special {
+        width: 100%;
+        background: linear-gradient(135deg, #fb923c, #f97316);
+        color: white;
+        border: none;
+        padding: 8px 10px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .btn-add-special:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(251,146,60,0.35);
+    }
+
+    .special-days-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 4px;
+    }
+
+    .special-day-item {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 9px 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid #fee2be;
+        transition: 0.2s ease;
+    }
+
+    .special-day-item:hover {
+        border-color: #fb923c;
+        box-shadow: 0 3px 10px rgba(251,146,60,0.18);
+    }
+
+    .special-day-info {
+        flex: 1;
+    }
+
+    .special-day-name {
+        font-weight: 700;
+        color: #9a3412;
+        font-size: 0.85rem;
+        margin-bottom: 2px;
+    }
+
+    .special-day-date {
+        color: #fb923c;
+        font-size: 0.72rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .special-day-badge {
+        font-size: 0.6rem;
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-left: 4px;
+    }
+
+    .badge-recorrente {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+
+    .badge-unico {
+        background: #dbeafe;
+        color: #2563eb;
+    }
+
+    .btn-remove-special {
+        background: #fee2e2;
+        color: #dc2626;
+        border: none;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: 0.2s ease;
+        flex-shrink: 0;
+        font-size: 0.85rem;
+    }
+
+    .btn-remove-special:hover {
+        background: #fecaca;
+        transform: scale(1.05);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 18px 10px;
+        color: #9a3412;
+        opacity: 0.65;
+        font-size: 0.8rem;
+    }
+
+    /* === RESPONSIVO MOBILE === */
+    @media (max-width: 768px) {
+        .main-wrapper { 
+            padding: 18px 10px 120px 10px; 
         }
-        .save-text { font-size: 0.78rem; }
+        
+        .page-header {
+            padding: 14px 14px;
+            border-radius: 14px;
+        }
+        
+        .page-header h2 { 
+            font-size: 1.25rem;
+        }
+        
+        .page-header p {
+            font-size: 0.8rem;
+        }
+        
+        .btn-auto-fill {
+            width: 100%;
+            justify-content: center;
+            font-size: 0.82rem;
+        }
+
+        .day-card {
+            padding: 14px 14px 12px;
+            border-radius: 14px;
+        }
+
+        .day-icon {
+            width: 38px;
+            height: 38px;
+            font-size: 1rem;
+        }
+        
+        .day-title {
+            font-size: 0.95rem;
+        }
+        
+        .status-badge {
+            font-size: 0.62rem;
+        }
+
+        .switch {
+            width: 44px;
+            height: 22px;
+        }
+
+        .slider:before {
+            height: 18px;
+            width: 18px;
+        }
+
+        .time-capsule {
+            padding: 9px 10px;
+            border-radius: 12px;
+        }
+        
+        .time-input {
+            font-size: 0.9rem;
+        }
+        
+        .interval-select {
+            font-size: 0.78rem;
+        }
+
+        .btn-remove {
+            width: 30px;
+            height: 30px;
+            font-size: 0.85rem;
+        }
+        
+        .btn-add {
+            padding: 9px 10px;
+            font-size: 0.82rem;
+        }
+
+        .sticky-save-bar {
+            padding: 9px 12px;
+            border-radius: 12px;
+            max-width: calc(100% - 18px);
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .save-text {
+            font-size: 0.8rem;
+        }
+        
+        .btn-save-action {
+            width: 100%;
+            text-align: center;
+            padding: 9px 14px;
+        }
+
+        .form-row {
+            flex-direction: column;
+        }
+        
+        .form-input, .form-select {
+            min-width: 100%;
+        }
     }
 </style>
+
 
 <div class="main-wrapper">
     
     <div class="page-header">
-        <div>
-            <h2>Seu Expediente</h2>
-            <p>Defina sua disponibilidade semanal.</p>
+        <div class="page-header-top">
+            <div class="page-title-wrapper">
+                <h2>⏰ Seu Expediente</h2>
+                <p>Configure seus horários de atendimento semanal</p>
+            </div>
+            <button type="button" class="btn-auto-fill" onclick="confirmarHorarioComercial()">
+                <i class="bi bi-magic"></i> Padrão comercial
+            </button>
         </div>
-        <button type="button" class="btn-auto-fill" onclick="confirmarHorarioComercial()">
-            <i class="bi bi-magic"></i> Padrão comercial
-        </button>
     </div>
 
     <form method="POST" id="formHorarios">
-        <?php foreach ($diasSemana as $diaIndex => $diaNome): ?>
-            <?php 
-                $temHorarios = count($agenda[$diaIndex]) > 0;
-                $isChecked   = $temHorarios ? 'checked' : '';
-                $cardClass   = $temHorarios ? '' : 'closed';
-            ?>
+        <?php 
+        $iconesDias = [
+            1 => '🗓️', // Segunda
+            2 => '🗓️', // Terça
+            3 => '🗓️', // Quarta
+            4 => '🗓️', // Quinta
+            5 => '🗓️', // Sexta
+            6 => '🎉', // Sábado
+            0 => '🌟'  // Domingo
+        ];
+        
+        foreach ($diasSemana as $diaIndex => $diaNome): 
+            $temHorarios = count($agenda[$diaIndex]) > 0;
+            $isChecked   = $temHorarios ? 'checked' : '';
+            $cardClass   = $temHorarios ? '' : 'closed';
+            $icone = $iconesDias[$diaIndex];
+        ?>
             
             <div class="day-card <?php echo $cardClass; ?>" id="card-<?php echo $diaIndex; ?>">
                 
                 <div class="day-header">
                     <div class="day-info" onclick="triggerToggle(<?php echo $diaIndex; ?>)">
-                        <div class="day-title"><?php echo $diaNome; ?></div>
-                        <span id="badge-<?php echo $diaIndex; ?>" class="status-badge <?php echo $temHorarios ? 'status-open' : 'status-closed'; ?>">
-                            <?php echo $temHorarios ? 'Aberto' : 'Fechado'; ?>
-                        </span>
+                        <div class="day-icon"><?php echo $icone; ?></div>
+                        <div>
+                            <div class="day-title"><?php echo $diaNome; ?></div>
+                            <span id="badge-<?php echo $diaIndex; ?>" class="status-badge <?php echo $temHorarios ? 'status-open' : 'status-closed'; ?>">
+                                <?php echo $temHorarios ? 'Aberto' : 'Fechado'; ?>
+                            </span>
+                        </div>
                     </div>
 
                     <label class="switch">
@@ -493,6 +989,94 @@ include '../../includes/menu.php';
             </div>
         <?php endforeach; ?>
     </form>
+
+    <!-- === SEÇÃO DIAS ESPECIAIS / FERIADOS === -->
+    <div class="special-days-section">
+        <div class="special-days-header">
+            <h3>
+                <span class="icon">🎉</span>
+                Feriados e Dias Especiais
+            </h3>
+        </div>
+        <p class="special-days-description">
+            Marque datas específicas em que você não atenderá: feriados, aniversário, férias, etc.
+        </p>
+
+        <!-- Formulário para adicionar -->
+        <div class="add-special-day-form">
+            <div class="form-row">
+                <input type="date" 
+                       id="special-date" 
+                       class="form-input" 
+                       placeholder="Data" 
+                       min="<?php echo date('Y-m-d'); ?>"
+                       required>
+                <input type="text" 
+                       id="special-name" 
+                       class="form-input" 
+                       placeholder="Nome (ex: Natal, Meu Aniversário)" 
+                       maxlength="100"
+                       required>
+                <select id="special-type" class="form-select">
+                    <option value="data_especial">Dia Especial</option>
+                    <option value="feriado_fixo">Feriado Fixo</option>
+                    <option value="feriado_nacional">Feriado Nacional</option>
+                </select>
+            </div>
+            <div class="checkbox-row">
+                <input type="checkbox" id="special-recorrente">
+                <label for="special-recorrente">
+                    Repete todo ano (exemplo: aniversário sempre em 15/03)
+                </label>
+            </div>
+            <button type="button" class="btn-add-special" onclick="adicionarDiaEspecial()">
+                <i class="bi bi-plus-circle"></i>
+                Adicionar Data
+            </button>
+        </div>
+
+        <!-- Lista de dias especiais -->
+        <div class="special-days-list" id="special-days-list">
+            <?php if (empty($diasEspeciais)): ?>
+                <div class="empty-state">
+                    <i class="bi bi-calendar-x" style="font-size: 2rem; display: block; margin-bottom: 8px;"></i>
+                    Nenhum dia especial cadastrado
+                </div>
+            <?php else: ?>
+                <?php foreach ($diasEspeciais as $dia): ?>
+                    <div class="special-day-item" data-id="<?php echo $dia['id']; ?>">
+                        <div class="special-day-info">
+                            <div class="special-day-name">
+                                <?php echo htmlspecialchars($dia['nome']); ?>
+                                <?php if ($dia['recorrente']): ?>
+                                    <span class="special-day-badge badge-recorrente">Anual</span>
+                                <?php else: ?>
+                                    <span class="special-day-badge badge-unico">Único</span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="special-day-date">
+                                <i class="bi bi-calendar-event"></i>
+                                <?php 
+                                    $dataObj = new DateTime($dia['data']);
+                                    echo $dataObj->format('d/m/Y');
+                                    if ($dia['recorrente']) {
+                                        echo ' • ' . $dataObj->format('d/m') . ' de cada ano';
+                                    }
+                                ?>
+                            </div>
+                        </div>
+                        <button type="button" 
+                                class="btn-remove-special" 
+                                onclick="removerDiaEspecial(<?php echo $dia['id']; ?>)"
+                                title="Remover">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
+    </div>
+
 </div>
 
 <div class="sticky-save-bar">
@@ -613,6 +1197,127 @@ include '../../includes/footer.php';
 
         AppToast.show('Horário comercial aplicado!', 'success');
     }
+
+    // === GERENCIAR DIAS ESPECIAIS ===
+    async function adicionarDiaEspecial() {
+        const data = document.getElementById('special-date').value;
+        const nome = document.getElementById('special-name').value.trim();
+        const tipo = document.getElementById('special-type').value;
+        const recorrente = document.getElementById('special-recorrente').checked;
+
+        if (!data || !nome) {
+            AppToast.show('Preencha a data e o nome!', 'danger');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('action', 'adicionar_dia_especial');
+        formData.append('data', data);
+        formData.append('nome', nome);
+        formData.append('tipo', tipo);
+        if (recorrente) formData.append('recorrente', '1');
+
+        try {
+            const response = await fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                AppToast.show('Data especial adicionada!', 'success');
+                // Recarregar página para atualizar lista
+                setTimeout(() => location.reload(), 800);
+            } else {
+                AppToast.show('Erro ao adicionar: ' + result.error, 'danger');
+            }
+        } catch (error) {
+            AppToast.show('Erro de comunicação com servidor', 'danger');
+            console.error(error);
+        }
+    }
+
+    async function removerDiaEspecial(id) {
+        AppConfirm.open({
+            title: 'Remover data especial',
+            message: 'Tem certeza que deseja remover esta data? Esta ação não pode ser desfeita.',
+            confirmText: 'Remover',
+            type: 'danger',
+            onConfirm: async () => {
+                const formData = new FormData();
+                formData.append('action', 'remover_dia_especial');
+                formData.append('id', id);
+
+                try {
+                    const response = await fetch(window.location.href, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        AppToast.show('Data removida com sucesso!', 'success');
+                        // Remover elemento da lista com animação
+                        const item = document.querySelector(`[data-id="${id}"]`);
+                        if (item) {
+                            item.style.opacity = '0';
+                            item.style.transform = 'translateX(-20px)';
+                            setTimeout(() => {
+                                item.remove();
+                                // Se lista ficou vazia, mostrar estado vazio
+                                const list = document.getElementById('special-days-list');
+                                if (list.children.length === 0) {
+                                    list.innerHTML = `
+                                        <div class="empty-state">
+                                            <i class="bi bi-calendar-x" style="font-size: 2rem; display: block; margin-bottom: 8px;"></i>
+                                            Nenhum dia especial cadastrado
+                                        </div>
+                                    `;
+                                }
+                            }, 300);
+                        }
+                    } else {
+                        AppToast.show('Erro ao remover: ' + result.error, 'danger');
+                    }
+                } catch (error) {
+                    AppToast.show('Erro de comunicação com servidor', 'danger');
+                    console.error(error);
+                }
+            }
+        });
+    }
+
+    // Atalho para feriados comuns
+    document.getElementById('special-name').addEventListener('focus', function() {
+        const hoje = new Date();
+        const dataInput = document.getElementById('special-date');
+        
+        // Se campo de nome estiver vazio e data selecionada, sugerir nome
+        if (!this.value && dataInput.value) {
+            const dataSelecionada = new Date(dataInput.value + 'T12:00:00');
+            const mes = dataSelecionada.getMonth() + 1;
+            const dia = dataSelecionada.getDate();
+            
+            const feriadosComuns = {
+                '01-01': 'Ano Novo',
+                '12-25': 'Natal',
+                '12-24': 'Véspera de Natal',
+                '12-31': 'Réveillon',
+                '09-07': 'Independência do Brasil',
+                '10-12': 'Nossa Senhora Aparecida',
+                '11-02': 'Finados',
+                '11-15': 'Proclamação da República',
+                '11-20': 'Consciência Negra'
+            };
+            
+            const chave = String(mes).padStart(2, '0') + '-' + String(dia).padStart(2, '0');
+            if (feriadosComuns[chave]) {
+                this.value = feriadosComuns[chave];
+                document.getElementById('special-type').value = 'feriado_nacional';
+                document.getElementById('special-recorrente').checked = true;
+            }
+        }
+    });
 
     // Mensagens de Sucesso/Erro PHP
     <?php if ($toastStatus): ?>

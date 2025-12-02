@@ -213,9 +213,48 @@ if (isset($_GET['action'])) {
         $disponibilidade = [];
         $diasNoMes = cal_days_in_month(CAL_GREGORIAN, $mes, $ano);
         
+        // Buscar dias especiais de fechamento (feriados, aniversários, etc)
+        $stmtDiasEspeciais = $pdo->prepare("
+            SELECT data, recorrente 
+            FROM dias_especiais_fechamento 
+            WHERE user_id = ? 
+              AND (
+                  (recorrente = 0 AND strftime('%Y-%m', data) = ?)
+                  OR (recorrente = 1)
+              )
+        ");
+        $stmtDiasEspeciais->execute([$profissionalId, sprintf('%04d-%02d', $ano, $mes)]);
+        $diasEspeciaisFechados = [];
+        
+        foreach ($stmtDiasEspeciais->fetchAll() as $diaEspecial) {
+            if ($diaEspecial['recorrente']) {
+                // Para datas recorrentes, extrai só o dia/mês
+                $dataEspecial = new DateTime($diaEspecial['data']);
+                $mesEspecial = (int)$dataEspecial->format('m');
+                $diaEspecial_num = (int)$dataEspecial->format('d');
+                
+                // Se o mês/dia bate com o mês atual, marca como fechado
+                if ($mesEspecial === $mes) {
+                    $diasEspeciaisFechados[$diaEspecial_num] = true;
+                }
+            } else {
+                // Para datas únicas, compara a data completa
+                $dataEspecial = new DateTime($diaEspecial['data']);
+                if ((int)$dataEspecial->format('Y') === $ano && (int)$dataEspecial->format('m') === $mes) {
+                    $diasEspeciaisFechados[(int)$dataEspecial->format('d')] = true;
+                }
+            }
+        }
+        
         for ($dia = 1; $dia <= $diasNoMes; $dia++) {
             $data = sprintf('%04d-%02d-%02d', $ano, $mes, $dia);
             $diaSemana = date('w', strtotime($data));
+            
+            // Verifica se é um dia especial de fechamento
+            if (isset($diasEspeciaisFechados[$dia])) {
+                $disponibilidade[$dia] = 'fechado';
+                continue;
+            }
             
             // Verifica se tem horário de atendimento neste dia
             $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM horarios_atendimento WHERE user_id = ? AND dia_semana = ?");
