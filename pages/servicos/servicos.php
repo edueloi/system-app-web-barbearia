@@ -87,16 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Caminho salvo no banco (relativo ao projeto)
     $uploadDirDb = 'uploads/';
 
-    $stmtCalcs = $pdo->prepare("
-        SELECT id, nome_servico, valor_cobrado
-        FROM calculo_servico
-        WHERE user_id = ?
-        ORDER BY created_at DESC
-    ");
-    $stmtCalcs->execute([$userId]);
-    $calculos = $stmtCalcs->fetchAll();
-
-
     // Upload de Imagem
     $fotoPath = $_POST['foto_atual'] ?? '';
     if (!empty($_FILES['foto']['name'])) {
@@ -173,6 +163,16 @@ $todosRegistros = $stmt->fetchAll();
 
 $listaServicos = array_filter($todosRegistros, function($item){ return $item['tipo'] == 'unico'; });
 $listaPacotes  = array_filter($todosRegistros, function($item){ return $item['tipo'] == 'pacote'; });
+
+// Buscar cálculos de custos para o dropdown no modal
+$stmtCalcs = $pdo->prepare("
+    SELECT id, nome_servico, valor_cobrado
+    FROM calculo_servico
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+");
+$stmtCalcs->execute([$userId]);
+$calculos = $stmtCalcs->fetchAll();
 ?>
 
 <style>
@@ -1145,12 +1145,12 @@ $listaPacotes  = array_filter($todosRegistros, function($item){ return $item['ti
                     <i class="bi bi-calculator-fill"></i>
                     Cálculo de custos vinculado (opcional)
                 </label>
-                <select name="calculo_servico_id" class="form-control">
-                    <option value="">Nenhum (preencher manual)</option>
+                <select name="calculo_servico_id" id="inputCalculoServico" class="form-control" onchange="preencherDadosCalculo()">
+                    <option value="" data-nome="" data-preco="0">Nenhum (preencher manual)</option>
                     <?php foreach ($calculos as $c): ?>
-                        <option value="<?php echo $c['id']; ?>"
-                            <?php if (!empty($servicoEdicao['calculo_servico_id']) && $servicoEdicao['calculo_servico_id'] == $c['id']) echo 'selected'; ?>
-                        >
+                        <option value="<?php echo $c['id']; ?>" 
+                                data-nome="<?php echo htmlspecialchars($c['nome_servico']); ?>" 
+                                data-preco="<?php echo $c['valor_cobrado']; ?>">
                             <?php echo htmlspecialchars($c['nome_servico']); ?> - R$ <?php echo number_format($c['valor_cobrado'], 2, ',', '.'); ?>
                         </option>
                     <?php endforeach; ?>
@@ -1504,6 +1504,14 @@ $listaPacotes  = array_filter($todosRegistros, function($item){ return $item['ti
         inputFotoAtual.value = dados.foto || '';
         btnSalvar.innerHTML = '<i class="bi bi-check-circle-fill"></i> Atualizar';
         
+        // Carregar cálculo de custos vinculado
+        const selectCalculo = document.getElementById('inputCalculoServico');
+        if (selectCalculo && dados.calculo_servico_id) {
+            selectCalculo.value = dados.calculo_servico_id;
+        } else if (selectCalculo) {
+            selectCalculo.value = '';
+        }
+        
         // Carregar dados de desconto (pacote)
         document.getElementById('inputDescontoTipo').value = dados.desconto_tipo || 'percentual';
         document.getElementById('inputDescontoValor').value = dados.desconto_valor || 0;
@@ -1546,6 +1554,25 @@ $listaPacotes  = array_filter($todosRegistros, function($item){ return $item['ti
 
     function fecharModal() {
         modal.classList.remove('active');
+    }
+
+    // PREENCHER DADOS DO CÁLCULO AUTOMATICAMENTE
+    function preencherDadosCalculo() {
+        const selectCalculo = document.getElementById('inputCalculoServico');
+        const selectedOption = selectCalculo.options[selectCalculo.selectedIndex];
+        
+        if (selectedOption && selectedOption.value) {
+            const nomeCalculo = selectedOption.getAttribute('data-nome');
+            const precoCalculo = selectedOption.getAttribute('data-preco');
+            
+            // Preencher nome se estiver vazio ou for modo criar
+            if (inputAcao.value === 'create' || !inputNome.value) {
+                inputNome.value = nomeCalculo;
+            }
+            
+            // Preencher preço
+            inputPreco.value = parseFloat(precoCalculo).toFixed(2);
+        }
     }
 
     // 3. TOGGLE QUANTIDADE POR SERVIÇO
