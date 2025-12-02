@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome            = $_POST['nome'] ?? '';
     $email           = $_POST['email'] ?? '';
     $telefone        = $_POST['telefone'] ?? '';
+    $cpf             = preg_replace('/[^0-9]/', '', $_POST['cpf'] ?? ''); // Remove máscara
     $instagram       = $_POST['instagram'] ?? '';
     $bio             = $_POST['biografia'] ?? '';
     // Endereço
@@ -45,12 +46,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Atualizar no Banco
     $sql = "UPDATE usuarios SET 
-                estabelecimento=?, tipo_estabelecimento=?, nome=?, email=?, telefone=?, instagram=?, foto=?, biografia=?, 
+                estabelecimento=?, tipo_estabelecimento=?, nome=?, email=?, telefone=?, cpf=?, instagram=?, foto=?, biografia=?, 
                 cep=?, endereco=?, numero=?, bairro=?, cidade=?, estado=? 
             WHERE id=?";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
-        $estabelecimento, $tipoEstabelecimento, $nome, $email, $telefone, $instagram, $fotoPath, $bio,
+        $estabelecimento, $tipoEstabelecimento, $nome, $email, $telefone, $cpf, $instagram, $fotoPath, $bio,
         $cep, $endereco, $numero, $bairro, $cidade, $estado, $userId
     ]);
 
@@ -476,6 +477,25 @@ unset($_SESSION['perfil_msg']);
                         </div>
                         <div class="form-group">
                             <label>
+                                <i class="bi bi-shield-lock"></i> CPF
+                                <small style="color:#64748b; font-size:0.75rem; font-weight:400;">(Apenas para Consulta Bot)</small>
+                            </label>
+                            <input
+                                type="text"
+                                name="cpf"
+                                id="inputCpf"
+                                class="form-control"
+                                value="<?php echo htmlspecialchars($user['cpf'] ?? ''); ?>"
+                                placeholder="000.000.000-00"
+                                maxlength="14"
+                                oninput="mascaraCpf(this)"
+                            >
+                            <small style="color:#64748b; font-size:0.75rem; display:block; margin-top:4px;">
+                                <i class="bi bi-info-circle"></i> (não visível para clientes)
+                            </small>
+                        </div>
+                        <div class="form-group">
+                            <label>
                                 <i class="bi bi-instagram" style="color:#E1306C;"></i> Instagram
                             </label>
                             <div style="display:flex; align-items:center; gap:8px;">
@@ -609,11 +629,38 @@ include '../../includes/footer.php';
         el.value = v;
     }
 
+    // Máscara de CPF: 000.000.000-00
+    function mascaraCpf(el) {
+        let v = el.value || "";
+        
+        // remove tudo que não é número
+        v = v.replace(/\D/g, "");
+        
+        // limita a 11 dígitos
+        if (v.length > 11) v = v.substring(0, 11);
+        
+        // aplica a máscara
+        if (v.length > 9) {
+            v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{2}).*/, "$1.$2.$3-$4");
+        } else if (v.length > 6) {
+            v = v.replace(/^(\d{3})(\d{3})(\d{0,3}).*/, "$1.$2.$3");
+        } else if (v.length > 3) {
+            v = v.replace(/^(\d{3})(\d{0,3}).*/, "$1.$2");
+        }
+        
+        el.value = v;
+    }
+
     // Aplica máscara no valor que vem do banco ao carregar a página
     document.addEventListener('DOMContentLoaded', function () {
         const telInput = document.getElementById('inputTelefone');
         if (telInput && telInput.value) {
             mascaraTelefone(telInput);
+        }
+
+        const cpfInput = document.getElementById('inputCpf');
+        if (cpfInput && cpfInput.value) {
+            mascaraCpf(cpfInput);
         }
 
         // Toast de sucesso após redirect (PRG)

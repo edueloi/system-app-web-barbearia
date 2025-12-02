@@ -86,6 +86,8 @@ try {
         nome TEXT,
         email TEXT,
         telefone TEXT,
+        cpf TEXT,                         -- CPF para autenticação na API REST
+        instagram TEXT,                   -- Instagram do profissional
         senha TEXT,
         foto TEXT,
         biografia TEXT,
@@ -96,6 +98,7 @@ try {
         cidade TEXT,
         estado TEXT,
         estabelecimento TEXT,
+        tipo_estabelecimento TEXT DEFAULT 'Salão de Beleza',
         cor_tema TEXT DEFAULT '#4f46e5',
         ativo INTEGER DEFAULT 1,
         ultimo_login DATETIME,
@@ -218,10 +221,30 @@ try {
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN estabelecimento TEXT"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN tipo_estabelecimento TEXT DEFAULT 'Salão de Beleza'"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN instagram TEXT"); } catch (Exception $e) {} 
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN cpf TEXT"); } catch (Exception $e) {} 
 
     // ⬇️⬇️ AQUI ESTÃO AS NOVAS COLUNAS PARA RECUPERAÇÃO DE SENHA ⬇️⬇️
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN token_recuperacao TEXT"); } catch (Exception $e) {} 
-    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN token_validade DATETIME"); } catch (Exception $e) {} 
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN token_validade DATETIME"); } catch (Exception $e) {}
+    
+    // ========================================================= 
+    // ÍNDICES E TABELAS PARA API REST
+    // ========================================================= 
+    
+    // Índice único para CPF (usado na autenticação da API)
+    try {
+        $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_cpf ON usuarios(cpf)");
+    } catch (Exception $e) {}
+    
+    // Tabela de logs de acesso à API
+    $pdo->exec("CREATE TABLE IF NOT EXISTS api_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        endpoint TEXT NOT NULL,
+        ip_address TEXT,
+        user_agent TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )"); 
 
     // Produtos 
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN marca TEXT"); } catch (Exception $e) {} 
