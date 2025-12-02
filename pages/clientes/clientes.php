@@ -81,6 +81,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // 3. CONSULTA DE DADOS (CLIENTES E HISTÓRICO)
 // =========================================================
 
+// 🔹 Detectar ambiente para URLs (usar em JavaScript)
+$isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+$clientesUrl = $isProd ? '/clientes' : '/karen_site/controle-salao/pages/clientes/clientes.php';
+
 // 3.1 Buscar Clientes
 $stmt = $pdo->prepare("SELECT * FROM clientes WHERE user_id = ? ORDER BY nome ASC");
 $stmt->execute([$userId]);
@@ -957,7 +961,10 @@ include '../../includes/menu.php';
     }
 
     document.getElementById('btnConfirmDelete').onclick = function() {
-        if (idParaExcluir) window.location.href = `clientes.php?delete=${idParaExcluir}`;
+        if (idParaExcluir) {
+            const baseUrl = '<?php echo $clientesUrl; ?>';
+            window.location.href = `${baseUrl}?delete=${idParaExcluir}`;
+        }
     };
 
     function filtrarClientes() {

@@ -441,6 +441,75 @@ switch ($action) {
         break;
     
     // ====================================================================
+    // ENDPOINT: Agendamentos próximos (para lembretes automáticos)
+    // ====================================================================
+    case 'agendamentos_proximos':
+        // Parâmetros: tempo em minutos antes do agendamento
+        $tempoAntes = isset($_GET['minutos']) ? (int)$_GET['minutos'] : 60; // padrão: 1 hora
+        $dataHoraAtual = date('Y-m-d H:i:s');
+        
+        // Calcula data/hora futura (agora + tempo especificado)
+        $dataHoraLimite = date('Y-m-d H:i:s', strtotime("+{$tempoAntes} minutes"));
+        
+        $sql = "SELECT 
+                    a.id,
+                    a.user_id,
+                    a.cliente_id,
+                    a.servico,
+                    a.valor,
+                    a.data_agendamento,
+                    a.horario,
+                    a.status,
+                    a.observacoes,
+                    a.lembrete_enviado,
+                    
+                    u.telefone AS telefone_profissional,
+                    u.nome AS profissional_nome,
+                    u.estabelecimento,
+                    
+                    c.nome AS cliente_nome,
+                    c.telefone AS cliente_telefone,
+                    
+                    -- Calcula minutos até o agendamento
+                    CAST((julianday(a.data_agendamento || ' ' || a.horario) - julianday('now', 'localtime')) * 24 * 60 AS INTEGER) AS minutos_ate_agendamento
+                FROM agendamentos a
+                JOIN usuarios u ON u.id = a.user_id
+                LEFT JOIN clientes c ON c.id = a.cliente_id
+                WHERE a.user_id = ?
+                  AND a.status IN ('Confirmado', 'Pendente')
+                  AND datetime(a.data_agendamento || ' ' || a.horario) > datetime('now', 'localtime')
+                  AND datetime(a.data_agendamento || ' ' || a.horario) <= datetime('now', 'localtime', '+{$tempoAntes} minutes')
+                  AND (a.lembrete_enviado IS NULL OR a.lembrete_enviado = 0)
+                ORDER BY a.data_agendamento ASC, a.horario ASC";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$userId]);
+        $agendamentosProximos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Formata dados
+        foreach ($agendamentosProximos as &$ag) {
+            $ag['data_agendamento_br'] = formatarDataBR($ag['data_agendamento']);
+            $ag['horario_formatado'] = formatarHorario($ag['horario']);
+            
+            // Calcula tempo restante de forma legível
+            $minutos = $ag['minutos_ate_agendamento'];
+            if ($minutos < 60) {
+                $ag['tempo_restante'] = $minutos . ' minutos';
+            } else {
+                $horas = floor($minutos / 60);
+                $mins = $minutos % 60;
+                $ag['tempo_restante'] = $horas . 'h' . ($mins > 0 ? $mins . 'min' : '');
+            }
+        }
+        
+        jsonResponse(true, [
+            'total' => count($agendamentosProximos),
+            'tempo_antecedencia_minutos' => $tempoAntes,
+            'agendamentos' => $agendamentosProximos
+        ], 'Agendamentos próximos recuperados com sucesso');
+        break;
+    
+    // ====================================================================
     // ENDPOINT INVÁLIDO
     // ====================================================================
     default:

@@ -305,10 +305,14 @@ try {
     try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN indice_serie INTEGER DEFAULT 1"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN e_recorrente INTEGER DEFAULT 0"); } catch (Exception $e) {}
     
+    // Campo para controlar envio de lembretes automáticos
+    try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN lembrete_enviado INTEGER DEFAULT 0"); } catch (Exception $e) {}
+    
     // Índices para performance
     try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_agendamentos_serie ON agendamentos(serie_id)"); } catch (Exception $e) {}
     try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_agendamentos_recorrentes_serie ON agendamentos_recorrentes(serie_id)"); } catch (Exception $e) {}
     try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_agendamentos_recorrentes_user ON agendamentos_recorrentes(user_id)"); } catch (Exception $e) {}
+    try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_agendamentos_lembrete ON agendamentos(lembrete_enviado, data_agendamento, horario)"); } catch (Exception $e) {}
 
     // =========================================================
     // SEED ADMIN (usuário ID 1, vitalício)

@@ -349,6 +349,36 @@ include '../../includes/menu.php';
         }
     }
     
+    /* Controle de exibição Desktop vs Mobile */
+    .input-desktop {
+        display: block;
+    }
+    .select-mobile {
+        display: none;
+    }
+    
+    @media (max-width: 768px) {
+        .input-desktop {
+            display: none;
+        }
+        .select-mobile {
+            display: block;
+        }
+        
+        /* Melhorar aparência dos selects no mobile */
+        select.form-input {
+            padding: 14px 40px 14px 14px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236366f1' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            background-size: 12px;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+    }
+    
     .agenda-title {
         font-size: 1.5rem;
         font-weight: 800;
@@ -1268,7 +1298,7 @@ include '../../includes/menu.php';
             <button onclick="closeModal()" style="background:none; border:none; font-size:1.4rem; padding:0; line-height:1;"><i class="bi bi-x"></i></button>
         </div>
         
-        <form method="POST">
+        <form method="POST" onsubmit="sincronizarCamposFormulario()">
             <input type="hidden" name="novo_agendamento" value="1">
 
             <div class="form-group">
@@ -1281,18 +1311,36 @@ include '../../includes/menu.php';
 
             <div class="form-group">
                 <label class="form-label">Nome do cliente</label>
-                <input type="text" name="cliente" id="inputNomeCliente" class="form-input" placeholder="Digite ou selecione o nome do cliente" list="dlNomes" required oninput="preencherTelefonePorNome();">
+                
+                <!-- Desktop: Input com datalist -->
+                <input type="text" name="cliente" id="inputNomeCliente" class="form-input input-desktop" placeholder="Digite ou selecione o nome do cliente" list="dlNomes" oninput="preencherTelefonePorNome();">
                 <datalist id="dlNomes">
                     <?php foreach($clientes as $c) echo "<option value='".htmlspecialchars($c['nome'])."'>"; ?>
                 </datalist>
+                
+                <!-- Mobile: Select nativo -->
+                <select name="cliente_mobile" id="selectNomeCliente" class="form-input select-mobile" onchange="selecionarClienteMobile();">
+                    <option value="">Selecione um cliente</option>
+                    <?php foreach($clientes as $c): ?>
+                        <option value="<?php echo htmlspecialchars($c['nome']); ?>" data-telefone="<?php echo htmlspecialchars($c['telefone']); ?>">
+                            <?php echo htmlspecialchars($c['nome']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                    <option value="__novo__">+ Novo cliente</option>
+                </select>
             </div>
 
             <div class="form-group">
                 <label class="form-label">Telefone do cliente</label>
-                <input type="tel" name="telefone" id="inputTelefone" class="form-input" placeholder="(11) 99999-9999" list="dlTels" required oninput="mascaraTelefone(this);">
+                
+                <!-- Desktop: Input com datalist -->
+                <input type="tel" name="telefone" id="inputTelefone" class="form-input input-desktop" placeholder="(11) 99999-9999" list="dlTels" required oninput="mascaraTelefone(this);">
                 <datalist id="dlTels">
                     <?php foreach($clientes as $c) echo "<option value='".htmlspecialchars($c['telefone'])."'>"; ?>
                 </datalist>
+                
+                <!-- Mobile: Input simples (sem datalist para melhor UX no mobile) -->
+                <input type="tel" name="telefone_mobile" id="inputTelefoneMobile" class="form-input select-mobile" placeholder="(11) 99999-9999" oninput="sincronizarTelefone(this);" required>
             </div>
             <script>
                 // Máscara de telefone
@@ -1316,18 +1364,60 @@ include '../../includes/menu.php';
                     });
                     if (!achou) telInput.value = '';
                 }
+                
+                // Função para quando selecionar cliente no mobile
+                function selecionarClienteMobile() {
+                    var select = document.getElementById('selectNomeCliente');
+                    var inputNome = document.getElementById('inputNomeCliente');
+                    var inputTel = document.getElementById('inputTelefone');
+                    var inputTelMobile = document.getElementById('inputTelefoneMobile');
+                    
+                    if (select.value === '__novo__') {
+                        // Novo cliente - limpar campos
+                        inputNome.value = '';
+                        inputTel.value = '';
+                        if (inputTelMobile) inputTelMobile.value = '';
+                        inputNome.focus();
+                    } else if (select.value) {
+                        // Cliente existente - preencher campos
+                        var option = select.options[select.selectedIndex];
+                        var telefone = option.getAttribute('data-telefone') || '';
+                        inputNome.value = select.value;
+                        inputTel.value = telefone;
+                        if (inputTelMobile) inputTelMobile.value = telefone;
+                    }
+                }
+                
+                // Sincronizar telefone entre mobile e desktop
+                function sincronizarTelefone(input) {
+                    mascaraTelefone(input);
+                    var inputTel = document.getElementById('inputTelefone');
+                    if (inputTel) {
+                        inputTel.value = input.value;
+                    }
+                }
             </script>
 
             <div class="form-group">
                 <label class="form-label">Serviço</label>
-                <input type="text" name="servico_nome" id="inputServicoNome" class="form-input" list="datalistServicos" placeholder="Digite ou escolha o serviço" required oninput="atualizaPrecoPorNome()">
+                
+                <!-- Desktop: Input com datalist -->
+                <input type="text" name="servico_nome" id="inputServicoNome" class="form-input input-desktop" list="datalistServicos" placeholder="Digite ou escolha o serviço" oninput="atualizaPrecoPorNome()">
                 <input type="hidden" name="servico_id" id="inputServicoId">
                 <datalist id="datalistServicos">
                     <!-- Serviços filtrados por JavaScript -->
                 </datalist>
+                
+                <!-- Mobile: Select nativo -->
+                <select name="servico_nome_mobile" id="selectServico" class="form-input select-mobile" onchange="selecionarServicoMobile();">
+                    <option value="">Selecione um serviço</option>
+                    <!-- Opções preenchidas por JavaScript -->
+                </select>
+                
                 <small id="avisoRecorrencia" style="display:none; color:#0369a1; font-size:0.75rem; margin-top:4px;">
                     <i class="bi bi-info-circle-fill"></i> Este serviço criará múltiplos agendamentos automaticamente
                 </small>
+                <small id="infoDiaSemana" style="display:block; color:#64748b; font-size:0.75rem; margin-top:4px;"></small>
             </div>
             <script>
             // Array completo de serviços
@@ -1389,6 +1479,49 @@ include '../../includes/menu.php';
                     } else {
                         infoDia.innerHTML = `<i class="bi bi-calendar"></i> ${nomesDias[diaSemana]}`;
                         infoDia.style.color = '#64748b';
+                    }
+                }
+                
+                // Atualizar select mobile com serviços filtrados
+                var selectServico = document.getElementById('selectServico');
+                if (selectServico) {
+                    selectServico.innerHTML = '<option value="">Selecione um serviço</option>';
+                    servicosDisponiveis.forEach(function(s) {
+                        var option = document.createElement('option');
+                        option.value = s.nome;
+                        option.textContent = s.nome + ' - R$ ' + parseFloat(s.preco).toFixed(2).replace('.', ',');
+                        option.setAttribute('data-preco', s.preco);
+                        option.setAttribute('data-id', s.id);
+                        option.setAttribute('data-recorrente', s.permite_recorrencia ? '1' : '0');
+                        selectServico.appendChild(option);
+                    });
+                }
+            }
+            
+            // Função para quando selecionar serviço no mobile
+            function selecionarServicoMobile() {
+                var select = document.getElementById('selectServico');
+                var inputNome = document.getElementById('inputServicoNome');
+                var inputId = document.getElementById('inputServicoId');
+                var inputValor = document.getElementById('inputValor');
+                
+                if (select.value) {
+                    var option = select.options[select.selectedIndex];
+                    var preco = option.getAttribute('data-preco');
+                    var id = option.getAttribute('data-id');
+                    var recorrente = option.getAttribute('data-recorrente');
+                    
+                    // Sincronizar com input desktop
+                    inputNome.value = select.value;
+                    inputId.value = id || '';
+                    if (inputValor && preco) {
+                        inputValor.value = parseFloat(preco).toFixed(2);
+                    }
+                    
+                    // Mostrar aviso de recorrência se aplicável
+                    var avisoRecorrencia = document.getElementById('avisoRecorrencia');
+                    if (avisoRecorrencia) {
+                        avisoRecorrencia.style.display = (recorrente === '1') ? 'block' : 'none';
                     }
                 }
             }
@@ -1606,6 +1739,32 @@ function renderCard($ag, $clientes) {
     
     function closeModal() { 
         document.getElementById('modalAdd').classList.remove('active'); 
+    }
+    
+    // Sincronizar campos mobile com desktop antes de enviar formulário
+    function sincronizarCamposFormulario() {
+        // Sincronizar nome do cliente
+        var selectCliente = document.getElementById('selectNomeCliente');
+        var inputNome = document.getElementById('inputNomeCliente');
+        if (selectCliente && selectCliente.value && selectCliente.value !== '__novo__') {
+            inputNome.value = selectCliente.value;
+        }
+        
+        // Sincronizar telefone
+        var inputTelMobile = document.getElementById('inputTelefoneMobile');
+        var inputTel = document.getElementById('inputTelefone');
+        if (inputTelMobile && inputTelMobile.value) {
+            inputTel.value = inputTelMobile.value;
+        }
+        
+        // Sincronizar serviço
+        var selectServico = document.getElementById('selectServico');
+        var inputServicoNome = document.getElementById('inputServicoNome');
+        if (selectServico && selectServico.value) {
+            inputServicoNome.value = selectServico.value;
+        }
+        
+        return true; // Permite envio do formulário
     }
     
     // Abre modal com data e horário preenchidos (para horários livres)
