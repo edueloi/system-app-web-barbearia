@@ -22,15 +22,34 @@ $horariosUrl = $isProd
 if (isset($_POST['action']) && $_POST['action'] === 'adicionar_dia_especial') {
     header('Content-Type: application/json');
     try {
-        $data = $_POST['data'];
+        $dataInicio = $_POST['data_inicio'];
+        $dataFim = isset($_POST['data_fim']) && !empty($_POST['data_fim']) ? $_POST['data_fim'] : $dataInicio;
         $nome = $_POST['nome'];
         $tipo = $_POST['tipo'] ?? 'data_especial';
-        $recorrente = isset($_POST['recorrente']) ? 1 : 0;
+        $recorrente = isset($_POST['recorrente']) && $_POST['recorrente'] === '1' ? 1 : 0;
 
         $stmt = $pdo->prepare("INSERT INTO dias_especiais_fechamento (user_id, data, tipo, nome, recorrente) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$userId, $data, $tipo, $nome, $recorrente]);
+        
+        // Se for range de datas, adiciona cada dia
+        $inicio = new DateTime($dataInicio);
+        $fim = new DateTime($dataFim);
+        $fim->modify('+1 day'); // Inclui o último dia
+        
+        $interval = new DateInterval('P1D');
+        $periodo = new DatePeriod($inicio, $interval, $fim);
+        
+        $idsInseridos = [];
+        foreach ($periodo as $data) {
+            $dataStr = $data->format('Y-m-d');
+            $stmt->execute([$userId, $dataStr, $tipo, $nome, $recorrente]);
+            $idsInseridos[] = $pdo->lastInsertId();
+        }
 
-        echo json_encode(['success' => true, 'id' => $pdo->lastInsertId()]);
+        echo json_encode([
+            'success' => true, 
+            'ids' => $idsInseridos,
+            'total' => count($idsInseridos)
+        ]);
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
@@ -1005,16 +1024,10 @@ include '../../includes/menu.php';
         <!-- Formulário para adicionar -->
         <div class="add-special-day-form">
             <div class="form-row">
-                <input type="date" 
-                       id="special-date" 
-                       class="form-input" 
-                       placeholder="Data" 
-                       min="<?php echo date('Y-m-d'); ?>"
-                       required>
                 <input type="text" 
                        id="special-name" 
                        class="form-input" 
-                       placeholder="Nome (ex: Natal, Meu Aniversário)" 
+                       placeholder="Nome (ex: Natal, Férias de Verão)" 
                        maxlength="100"
                        required>
                 <select id="special-type" class="form-select">
@@ -1023,15 +1036,46 @@ include '../../includes/menu.php';
                     <option value="feriado_nacional">Feriado Nacional</option>
                 </select>
             </div>
-            <div class="checkbox-row">
+            
+            <div class="form-row">
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 0.8rem; color: #9a3412; margin-bottom: 6px; font-weight: 600;">
+                        📅 Data Início
+                    </label>
+                    <input type="date" 
+                           id="special-date-inicio" 
+                           class="form-input" 
+                           min="<?php echo date('Y-m-d'); ?>"
+                           onchange="toggleRangeMode()"
+                           required>
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 0.8rem; color: #9a3412; margin-bottom: 6px; font-weight: 600;">
+                        📅 Data Fim (opcional)
+                    </label>
+                    <input type="date" 
+                           id="special-date-fim" 
+                           class="form-input"
+                           min="<?php echo date('Y-m-d'); ?>"
+                           placeholder="Deixe vazio para 1 dia">
+                </div>
+            </div>
+            
+            <div id="range-info" style="display: none; background: rgba(251,146,60,0.1); padding: 10px; border-radius: 10px; margin-bottom: 10px; font-size: 0.85rem; color: #9a3412;">
+                <i class="bi bi-info-circle"></i>
+                <span id="range-text">Será cadastrado 1 dia</span>
+            </div>
+            
+            <div class="checkbox-row" id="recorrente-checkbox">
                 <input type="checkbox" id="special-recorrente">
                 <label for="special-recorrente">
-                    Repete todo ano (exemplo: aniversário sempre em 15/03)
+                    🔄 Repete todo ano (exemplo: aniversário sempre em 15/03)
                 </label>
             </div>
+            
             <button type="button" class="btn-add-special" onclick="adicionarDiaEspecial()">
                 <i class="bi bi-plus-circle"></i>
-                Adicionar Data
+                <span id="btn-add-text">Adicionar Data</span>
             </button>
         </div>
 
@@ -1199,23 +1243,75 @@ include '../../includes/footer.php';
     }
 
     // === GERENCIAR DIAS ESPECIAIS ===
+    
+    // Calcula e mostra range de dias
+    function toggleRangeMode() {
+        const dataInicio = document.getElementById('special-date-inicio').value;
+        const dataFim = document.getElementById('special-date-fim').value;
+        const rangeInfo = document.getElementById('range-info');
+        const rangeText = document.getElementById('range-text');
+        const btnText = document.getElementById('btn-add-text');
+        const recorrenteCheckbox = document.getElementById('recorrente-checkbox');
+        
+        if (dataInicio) {
+            // Define data mínima do fim como a data de início
+            document.getElementById('special-date-fim').min = dataInicio;
+        }
+        
+        if (dataInicio && dataFim && dataFim > dataInicio) {
+            // Calcula diferença de dias
+            const inicio = new Date(dataInicio + 'T00:00:00');
+            const fim = new Date(dataFim + 'T00:00:00');
+            const diffTime = Math.abs(fim - inicio);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            
+            rangeInfo.style.display = 'block';
+            rangeText.textContent = `Serão cadastrados ${diffDays} dias (${dataInicio.split('-').reverse().join('/')} até ${dataFim.split('-').reverse().join('/')})`;
+            btnText.textContent = `Adicionar ${diffDays} Dias`;
+            
+            // Desabilita recorrência em range
+            recorrenteCheckbox.style.opacity = '0.5';
+            recorrenteCheckbox.style.pointerEvents = 'none';
+            document.getElementById('special-recorrente').checked = false;
+            document.getElementById('special-recorrente').disabled = true;
+        } else {
+            rangeInfo.style.display = 'none';
+            btnText.textContent = 'Adicionar Data';
+            
+            // Reabilita recorrência
+            recorrenteCheckbox.style.opacity = '1';
+            recorrenteCheckbox.style.pointerEvents = 'auto';
+            document.getElementById('special-recorrente').disabled = false;
+        }
+    }
+    
+    // Monitora mudanças nas datas
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('special-date-inicio')?.addEventListener('change', toggleRangeMode);
+        document.getElementById('special-date-fim')?.addEventListener('change', toggleRangeMode);
+    });
+    
     async function adicionarDiaEspecial() {
-        const data = document.getElementById('special-date').value;
+        const dataInicio = document.getElementById('special-date-inicio').value;
+        const dataFim = document.getElementById('special-date-fim').value;
         const nome = document.getElementById('special-name').value.trim();
         const tipo = document.getElementById('special-type').value;
         const recorrente = document.getElementById('special-recorrente').checked;
 
-        if (!data || !nome) {
-            AppToast.show('Preencha a data e o nome!', 'danger');
+        if (!dataInicio || !nome) {
+            AppToast.show('Preencha a data inicial e o nome!', 'danger');
             return;
         }
 
         const formData = new FormData();
         formData.append('action', 'adicionar_dia_especial');
-        formData.append('data', data);
+        formData.append('data_inicio', dataInicio);
+        if (dataFim && dataFim !== dataInicio) {
+            formData.append('data_fim', dataFim);
+        }
         formData.append('nome', nome);
         formData.append('tipo', tipo);
-        if (recorrente) formData.append('recorrente', '1');
+        formData.append('recorrente', recorrente ? '1' : '0');
 
         try {
             const response = await fetch(window.location.href, {
@@ -1225,7 +1321,10 @@ include '../../includes/footer.php';
             const result = await response.json();
 
             if (result.success) {
-                AppToast.show('Data especial adicionada!', 'success');
+                const msg = result.total > 1 
+                    ? `${result.total} datas adicionadas com sucesso!` 
+                    : 'Data especial adicionada!';
+                AppToast.show(msg, 'success');
                 // Recarregar página para atualizar lista
                 setTimeout(() => location.reload(), 800);
             } else {
@@ -1287,35 +1386,52 @@ include '../../includes/footer.php';
         });
     }
 
-    // Atalho para feriados comuns
-    document.getElementById('special-name').addEventListener('focus', function() {
-        const hoje = new Date();
-        const dataInput = document.getElementById('special-date');
+    // Atalho para feriados comuns - ATUALIZADO para novo layout
+    function sugerirNomeFeriado() {
+        const nomeInput = document.getElementById('special-name');
+        const dataInicioInput = document.getElementById('special-date-inicio');
         
         // Se campo de nome estiver vazio e data selecionada, sugerir nome
-        if (!this.value && dataInput.value) {
-            const dataSelecionada = new Date(dataInput.value + 'T12:00:00');
+        if (!nomeInput.value && dataInicioInput.value) {
+            const dataSelecionada = new Date(dataInicioInput.value + 'T12:00:00');
             const mes = dataSelecionada.getMonth() + 1;
             const dia = dataSelecionada.getDate();
             
             const feriadosComuns = {
-                '01-01': 'Ano Novo',
-                '12-25': 'Natal',
-                '12-24': 'Véspera de Natal',
-                '12-31': 'Réveillon',
-                '09-07': 'Independência do Brasil',
-                '10-12': 'Nossa Senhora Aparecida',
-                '11-02': 'Finados',
-                '11-15': 'Proclamação da República',
-                '11-20': 'Consciência Negra'
+                '01-01': { nome: 'Ano Novo', tipo: 'feriado_nacional', recorrente: true },
+                '12-25': { nome: 'Natal', tipo: 'feriado_nacional', recorrente: true },
+                '12-24': { nome: 'Véspera de Natal', tipo: 'feriado_nacional', recorrente: true },
+                '12-31': { nome: 'Réveillon', tipo: 'feriado_nacional', recorrente: true },
+                '09-07': { nome: 'Independência do Brasil', tipo: 'feriado_nacional', recorrente: true },
+                '10-12': { nome: 'Nossa Senhora Aparecida', tipo: 'feriado_nacional', recorrente: true },
+                '11-02': { nome: 'Finados', tipo: 'feriado_nacional', recorrente: true },
+                '11-15': { nome: 'Proclamação da República', tipo: 'feriado_nacional', recorrente: true },
+                '11-20': { nome: 'Consciência Negra', tipo: 'feriado_nacional', recorrente: true }
             };
             
             const chave = String(mes).padStart(2, '0') + '-' + String(dia).padStart(2, '0');
             if (feriadosComuns[chave]) {
-                this.value = feriadosComuns[chave];
-                document.getElementById('special-type').value = 'feriado_nacional';
-                document.getElementById('special-recorrente').checked = true;
+                const feriado = feriadosComuns[chave];
+                nomeInput.value = feriado.nome;
+                document.getElementById('special-type').value = feriado.tipo;
+                document.getElementById('special-recorrente').checked = feriado.recorrente;
             }
+        }
+    }
+    
+    // Adiciona listeners após carregar página
+    document.addEventListener('DOMContentLoaded', () => {
+        const nomeInput = document.getElementById('special-name');
+        const dataInicioInput = document.getElementById('special-date-inicio');
+        
+        if (nomeInput && dataInicioInput) {
+            nomeInput.addEventListener('focus', sugerirNomeFeriado);
+            dataInicioInput.addEventListener('change', () => {
+                // Auto-preenche se nome estiver vazio
+                if (!nomeInput.value) {
+                    sugerirNomeFeriado();
+                }
+            });
         }
     });
 
