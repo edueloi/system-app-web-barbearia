@@ -7,18 +7,20 @@
 if (!function_exists('getBotBaseUrl')) {
     function getBotBaseUrl(): string
     {
-        $host  = $_SERVER['HTTP_HOST'] ?? '';
-        $isProd = ($host === 'salao.develoi.com');
+        $host = $_SERVER['HTTP_HOST'] ?? '';
+        $isLocalDev = in_array($host, ['localhost', '127.0.0.1']);
 
-        // 👇 Bot rodando na sua máquina local
-        $BOT_BASE_URL_LOCAL = 'http://localhost:3333';
+        // Quando estiver desenvolvendo TUDO na mesma máquina (PHP + bot)
+        if ($isLocalDev) {
+            // Bot rodando localmente na porta 3333
+            return 'http://localhost:3333';
+        }
 
-        // 👇 Bot rodando na VPS da Hostinger (IP público)
-        // Quando tiver o subdomínio bot.develoi.com apontando pra esse IP,
-        // pode trocar para: 'http://bot.develoi.com:3333'
-        $BOT_BASE_URL_PROD  = 'http://72.61.221.59:3333';
-
-        return $isProd ? $BOT_BASE_URL_PROD : $BOT_BASE_URL_LOCAL;
+        // EM PRODUÇÃO (HostGator chamando o bot na VPS)
+        // Bot está escutando na porta 80 (sem :3333)
+        // No futuro, quando o subdomínio estiver pronto, pode usar:
+        // return 'http://bot.develoi.com';
+        return 'http://72.61.221.59';
     }
 }
 
@@ -246,15 +248,10 @@ if (!function_exists('notificarBotLembreteAgendamento')) {
     {
         try {
             // ====================================
-            // DETECTAR AMBIENTE
+            // URL DO WEBHOOK
             // ====================================
-            $host = $_SERVER['HTTP_HOST'] ?? '';
-            $isProd = ($host === 'salao.develoi.com');
-
-            $WEBHOOK_LOCAL = 'http://localhost:3333/webhook/lembrete-agendamento';
-            $WEBHOOK_PROD = 'http://bot.develoi.com:3333/webhook/lembrete-agendamento';
-
-            $webhookUrl = $isProd ? $WEBHOOK_PROD : $WEBHOOK_LOCAL;
+            $baseUrl = getBotBaseUrl();
+            $webhookUrl = rtrim($baseUrl, '/') . '/webhook/lembrete-agendamento';
 
             // ====================================
             // BUSCAR DADOS DO AGENDAMENTO
