@@ -92,8 +92,18 @@ try {
 
     // 2.2 Mudar Status
     if (isset($_GET['status'], $_GET['id'])) {
+        $novoStatus = $_GET['status'];
+        $agendamentoId = (int)$_GET['id'];
+        
         $stmt = $pdo->prepare("UPDATE agendamentos SET status=? WHERE id=? AND user_id=?");
-        $stmt->execute([$_GET['status'], (int)$_GET['id'], $userId]);
+        $stmt->execute([$novoStatus, $agendamentoId, $userId]);
+        
+        // Se confirmou, notifica o bot
+        if ($novoStatus === 'Confirmado') {
+            require_once __DIR__ . '/../../includes/notificar_bot.php';
+            notificarBotAgendamentoConfirmado($pdo, $agendamentoId);
+        }
+        
         redirect($dataExibida, $viewType);
     }
 
@@ -1622,7 +1632,7 @@ include '../../includes/menu.php';
         <p id="sheetClientInfo" style="margin:0 0 12px 0; font-size:0.75rem; color:#64748b;"></p>
         <div class="action-list">
             <a href="#" id="actConfirm" class="action-item"><i class="bi bi-check-circle" style="color:#10b981;"></i> Confirmar</a>
-            <a href="#" id="actWhatsapp" target="_blank" class="action-item"><i class="bi bi-whatsapp" style="color:#25D366;"></i> WhatsApp</a>
+            <a href="#" id="actWhatsapp" target="_blank" class="action-item"><i class="bi bi-whatsapp" style="color:#25D366;"></i> Enviar mensagem</a>
             <a href="#" id="actNota" class="action-item"><i class="bi bi-receipt" style="color:#6366f1;"></i> Emitir nota</a>
             <a href="#" id="actCancel" class="action-item"><i class="bi bi-x-circle" style="color:#f59e0b;"></i> Cancelar</a>
             <a href="#" id="actDelete" class="action-item danger"><i class="bi bi-trash"></i> Excluir</a>
@@ -1921,12 +1931,8 @@ function renderCard($ag, $clientes) {
         agendamentoAtualId = data.id;
         agendamentoAtualRecorrente = data.e_recorrente || false;
 
-        // Ação: Confirmar
+        // Ação: Confirmar (muda status e envia bot, sem abrir WhatsApp)
         document.getElementById('actConfirm').onclick = () => {
-            if(data.tel) {
-                const msg = `Olá ${data.cliente.split(' ')[0]}, confirmando seu horário de ${data.serv} dia ${data.data} às ${data.hora}. Valor: R$ ${data.val}. Tudo certo?`;
-                window.open(`https://wa.me/55${data.tel.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`, '_blank');
-            }
             window.location.href = base + '&status=Confirmado';
         };
 
