@@ -870,7 +870,10 @@ include '../../includes/menu.php';
                             </a>
                         <?php endif; ?>
 
-                        <a href="recorrencias.php?cliente_id=<?php echo $c['id']; ?>" class="btn-icon" style="background:#dbeafe; color:#1e40af;" onclick="event.stopPropagation()" title="Agendamentos Recorrentes">
+                        <?php 
+                        $recorrenciasUrl = $isProd ? '/recorrencias' : 'recorrencias.php';
+                        ?>
+                        <a href="<?php echo $recorrenciasUrl; ?>?cliente_id=<?php echo $c['id']; ?>" class="btn-icon" style="background:#dbeafe; color:#1e40af;" onclick="event.stopPropagation()" title="Agendamentos Recorrentes">
                             <i class="bi bi-arrow-repeat"></i>
                         </a>
                         
