@@ -394,129 +394,148 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
 
 <style>
     :root {
-        --app-bg: #f3f4f6;
-        --app-card: #ffffff;
-        --app-primary: #4f46e5;
-        --app-primary-soft: #eef2ff;
-        --app-text: #1f2937;
-        --app-muted: #6b7280;
-        --app-border: #e5e7eb;
-        --app-danger: #ef4444;
-        --app-success: #10b981;
+        --primary-color: #4f46e5;
+        --primary-dark: #4338ca;
+        --accent: #ec4899;
+        --bg-card: #ffffff;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --border-color: #e2e8f0;
+        --shadow-soft: 0 6px 18px rgba(15,23,42,0.06);
+        --shadow-hover: 0 14px 30px rgba(15,23,42,0.10);
+    }
+
+    * {
+        box-sizing: border-box;
     }
 
     body {
-        background-color: var(--app-bg);
-        color: var(--app-text);
-        font-family: 'Inter', -apple-system, system-ui, sans-serif;
-        font-size: 13px;
+        background: transparent;
+        font-family: -apple-system, BlinkMacSystemFont, "Outfit", "Inter", system-ui, sans-serif;
+        font-size: 0.875rem;
+        color: var(--text-main);
+        min-height: 100vh;
+        line-height: 1.5;
     }
 
     .main-container {
         max-width: 1040px;
-        margin: 24px auto 60px;
-        padding: 0 16px;
+        margin: 0 auto;
+        padding: 20px 12px 110px 12px;
     }
 
     .clean-card {
-        background: var(--app-card);
-        border-radius: 20px;
-        padding: 18px 18px 20px;
-        box-shadow: 0 10px 28px rgba(148,163,184,0.20);
-        border: 1px solid rgba(148,163,184,0.25);
-        margin-bottom: 18px;
+        background: var(--bg-card);
+        border-radius: 16px;
+        padding: 16px 18px;
+        margin-bottom: 16px;
+        box-shadow: var(--shadow-soft);
+        border: 1px solid rgba(148,163,184,0.18);
+        transition: all 0.25s ease;
+    }
+
+    .clean-card:hover {
+        box-shadow: var(--shadow-hover);
+        transform: translateY(-1px);
     }
 
     .page-header {
-        margin-bottom: 18px;
+        background: var(--bg-card);
+        border-radius: 16px;
+        padding: 16px 18px;
+        margin-bottom: 16px;
+        box-shadow: var(--shadow-soft);
+        border: 1px solid rgba(148,163,184,0.18);
     }
+
     .page-title {
-        font-size: 1.45rem;
-        font-weight: 700;
-        color: #111827;
+        font-size: 1.35rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, var(--primary-color), var(--accent));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         margin: 0;
-        letter-spacing: .03em;
+        letter-spacing: -0.03em;
+        line-height: 1.2;
     }
+
     .page-subtitle {
-        color: var(--app-muted);
-        font-size: 0.86rem;
-        margin-top: 4px;
+        margin: 6px 0 0;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        line-height: 1.4;
     }
+
     .page-badge-edit {
-        display:inline-flex;
-        align-items:center;
-        gap:6px;
-        margin-top:6px;
-        font-size:0.75rem;
-        padding:4px 10px;
-        border-radius:999px;
-        background:#eef2ff;
-        color:#4f46e5;
-        font-weight:600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+        font-size: 0.7rem;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(79,70,229,0.08);
+        color: var(--primary-color);
+        font-weight: 700;
     }
 
     .form-label {
         display: block;
-        font-size: 0.78rem;
-        font-weight: 600;
-        color: #374151;
-        margin-bottom: 4px;
-        letter-spacing: .01em;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 6px;
+        letter-spacing: 0.01em;
     }
 
     .form-control {
         width: 100%;
-        padding: 9px 11px;
-        background: #fff;
-        border: 1px solid #d1d5db;
-        border-radius: 999px;
-        font-size: 0.86rem;
-        color: #111827;
-        transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
-        box-sizing: border-box;
+        padding: 9px 12px;
+        background: #f1f5f9;
+        border: 1px solid rgba(148,163,184,0.3);
+        border-radius: 10px;
+        font-size: 0.85rem;
+        color: var(--text-main);
+        transition: all 0.2s ease;
+        font-family: inherit;
     }
+
     .form-control:focus {
         outline: none;
-        border-color: var(--app-primary);
-        box-shadow: 0 0 0 2px rgba(79,70,229,0.16);
-        background: #fff;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(79,70,229,0.18);
+        background: #ffffff;
     }
 
     .calc-grid {
         display: grid;
         grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.9fr);
-        gap: 18px;
+        gap: 16px;
         align-items: flex-start;
-    }
-    @media (max-width: 900px) {
-        .calc-grid {
-            grid-template-columns: minmax(0, 1fr);
-        }
     }
 
     .material-item {
         background: #f9fafb;
-        border: 1px solid var(--app-border);
-        border-radius: 16px;
+        border: 1px solid rgba(209,213,219,0.9);
+        border-radius: 14px;
         padding: 12px 12px 14px;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
         position: relative;
+        transition: all 0.2s ease;
+    }
+
+    .material-item:hover {
+        background: #ffffff;
+        border-color: rgba(79,70,229,0.35);
+        box-shadow: 0 3px 10px rgba(15,23,42,0.06);
     }
 
     .inline-fields {
         display: grid;
         grid-template-columns: 1.1fr 0.9fr 1.5fr;
         gap: 8px;
-        margin-top: 6px;
-    }
-
-    @media (max-width: 600px) {
-        .inline-fields {
-            grid-template-columns: 1fr 1fr;
-        }
-        .inline-fields .cs-field-full {
-            grid-column: 1 / -1;
-        }
+        margin-top: 8px;
     }
 
     .single-field {
@@ -525,122 +544,173 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
 
     .helper-text {
         font-size: 0.7rem;
-        color: var(--app-muted);
-        margin-top: 2px;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+        font-weight: 600;
     }
 
     .btn-add {
         background: #f9fafb;
-        color: var(--app-primary);
-        border: 1px dashed var(--app-primary);
-        padding: 7px 12px;
-        border-radius: 999px;
+        color: var(--primary-color);
+        border: 1px dashed rgba(148,163,184,0.8);
+        padding: 10px 12px;
+        border-radius: 12px;
         font-weight: 600;
         cursor: pointer;
-        font-size: 0.8rem;
+        font-size: 0.85rem;
         width: 100%;
-        transition: 0.18s;
-        text-align: center;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
     }
+
     .btn-add:hover {
-        background: #eef2ff;
+        border-color: var(--primary-color);
+        background: #ffffff;
+        box-shadow: 0 3px 10px rgba(15,23,42,0.05);
     }
 
     .btn-remove {
         position: absolute;
-        top: 7px;
+        top: 8px;
         right: 10px;
-        color: var(--app-danger);
-        background: none;
+        color: #ef4444;
+        background: rgba(239,68,68,0.08);
         border: none;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         cursor: pointer;
-        font-weight: 600;
-        text-transform: lowercase;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
     }
 
-    .btn-primary {
-        background: var(--app-primary);
-        color: white;
-        border: none;
-        padding: 12px 18px;
-        border-radius: 999px;
-        font-weight: 600;
-        font-size: 0.9rem;
-        cursor: pointer;
-        width: 100%;
-        box-shadow: 0 10px 25px rgba(79, 70, 229, 0.45);
-        transition: 0.18s;
-    }
-    .btn-primary:hover {
-        background: #4338ca;
+    .btn-remove:hover {
+        background: #fee2e2;
         transform: translateY(-1px);
     }
 
-    .result-box {
-        background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
         color: white;
-        padding: 16px 16px 14px;
-        border-radius: 16px;
-        margin-top: 16px;
+        border: none;
+        padding: 11px 18px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        cursor: pointer;
+        width: 100%;
+        box-shadow: 0 4px 10px rgba(79,70,229,0.25);
+        transition: all 0.25s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
     }
+
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 7px 16px rgba(79,70,229,0.35);
+    }
+
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+
+    .result-box {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        color: white;
+        padding: 14px 16px 16px;
+        border-radius: 14px;
+        margin-top: 14px;
+        box-shadow: 0 8px 20px rgba(79,70,229,0.35);
+    }
+
     .result-row {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 5px;
-        font-size: 0.83rem;
+        margin-bottom: 6px;
+        font-size: 0.8rem;
         opacity: 0.95;
+        font-weight: 500;
     }
+
     .result-final {
-        margin-top: 10px;
-        padding-top: 9px;
-        border-top: 1px solid rgba(255,255,255,0.28);
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255,255,255,0.25);
         display: flex;
         justify-content: space-between;
         align-items: center;
+        font-weight: 700;
     }
+
     .lucro-valor {
-        font-size: 1.25rem;
+        font-size: 1.3rem;
         font-weight: 800;
     }
 
     .alert {
-        padding: 10px 14px;
+        padding: 12px 14px;
         border-radius: 12px;
-        margin-bottom: 16px;
-        font-size: 0.83rem;
+        margin-bottom: 14px;
+        font-size: 0.82rem;
+        font-weight: 600;
     }
-    .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-    .alert-success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+
+    .alert-error {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+
+    .alert-success {
+        background: #dcfce7;
+        color: #16a34a;
+        border: 1px solid #bbf7d0;
+    }
 
     .history-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 0.84rem;
+        font-size: 0.82rem;
     }
+
     .history-table td {
-        padding: 7px 0;
-        border-bottom: 1px solid #f3f4f6;
-        color: #374151;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(148,163,184,0.2);
+        color: var(--text-main);
     }
-    .history-table tr:last-child td { border-bottom: none; }
+
+    .history-table tr:last-child td {
+        border-bottom: none;
+    }
 
     .cs-history-actions a {
-        text-decoration:none;
-        font-size:0.85rem;
-        margin-left:8px;
+        text-decoration: none;
+        font-size: 1rem;
+        margin-left: 10px;
+        transition: transform 0.2s;
+        display: inline-block;
+    }
+
+    .cs-history-actions a:hover {
+        transform: scale(1.15);
     }
 
     .cs-product-actions {
         display: flex;
         gap: 8px;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
         flex-wrap: wrap;
     }
+
     .cs-chip {
         border-radius: 999px;
-        padding: 7px 12px;
-        border: 1px solid var(--app-border);
+        padding: 8px 14px;
+        border: 1px solid rgba(148,163,184,0.3);
         background: #fff;
         font-size: 0.78rem;
         display: inline-flex;
@@ -648,99 +718,217 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
         gap: 6px;
         cursor: pointer;
         font-weight: 600;
-        color: #111827;
-        transition: 0.18s;
-    }
-    .cs-chip-primary {
-        background: var(--app-primary-soft);
-        border-color: rgba(79,70,229,0.4);
-        color: var(--app-primary);
-    }
-    .cs-chip-primary:hover {
-        background: #e0e7ff;
-    }
-    .cs-chip-outline:hover {
-        background: #f3f4ff;
-        border-color: rgba(148,163,184,0.8);
+        color: var(--text-main);
+        transition: all 0.2s ease;
     }
 
-    /* bottom sheet produtos (app mobile) */
+    .cs-chip-primary {
+        background: rgba(79,70,229,0.08);
+        border-color: rgba(79,70,229,0.3);
+        color: var(--primary-color);
+    }
+
+    .cs-chip-primary:hover {
+        background: rgba(79,70,229,0.15);
+        border-color: var(--primary-color);
+        transform: translateY(-1px);
+    }
+
+    .cs-chip-outline:hover {
+        background: #f9fafb;
+        border-color: rgba(148,163,184,0.6);
+        transform: translateY(-1px);
+    }
+
+    /* Bottom sheet produtos */
     .cs-sheet-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(15,23,42,0.55);
+        background: rgba(15,23,42,0.6);
         display: none;
         align-items: flex-end;
         justify-content: center;
         z-index: 9999;
-        backdrop-filter: blur(2px);
+        backdrop-filter: blur(3px);
     }
+
     .cs-sheet-overlay.active {
         display: flex;
     }
+
     .cs-sheet {
-        background: #f9fafb;
+        background: #ffffff;
         width: 100%;
-        max-width: 480px;
+        max-width: 520px;
         border-radius: 18px 18px 0 0;
-        padding: 14px 14px 18px;
-        box-shadow: 0 -8px 24px rgba(15,23,42,0.35);
+        padding: 16px 16px 20px;
+        box-shadow: 0 -8px 24px rgba(15,23,42,0.4);
     }
+
     .cs-sheet-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding-bottom: 6px;
-        border-bottom: 1px solid #e5e7eb;
-        margin-bottom: 8px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(148,163,184,0.25);
+        margin-bottom: 12px;
     }
+
     .cs-sheet-title {
         font-size: 0.95rem;
-        font-weight: 600;
+        font-weight: 700;
+        color: var(--text-main);
     }
+
     .cs-sheet-close {
         border: none;
-        background: transparent;
-        font-size: 1.1rem;
+        background: rgba(148,163,184,0.1);
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        font-size: 1.3rem;
         cursor: pointer;
-        color: #6b7280;
+        color: var(--text-muted);
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
+
+    .cs-sheet-close:hover {
+        background: rgba(239,68,68,0.1);
+        color: #ef4444;
+    }
+
     .cs-sheet-body {
-        max-height: 55vh;
+        max-height: 60vh;
         overflow-y: auto;
         padding-top: 4px;
     }
+
     .cs-product-row {
         width: 100%;
         text-align: left;
-        border-radius: 14px;
-        border: 1px solid #e5e7eb;
-        background: #fff;
-        padding: 10px 11px;
+        border-radius: 12px;
+        border: 1px solid rgba(148,163,184,0.25);
+        background: #f9fafb;
+        padding: 10px 12px;
         margin-bottom: 8px;
         cursor: pointer;
         display: flex;
         flex-direction: column;
-        gap: 2px;
-        transition: 0.16s;
-        font-size: 0.82rem;
-    }
-    .cs-product-row:hover {
-        border-color: var(--app-primary);
-        box-shadow: 0 4px 10px rgba(15,23,42,0.08);
-    }
-    .cs-product-row-name {
-        font-weight: 600;
-        color: #111827;
-    }
-    .cs-product-row-meta {
-        color: #6b7280;
-        font-size: 0.75rem;
+        gap: 3px;
+        transition: all 0.2s ease;
+        font-size: 0.8rem;
     }
 
-    @media (min-width: 901px) {
+    .cs-product-row:hover {
+        border-color: var(--primary-color);
+        background: #ffffff;
+        box-shadow: 0 4px 12px rgba(15,23,42,0.1);
+        transform: translateY(-1px);
+    }
+
+    .cs-product-row-name {
+        font-weight: 700;
+        color: var(--text-main);
+        font-size: 0.85rem;
+    }
+
+    .cs-product-row-meta {
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        font-weight: 500;
+    }
+
+    /* Responsivo Mobile */
+    @media (max-width: 900px) {
+        .calc-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
         .main-container {
-            margin-top: 32px;
+            padding: 18px 10px 120px 10px;
+        }
+
+        .page-header {
+            padding: 14px 14px;
+            border-radius: 14px;
+        }
+
+        .page-title {
+            font-size: 1.25rem;
+        }
+
+        .page-subtitle {
+            font-size: 0.8rem;
+        }
+
+        .clean-card {
+            padding: 14px 14px;
+            border-radius: 14px;
+        }
+
+        .form-control {
+            font-size: 0.82rem;
+            padding: 8px 10px;
+        }
+
+        .material-item {
+            padding: 10px 10px 12px;
+            border-radius: 12px;
+        }
+
+        .inline-fields {
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .inline-fields .cs-field-full {
+            grid-column: 1 / -1;
+        }
+
+        .btn-add {
+            padding: 9px 10px;
+            font-size: 0.82rem;
+        }
+
+        .btn-primary {
+            padding: 10px 16px;
+            font-size: 0.88rem;
+        }
+
+        .result-box {
+            padding: 12px 14px 14px;
+        }
+
+        .result-row {
+            font-size: 0.78rem;
+        }
+
+        .lucro-valor {
+            font-size: 1.15rem;
+        }
+
+        .history-table {
+            font-size: 0.8rem;
+        }
+
+        .history-table td {
+            padding: 8px 0;
+        }
+
+        .cs-chip {
+            font-size: 0.75rem;
+            padding: 7px 12px;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .inline-fields {
+            grid-template-columns: 1fr;
         }
     }
 </style>
