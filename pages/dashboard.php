@@ -295,326 +295,253 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
 
 ?>
 <style>
-    /* ============================
-       DASHBOARD - VISUAL MODERNO APP
-       ============================ */
-
+    /* === ESTILO PADRÃO DO PAINEL === */
+    /* Fonte pequena delicada, clean, moderno, bordas arredondadas */
+    /* Fundo neutro, cards brancos, 100% responsivo */
+    
     :root {
-        --dash-radius-lg: 20px;
-        --dash-radius-md: 16px;
-        --dash-radius-sm: 12px;
-        --dash-primary: #6366f1;
-        --dash-primary-dark: #4f46e5;
-        --dash-secondary: #8b5cf6;
-        --dash-success: #10b981;
-        --dash-warning: #f59e0b;
-        --dash-danger: #ef4444;
-        --dash-bg: #f8fafc;
-        --dash-text: #0f172a;
-        --dash-text-light: #64748b;
-        --dash-border: #e2e8f0;
+        --primary-color: #4f46e5;
+        --primary-dark: #4338ca;
+        --primary-light: #eef2ff;
+        
+        --bg-page: #f8fafc;
+        --bg-card: #ffffff;
+        
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        
+        --border: #e2e8f0;
+        
+        --danger: #ef4444;
+        --success: #10b981;
+        --warning: #f59e0b;
+        
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+        --shadow-card: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+        --shadow-hover: 0 4px 12px rgba(0,0,0,0.1);
+        --shadow-strong: 0 10px 25px rgba(0,0,0,0.15);
     }
 
     * {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
+        font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
     }
 
     body {
-        background: var(--dash-bg);
+        background: var(--bg-page);
+        font-size: 0.875rem;
+        color: var(--text-main);
     }
 
-    /* Scrollbar customizada */
     *::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 0.5rem;
+        height: 0.5rem;
     }
-
     *::-webkit-scrollbar-track {
         background: transparent;
     }
-
     *::-webkit-scrollbar-thumb {
         background: #cbd5e1;
         border-radius: 999px;
     }
-
     *::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
     }
 
     .app-dashboard-wrapper {
-        padding: 16px;
-        max-width: 1400px;
+        padding: 1rem;
+        max-width: 87.5rem;
         margin: 0 auto;
-        background: var(--dash-bg);
-        animation: fadeInUp 0.5s ease-out;
-    }
-
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
     }
 
     @media (min-width: 768px) {
         .app-dashboard-wrapper {
-            padding: 24px 32px;
+            padding: 1.5rem 2rem;
         }
     }
 
     .welcome-section {
-        margin-bottom: 24px;
+        margin-bottom: 1.5rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 16px;
+        gap: 1rem;
         flex-wrap: wrap;
     }
 
     .welcome-left {
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 0.875rem;
     }
 
     .avatar-circle {
-        width: 52px;
-        height: 52px;
+        width: 3rem;
+        height: 3rem;
         border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: var(--primary-color);
         display: flex;
         align-items: center;
         justify-content: center;
         color: #fff;
         font-weight: 700;
-        font-size: 1.2rem;
-        box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.5);
-        border: 3px solid #fff;
-        letter-spacing: 0.03em;
+        font-size: 0.9375rem;
+        box-shadow: var(--shadow-card);
+        border: 2px solid var(--bg-card);
     }
 
     .welcome-title {
-        font-size: 1.5rem;
+        font-size: 1.125rem;
         font-weight: 700;
-        color: var(--dash-text);
+        color: var(--text-main);
         margin: 0;
-        letter-spacing: -0.02em;
-        line-height: 1.2;
+        line-height: 1.3;
     }
 
     .welcome-subtitle {
-        color: var(--dash-text-light);
-        font-size: 0.875rem;
-        margin-top: 4px;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
         font-weight: 500;
-        letter-spacing: -0.01em;
     }
 
     .welcome-right {
-        font-size: 0.8125rem;
-        color: var(--dash-text-light);
-        padding: 8px 14px;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        padding: 0.5rem 0.875rem;
         border-radius: 999px;
-        background: #fff;
+        background: var(--bg-card);
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 0.5rem;
         font-weight: 600;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        border: 1px solid var(--dash-border);
-        position: relative;
-    }
-
-    .welcome-right::before {
-        content: "";
-        position: absolute;
-        left: 8px;
-        width: 6px;
-        height: 6px;
-        background: #10b981;
-        border-radius: 50%;
-        animation: pulse 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-        0%, 100% {
-            opacity: 1;
-            transform: scale(1);
-        }
-        50% {
-            opacity: 0.5;
-            transform: scale(1.2);
-        }
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
     }
 
     .welcome-right i {
-        font-size: 1rem;
-        color: var(--dash-primary);
-        margin-left: 6px;
+        font-size: 0.875rem;
+        color: var(--primary-color);
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 768px) {
         .avatar-circle {
-            width: 44px;
-            height: 44px;
-            font-size: 1rem;
+            width: 2.5rem;
+            height: 2.5rem;
+            font-size: 0.875rem;
         }
         .welcome-title {
-            font-size: 1.25rem;
+            font-size: 1rem;
         }
         .welcome-subtitle {
-            font-size: 0.8125rem;
+            font-size: 0.6875rem;
+        }
+        .welcome-right {
+            font-size: 0.6875rem;
         }
     }
 
-    /* Cards de resumo - Visual modernizado */
     .stats-summary {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 16px;
-        margin-bottom: 24px;
+        grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
     }
 
     @media (max-width: 768px) {
         .stats-summary {
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .stats-summary {
-            grid-template-columns: 1fr;
+            gap: 0.75rem;
         }
     }
 
     .stat-box {
-        position: relative;
-        background: #fff;
-        padding: 20px;
-        border-radius: var(--dash-radius-lg);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
-        border: 1px solid var(--dash-border);
-        overflow: hidden;
+        background: var(--bg-card);
+        padding: 1.25rem;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-card);
+        border: 1px solid var(--border);
         min-width: 0;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .stat-box:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 16px 32px -12px rgba(0, 0, 0, 0.2);
-    }
-
-    .stat-box::before {
-        content: "";
-        position: absolute;
-        right: -20px;
-        top: -20px;
-        width: 100px;
-        height: 100px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(99, 102, 241, 0.08), transparent 70%);
-        z-index: 0;
-        transition: all 0.3s ease;
-    }
-
-    .stat-box:hover::before {
-        transform: scale(1.2);
-        opacity: 0.6;
-    }
-
-    .stat-label {
-        color: var(--dash-text-light);
-        font-size: 0.75rem;
-        font-weight: 600;
-        letter-spacing: 0.03em;
-        margin-bottom: 8px;
-        text-transform: uppercase;
-        position: relative;
-        z-index: 1;
-    }
-
-    .stat-value {
-        font-size: 1.75rem;
-        font-weight: 800;
-        margin: 0 0 8px 0;
-        color: var(--dash-text);
-        letter-spacing: -0.02em;
-        display: flex;
-        align-items: baseline;
-        gap: 6px;
-        position: relative;
-        z-index: 1;
-    }
-
-    .stat-chip {
-        margin-top: 4px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: #f1f5f9;
-        color: var(--dash-text-light);
-        font-size: 0.6875rem;
-        font-weight: 600;
-        letter-spacing: 0.01em;
-        position: relative;
-        z-index: 1;
         transition: all 0.2s ease;
     }
 
+    .stat-box:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-hover);
+        border-color: var(--primary-color);
+    }
+
+    .stat-label {
+        color: var(--text-muted);
+        font-size: 0.6875rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem 0;
+        color: var(--text-main);
+        display: flex;
+        align-items: baseline;
+        gap: 0.375rem;
+    }
+
+    .stat-chip {
+        margin-top: 0.25rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.25rem 0.625rem;
+        border-radius: 999px;
+        background: var(--bg-page);
+        color: var(--text-muted);
+        font-size: 0.625rem;
+        font-weight: 600;
+    }
+
     .stat-chip i {
-        font-size: 0.875rem;
+        font-size: 0.75rem;
     }
 
-    .stat-box:hover .stat-chip {
-        transform: scale(1.05);
-    }
-
-    /* Módulos principais - Cards modernos */
     .modules-header {
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        margin: 0 0 16px 0;
+        margin: 0 0 1rem 0;
     }
 
     .modules-title {
-        font-size: 1.125rem;
+        font-size: 0.9375rem;
         font-weight: 700;
         margin: 0;
-        color: var(--dash-text);
-        letter-spacing: -0.01em;
+        color: var(--text-main);
     }
 
     .modules-subtitle {
-        font-size: 0.8125rem;
-        color: var(--dash-text-light);
-        margin-top: 4px;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
         font-weight: 500;
     }
 
     .modules-scroll {
         display: flex;
-        gap: 12px;
+        gap: 0.75rem;
         overflow-x: auto;
-        padding-bottom: 8px;
-        margin-bottom: 24px;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1.5rem;
         scroll-snap-type: x mandatory;
-        scrollbar-width: thin;
-        scrollbar-color: #cbd5e1 transparent;
     }
 
     .modules-scroll::-webkit-scrollbar {
-        height: 6px;
+        height: 0.375rem;
     }
     .modules-scroll::-webkit-scrollbar-track {
         background: transparent;
@@ -623,33 +550,28 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         background: #cbd5e1;
         border-radius: 999px;
     }
-    .modules-scroll::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
-    }
 
     .nav-card {
-        min-width: 180px;
-        max-width: 240px;
+        min-width: 11.25rem;
+        max-width: 15rem;
         flex: 0 0 auto;
-        background: #fff;
-        padding: 20px;
-        border-radius: var(--dash-radius-lg);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
-        border: 1px solid var(--dash-border);
+        background: var(--bg-card);
+        padding: 1.25rem;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-card);
+        border: 1px solid var(--border);
         text-decoration: none;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.2s ease;
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 0.5rem;
         scroll-snap-align: start;
-        position: relative;
-        overflow: hidden;
     }
 
     @media (min-width: 768px) {
         .modules-scroll {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(11.25rem, 1fr));
             overflow: visible;
         }
         .nav-card {
@@ -657,81 +579,60 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         }
     }
 
-    .nav-card::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(135deg, transparent 0%, rgba(99, 102, 241, 0.03) 100%);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
     .nav-card:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15);
-        border-color: var(--dash-primary);
-    }
-
-    .nav-card:hover::before {
-        opacity: 1;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-hover);
+        border-color: var(--primary-color);
     }
 
     .icon-circle {
-        width: 48px;
-        height: 48px;
-        border-radius: 14px;
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: var(--radius-sm);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.4rem;
-        margin-bottom: 8px;
-        transition: transform 0.3s ease;
+        font-size: 1.125rem;
+        margin-bottom: 0.5rem;
     }
 
-    .nav-card:hover .icon-circle {
-        transform: scale(1.1);
-    }
-
-    .bg-indigo  { background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); color: #4338ca; }
-    .bg-orange  { background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%); color: #c2410c; }
-    .bg-blue    { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1e40af; }
-    .bg-emerald { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); color: #15803d; }
+    .bg-indigo  { background: #e0e7ff; color: #4338ca; }
+    .bg-orange  { background: #ffedd5; color: #c2410c; }
+    .bg-blue    { background: #dbeafe; color: #1e40af; }
+    .bg-emerald { background: #dcfce7; color: #15803d; }
 
     .nav-title {
         font-weight: 700;
-        color: var(--dash-text);
-        font-size: 0.9375rem;
-        letter-spacing: -0.01em;
+        color: var(--text-main);
+        font-size: 0.8125rem;
         line-height: 1.3;
     }
     .nav-desc {
-        color: var(--dash-text-light);
-        font-size: 0.8125rem;
+        color: var(--text-muted);
+        font-size: 0.75rem;
         font-weight: 500;
         line-height: 1.4;
     }
 
-    /* Badge "novo" opcional para módulos */
     .nav-badge {
         position: absolute;
-        top: 12px;
-        right: 12px;
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        top: 0.75rem;
+        right: 0.75rem;
+        background: var(--danger);
         color: white;
         font-size: 0.625rem;
         font-weight: 700;
-        padding: 2px 6px;
+        padding: 0.125rem 0.375rem;
         border-radius: 999px;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+        box-shadow: var(--shadow-sm);
     }
 
-    /* Painéis inferiores - Layout responsivo */
     .dashboard-panels {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 16px;
+        gap: 1rem;
         margin-top: 0;
     }
 
@@ -744,173 +645,170 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
     .panel-column {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 1rem;
     }
 
     .recent-section {
-        background: #fff;
-        border-radius: var(--dash-radius-lg);
-        padding: 20px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
-        border: 1px solid var(--dash-border);
-        transition: all 0.3s ease;
+        background: var(--bg-card);
+        border-radius: var(--radius-md);
+        padding: 1.25rem;
+        box-shadow: var(--shadow-card);
+        border: 1px solid var(--border);
+        transition: all 0.2s ease;
     }
 
     .recent-section:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--shadow-hover);
     }
 
     .section-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 16px;
-        gap: 12px;
+        margin-bottom: 1rem;
+        gap: 0.75rem;
         flex-wrap: wrap;
     }
     .section-title {
-        font-size: 1rem;
+        font-size: 0.875rem;
         font-weight: 700;
         margin: 0;
-        letter-spacing: -0.01em;
-        color: var(--dash-text);
+        color: var(--text-main);
     }
 
     .section-sub {
-        font-size: 0.8125rem;
-        color: var(--dash-text-light);
-        margin-top: 4px;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
         font-weight: 500;
     }
 
     .table-responsive {
         width: 100%;
         overflow-x: auto;
-        border-radius: var(--dash-radius-md);
+        border-radius: var(--radius-sm);
     }
 
     .custom-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 0.8125rem;
+        font-size: 0.75rem;
     }
     .custom-table th {
         text-align: left;
-        padding: 10px 12px;
-        color: var(--dash-text-light);
+        padding: 0.625rem 0.75rem;
+        color: var(--text-muted);
         font-weight: 700;
-        border-bottom: 2px solid var(--dash-border);
-        font-size: 0.6875rem;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.625rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         white-space: nowrap;
-        background: #f8fafc;
+        background: var(--bg-page);
     }
     .custom-table td {
-        padding: 12px;
-        border-bottom: 1px solid #f1f5f9;
-        color: var(--dash-text);
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-main);
         vertical-align: middle;
-        font-size: 0.8125rem;
+        font-size: 0.75rem;
         font-weight: 500;
     }
     .custom-table tr:last-child td {
         border-bottom: none;
     }
     .custom-table tbody tr:hover {
-        background: #f8fafc;
+        background: var(--bg-page);
     }
 
     .custom-table.small th {
-        padding: 8px 10px;
-        font-size: 0.6875rem;
+        padding: 0.5rem 0.625rem;
+        font-size: 0.625rem;
     }
     .custom-table.small td {
-        padding: 10px;
-        font-size: 0.8125rem;
+        padding: 0.625rem;
+        font-size: 0.75rem;
     }
 
     .status-badge {
-        padding: 4px 10px;
+        padding: 0.25rem 0.625rem;
         border-radius: 999px;
-        font-size: 0.6875rem;
+        font-size: 0.625rem;
         font-weight: 600;
         display: inline-block;
         white-space: nowrap;
-        letter-spacing: 0.01em;
     }
     .status-Confirmado { background: #d1fae5; color: #065f46; }
     .status-Pendente   { background: #fef3c7; color: #92400e; }
     .status-Cancelado  { background: #fee2e2; color: #991b1b; }
 
     .btn-action {
-        padding: 6px 12px;
-        background: #f1f5f9;
-        color: var(--dash-text);
+        padding: 0.375rem 0.75rem;
+        background: var(--bg-page);
+        color: var(--text-main);
         border-radius: 999px;
         text-decoration: none;
-        font-size: 0.75rem;
+        font-size: 0.6875rem;
         font-weight: 600;
         transition: all 0.2s ease;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 0.375rem;
         white-space: nowrap;
-        border: 1px solid transparent;
+        border: 1px solid var(--border);
     }
     .btn-action i {
-        font-size: 0.875rem;
+        font-size: 0.75rem;
     }
     .btn-action:hover {
-        background: var(--dash-primary);
+        background: var(--primary-color);
         color: #fff;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+        border-color: var(--primary-color);
+        box-shadow: var(--shadow-sm);
     }
 
     .top-client-name {
         font-weight: 700;
-        margin-bottom: 2px;
-        font-size: 0.875rem;
-        color: var(--dash-text);
+        margin-bottom: 0.125rem;
+        font-size: 0.8125rem;
+        color: var(--text-main);
     }
     .top-client-sub {
-        font-size: 0.75rem;
-        color: var(--dash-text-light);
+        font-size: 0.6875rem;
+        color: var(--text-muted);
         font-weight: 500;
     }
 
     .badge-pill {
         display: inline-block;
-        padding: 4px 10px;
+        padding: 0.25rem 0.625rem;
         border-radius: 999px;
-        font-size: 0.75rem;
-        background: #f1f5f9;
-        color: var(--dash-text);
+        font-size: 0.6875rem;
+        background: var(--bg-page);
+        color: var(--text-main);
         font-weight: 600;
     }
 
     .birthday-day {
         font-weight: 700;
-        font-size: 0.875rem;
-        color: var(--dash-text);
+        font-size: 0.8125rem;
+        color: var(--text-main);
     }
     .birthday-age {
-        font-size: 0.75rem;
-        color: var(--dash-text-light);
+        font-size: 0.6875rem;
+        color: var(--text-muted);
         font-weight: 500;
     }
 
     .empty-row {
         text-align: center;
-        color: var(--dash-text-light);
-        padding: 32px 16px;
-        font-size: 0.875rem;
+        color: var(--text-muted);
+        padding: 2rem 1rem;
+        font-size: 0.8125rem;
         font-weight: 500;
     }
 
-    /* MOBILE: tabelas viram cards (estilo app) */
-    @media (max-width: 640px) {
+    @media (max-width: 768px) {
         .custom-table thead {
             display: none;
         }
@@ -924,12 +822,11 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         .custom-table tr,
         .custom-table.small tr {
             display: block;
-            margin: 0 0 12px;
-            border-radius: var(--dash-radius-md);
-            background: #fff;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            margin: 0 0 0.75rem;
+            border-radius: var(--radius-sm);\n            background: var(--bg-card);
+            box-shadow: var(--shadow-card);
             overflow: hidden;
-            border: 1px solid var(--dash-border);
+            border: 1px solid var(--border);
         }
 
         .custom-table td,
@@ -937,21 +834,21 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 12px;
-            border-bottom: 1px solid #f1f5f9;
-            padding: 10px 14px;
-            font-size: 0.8125rem;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--border);
+            padding: 0.625rem 0.875rem;
+            font-size: 0.75rem;
             background: transparent;
         }
 
         .custom-table td:first-child,
         .custom-table.small td:first-child {
-            padding-top: 14px;
+            padding-top: 0.875rem;
         }
 
         .custom-table td:last-child,
         .custom-table.small td:last-child {
-            padding-bottom: 14px;
+            padding-bottom: 0.875rem;
             border-bottom: none;
         }
 
@@ -959,95 +856,85 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         .custom-table.small td[data-label]::before {
             content: attr(data-label);
             font-weight: 700;
-            font-size: 0.6875rem;
+            font-size: 0.625rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: var(--dash-text-light);
+            color: var(--text-muted);
+        }
+        
+        .dashboard-panels {
+            gap: 0.75rem;
+        }
+        .recent-section {
+            padding: 1rem;
+        }
+        .section-title {
+            font-size: 0.8125rem;
         }
     }
 
-    /* ============================
-       FILTROS - Visual Moderno
-       ============================ */
     .filters-card {
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-        border-radius: var(--dash-radius-lg);
-        padding: 24px;
-        margin-bottom: 24px;
-        box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.5);
+        background: var(--primary-color);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-card);
         color: white;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .filters-card::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
-        opacity: 0.4;
     }
 
     .filters-header {
         display: flex;
         align-items: center;
-        gap: 10px;
-        margin-bottom: 16px;
-        position: relative;
-        z-index: 1;
+        gap: 0.625rem;
+        margin-bottom: 1rem;
     }
 
     .filters-title {
-        font-size: 1.125rem;
+        font-size: 0.9375rem;
         font-weight: 700;
         margin: 0;
-        letter-spacing: -0.02em;
     }
 
     .filters-icon {
-        font-size: 1.4rem;
+        font-size: 1.125rem;
     }
 
     .filters-form {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+        gap: 0.75rem;
         align-items: end;
-        position: relative;
-        z-index: 1;
     }
 
     .filter-group {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 0.5rem;
     }
 
     .filter-label {
-        font-size: 0.75rem;
+        font-size: 0.625rem;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        opacity: 0.95;
     }
 
     .filter-input {
-        padding: 12px 14px;
-        border-radius: var(--dash-radius-sm);
-        border: 2px solid rgba(255,255,255,0.2);
-        background: rgba(255,255,255,0.1);
-        backdrop-filter: blur(10px);
+        padding: 0.625rem 0.875rem;
+        border-radius: var(--radius-sm);
+        border: 1px solid rgba(255,255,255,0.3);
+        background: rgba(255,255,255,0.15);
         color: white;
         font-weight: 600;
-        font-size: 0.875rem;
+        font-size: 0.8125rem;
         transition: all 0.2s ease;
     }
 
     .filter-input:focus {
         outline: none;
         border-color: rgba(255,255,255,0.6);
-        background: rgba(255,255,255,0.15);
-        box-shadow: 0 0 0 4px rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.2);
+        box-shadow: 0 0 0 3px rgba(255,255,255,0.1);
     }
 
     .filter-input::placeholder {
@@ -1055,31 +942,30 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
     }
 
     .filter-input option {
-        background: var(--dash-primary-dark);
+        background: var(--primary-dark);
         color: white;
     }
 
     .btn-filter {
-        padding: 12px 24px;
-        border-radius: var(--dash-radius-sm);
+        padding: 0.625rem 1.25rem;
+        border-radius: var(--radius-sm);
         border: none;
         background: white;
-        color: var(--dash-primary);
+        color: var(--primary-color);
         font-weight: 700;
-        font-size: 0.875rem;
+        font-size: 0.75rem;
         cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.2s ease;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        letter-spacing: -0.01em;
+        gap: 0.5rem;
+        box-shadow: var(--shadow-sm);
     }
 
     .btn-filter:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+        background: rgba(255,255,255,0.95);
+        box-shadow: var(--shadow-card);
     }
 
     .btn-filter:active {
@@ -1087,12 +973,12 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
     }
 
     .btn-filter i {
-        font-size: 1.125rem;
+        font-size: 0.875rem;
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 768px) {
         .filters-card {
-            padding: 20px;
+            padding: 1.25rem;
         }
         .filters-form {
             grid-template-columns: 1fr;
@@ -1468,60 +1354,172 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
     }
 
     /* ============================
-       CARD DE CONFIRMAÇÕES PENDENTES
+       BOTÃO FLUTUANTE DE CONFIRMAÇÕES PENDENTES
        ============================ */
-    .pendentes-section {
-        background: #fff;
-        border-radius: var(--dash-radius-lg);
-        padding: 20px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
-        border: 1px solid var(--dash-border);
-        transition: all 0.3s ease;
-        position: relative;
+    .btn-pendentes-float {
+        position: fixed;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        background: var(--warning);
+        color: white;
+        border: none;
+        border-radius: 999px;
+        padding: 0.875rem 1.25rem;
+        font-size: 0.8125rem;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 8px 24px rgba(245,158,11,0.4);
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        z-index: 9998;
+        transition: all 0.2s ease;
+        animation: pulseWarning 2s infinite;
     }
 
-    .pendentes-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
-        border-radius: var(--dash-radius-lg) var(--dash-radius-lg) 0 0;
+    @keyframes pulseWarning {
+        0%, 100% {
+            box-shadow: 0 8px 24px rgba(245,158,11,0.4);
+        }
+        50% {
+            box-shadow: 0 12px 32px rgba(245,158,11,0.6);
+        }
     }
 
-    .pendentes-section:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    .btn-pendentes-float:hover {
+        transform: translateY(-2px);
+        background: #d97706;
+        box-shadow: 0 12px 32px rgba(245,158,11,0.6);
     }
 
-    .pendentes-count {
-        display: inline-flex;
+    .btn-pendentes-float i {
+        font-size: 1.125rem;
+    }
+
+    .pendentes-badge {
+        background: white;
+        color: var(--warning);
+        border-radius: 50%;
+        width: 1.5rem;
+        height: 1.5rem;
+        display: flex;
         align-items: center;
         justify-content: center;
-        width: 28px;
-        height: 28px;
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-        color: white;
-        border-radius: 50%;
         font-size: 0.75rem;
         font-weight: 700;
-        margin-left: 8px;
-        box-shadow: 0 4px 12px rgba(245,158,11,0.3);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    @media (max-width: 768px) {
+        .btn-pendentes-float {
+            bottom: 1rem;
+            right: 1rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.75rem;
+        }
+    }
+
+    /* Modal de Confirmações Pendentes */
+    .pendentes-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15,23,42,0.6);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .pendentes-modal.active {
+        display: flex;
+    }
+
+    .pendentes-modal-box {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        max-width: 42rem;
+        width: 100%;
+        max-height: 85vh;
+        overflow-y: auto;
+        box-shadow: var(--shadow-strong);
+    }
+
+    .pendentes-modal-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    }
+
+    .pendentes-modal-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #92400e;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+    }
+
+    .pendentes-modal-title i {
+        font-size: 1.25rem;
+    }
+
+    .pendentes-modal-count {
+        background: var(--warning);
+        color: white;
+        border-radius: 50%;
+        width: 1.75rem;
+        height: 1.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-left: 0.5rem;
+    }
+
+    .pendentes-modal-close {
+        background: rgba(255,255,255,0.9);
+        border: none;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        cursor: pointer;
+        color: var(--text-muted);
+        font-size: 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    .pendentes-modal-close:hover {
+        background: white;
+        color: var(--text-main);
+        transform: rotate(90deg);
+    }
+
+    .pendentes-modal-body {
+        padding: 1.5rem;
     }
 
     .pendente-item {
         background: #fef3c7;
-        padding: 16px;
-        border-radius: var(--dash-radius-md);
-        margin-bottom: 12px;
-        border: 2px solid #fde68a;
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 0.75rem;
+        border: 1px solid #fde68a;
         transition: all 0.2s ease;
     }
 
     .pendente-item:hover {
-        transform: translateX(4px);
-        box-shadow: 0 4px 12px rgba(245,158,11,0.2);
+        border-color: var(--warning);
+        box-shadow: var(--shadow-card);
     }
 
     .pendente-item:last-child {
@@ -1530,23 +1528,23 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
 
     .pendente-cliente {
         font-weight: 700;
-        font-size: 0.9375rem;
+        font-size: 0.8125rem;
         color: #92400e;
-        margin-bottom: 8px;
+        margin-bottom: 0.5rem;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 0.5rem;
     }
 
     .pendente-cliente i {
-        font-size: 1.125rem;
+        font-size: 0.875rem;
     }
 
     .pendente-detalhes {
-        font-size: 0.8125rem;
+        font-size: 0.75rem;
         color: #78350f;
-        margin-bottom: 12px;
-        line-height: 1.6;
+        margin-bottom: 0.75rem;
+        line-height: 1.5;
     }
 
     .pendente-detalhes strong {
@@ -1555,64 +1553,77 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
 
     .pendente-actions {
         display: flex;
-        gap: 8px;
+        gap: 0.5rem;
         flex-wrap: wrap;
     }
 
     .btn-confirmar {
         flex: 1;
-        min-width: 120px;
-        padding: 10px 16px;
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        min-width: 7.5rem;
+        padding: 0.625rem 1rem;
+        background: var(--success);
         color: white;
         border: none;
         border-radius: 999px;
-        font-size: 0.8125rem;
+        font-size: 0.75rem;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.2s ease;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
-        box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+        gap: 0.375rem;
+        box-shadow: var(--shadow-sm);
         text-decoration: none;
     }
 
     .btn-confirmar:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(16,185,129,0.4);
+        background: #059669;
+        box-shadow: var(--shadow-card);
     }
 
     .btn-confirmar i {
-        font-size: 1rem;
+        font-size: 0.875rem;
     }
 
     .btn-whats-pendente {
-        padding: 10px 16px;
-        background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+        padding: 0.625rem 1rem;
+        background: #25D366;
         color: white;
         border: none;
         border-radius: 999px;
-        font-size: 0.8125rem;
+        font-size: 0.75rem;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.2s ease;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
-        box-shadow: 0 4px 12px rgba(37,211,102,0.3);
+        gap: 0.375rem;
+        box-shadow: var(--shadow-sm);
         text-decoration: none;
     }
 
     .btn-whats-pendente:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(37,211,102,0.4);
+        background: #128C7E;
+        box-shadow: var(--shadow-card);
+        color: white;
     }
 
     .btn-whats-pendente i {
-        font-size: 1.125rem;
+        font-size: 0.875rem;
+    }
+
+    @media (max-width: 768px) {
+        .pendentes-modal-box {
+            max-height: 90vh;
+        }
+        .pendente-actions {
+            flex-direction: column;
+        }
+        .btn-confirmar, .btn-whats-pendente {
+            width: 100%;
+        }
     }
 
     .btn-send-birthday:hover {
@@ -1846,6 +1857,40 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         to {
             transform: translateY(0);
             opacity: 1;
+        }
+    }
+
+    /* ============================
+       AJUSTE DOS BOTÕES PENDENTES
+       ============================ */
+
+    /* Container dos botões: por padrão, em coluna (melhor pro mobile) */
+    .pendente-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+    }
+
+    /* Ambos os botões ocupam toda a largura do card */
+    .pendente-actions .btn-confirmar,
+    .pendente-actions .btn-whats-pendente {
+        width: 100%;
+        flex: 1 1 auto;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+
+    /* Em telas maiores, colocar lado a lado, iguais */
+    @media (min-width: 768px) {
+        .pendente-actions {
+            flex-direction: row;
+            flex-wrap: nowrap;
+        }
+
+        .pendente-actions .btn-confirmar,
+        .pendente-actions .btn-whats-pendente {
+            width: auto;
         }
     }
 </style>
@@ -2254,65 +2299,75 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
 
             </div>
 
-            <!-- Confirmações Pendentes -->
-            <?php if (!empty($agendamentosPendentes)): ?>
-            <div class="pendentes-section">
-                <div class="section-header">
-                    <div>
-                        <h3 class="section-title">
-                            <i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b;"></i>
-                            Confirmações Pendentes
-                            <span class="pendentes-count"><?php echo count($agendamentosPendentes); ?></span>
-                        </h3>
-                        <p class="section-sub">Agendamentos aguardando sua confirmação</p>
-                    </div>
-                </div>
 
-                <?php foreach ($agendamentosPendentes as $pend): ?>
-                    <div class="pendente-item">
-                        <div class="pendente-cliente">
-                            <i class="bi bi-person-fill"></i>
-                            <?php echo htmlspecialchars($pend['cliente_nome']); ?>
-                        </div>
-                        <div class="pendente-detalhes">
-                            <strong>Serviço:</strong> <?php echo htmlspecialchars($pend['servico']); ?><br>
-                            <strong>Data:</strong> <?php echo date('d/m/Y', strtotime($pend['data_agendamento'])); ?> às <?php echo date('H:i', strtotime($pend['horario'])); ?><br>
-                            <strong>Valor:</strong> R$ <?php echo number_format($pend['valor'], 2, ',', '.'); ?>
-                        </div>
-                        <div class="pendente-actions">
-                            <button class="btn-confirmar" onclick="confirmarAgendamento(<?php echo $pend['id']; ?>, true, event)">
-                                <i class="bi bi-check-circle-fill"></i>
-                                Confirmar Apenas
-                            </button>
-                            <?php if (!empty($pend['telefone'])): ?>
-                                <a href="https://wa.me/55<?php echo preg_replace('/[^0-9]/', '', $pend['telefone']); ?>?text=<?php 
-                                    $msg = "Olá, {$pend['cliente_nome']}! 👋\n\n";
-                                    $msg .= "Seu agendamento no {$nomeEstabelecimento} foi confirmado! ✅\n\n";
-                                    $msg .= "📅 Data: " . date('d/m/Y', strtotime($pend['data_agendamento'])) . "\n";
-                                    $msg .= "🕐 Horário: " . date('H:i', strtotime($pend['horario'])) . "\n";
-                                    $msg .= "✂️ Serviço: {$pend['servico']}\n";
-                                    $msg .= "💰 Valor: R$ " . number_format($pend['valor'], 2, ',', '.') . "\n\n";
-                                    $msg .= "Te esperamos! 💜";
-                                    echo urlencode($msg);
-                                ?>" 
-                                   class="btn-whats-pendente" 
-                                   target="_blank"
-                                   onclick="confirmarAgendamento(<?php echo $pend['id']; ?>, false, event)">
-                                    <i class="bi bi-whatsapp"></i>
-                                    Confirmar + WhatsApp
-                                </a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-            <?php endif; ?>
 
         </div>
 
     </div><!-- .dashboard-panels -->
 
 </main>
+
+<!-- Botão Flutuante de Confirmações Pendentes -->
+<?php if (!empty($agendamentosPendentes)): ?>
+<button class="btn-pendentes-float" onclick="abrirPendentes()">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span>Confirmações</span>
+    <span class="pendentes-badge"><?php echo count($agendamentosPendentes); ?></span>
+</button>
+
+<!-- Modal de Confirmações Pendentes -->
+<div class="pendentes-modal" id="pendentesModal">
+    <div class="pendentes-modal-box">
+        <div class="pendentes-modal-header">
+            <h3 class="pendentes-modal-title">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                Confirmações Pendentes
+                <span class="pendentes-modal-count"><?php echo count($agendamentosPendentes); ?></span>
+            </h3>
+            <button class="pendentes-modal-close" onclick="fecharPendentes()">&times;</button>
+        </div>
+        <div class="pendentes-modal-body">
+            <?php foreach ($agendamentosPendentes as $pend): ?>
+                <div class="pendente-item">
+                    <div class="pendente-cliente">
+                        <i class="bi bi-person-fill"></i>
+                        <?php echo htmlspecialchars($pend['cliente_nome']); ?>
+                    </div>
+                    <div class="pendente-detalhes">
+                        <strong>Serviço:</strong> <?php echo htmlspecialchars($pend['servico']); ?><br>
+                        <strong>Data:</strong> <?php echo date('d/m/Y', strtotime($pend['data_agendamento'])); ?> às <?php echo date('H:i', strtotime($pend['horario'])); ?><br>
+                        <strong>Valor:</strong> R$ <?php echo number_format($pend['valor'], 2, ',', '.'); ?>
+                    </div>
+                    <div class="pendente-actions">
+                        <button class="btn-confirmar" onclick="confirmarAgendamento(<?php echo $pend['id']; ?>, true, event)">
+                            <i class="bi bi-check-circle-fill"></i>
+                            Confirmar
+                        </button>
+                        <?php if (!empty($pend['telefone'])): ?>
+                            <a href="https://wa.me/55<?php echo preg_replace('/[^0-9]/', '', $pend['telefone']); ?>?text=<?php 
+                                $msg = "Olá, {$pend['cliente_nome']}! 👋\n\n";
+                                $msg .= "Seu agendamento no {$nomeEstabelecimento} foi confirmado! ✅\n\n";
+                                $msg .= "📅 Data: " . date('d/m/Y', strtotime($pend['data_agendamento'])) . "\n";
+                                $msg .= "🕐 Horário: " . date('H:i', strtotime($pend['horario'])) . "\n";
+                                $msg .= "✂️ Serviço: {$pend['servico']}\n";
+                                $msg .= "💰 Valor: R$ " . number_format($pend['valor'], 2, ',', '.') . "\n\n";
+                                $msg .= "Te esperamos! 💜";
+                                echo urlencode($msg);
+                            ?>" 
+                               class="btn-whats-pendente" 
+                               target="_blank"
+                               onclick="confirmarAgendamento(<?php echo $pend['id']; ?>, false, event)">
+                                <i class="bi bi-whatsapp"></i>
+                                Confirmar + WhatsApp
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Modal de Agendamentos Próximos (30 minutos antes) -->
 <?php if (!empty($agendamentosProximos)): ?>
@@ -2487,6 +2542,25 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
     });
 
     // ============================
+    // MODAL DE CONFIRMAÇÕES PENDENTES
+    // ============================
+    function abrirPendentes() {
+        document.getElementById('pendentesModal').classList.add('active');
+    }
+
+    function fecharPendentes() {
+        document.getElementById('pendentesModal').classList.remove('active');
+    }
+
+    // Fechar modal ao clicar fora
+    document.addEventListener('click', function(e) {
+        const modal = document.getElementById('pendentesModal');
+        if (modal && e.target === modal) {
+            fecharPendentes();
+        }
+    });
+
+    // ============================
     // CONFIRMAÇÃO DE AGENDAMENTOS
     // ============================
     function confirmarAgendamento(agendamentoId, recarregar = true, event = null) {
@@ -2504,21 +2578,48 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
                 // Feedback visual
                 const item = event ? event.target.closest('.pendente-item') : null;
                 if (item) {
-                    item.style.background = 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)';
+                    item.style.background = '#d1fae5';
                     item.style.borderColor = '#6ee7b7';
                     
-                    // Remove após animação
+                    // Remove o item da lista
                     setTimeout(() => {
                         item.style.transition = 'all 0.3s ease';
                         item.style.opacity = '0';
                         item.style.transform = 'translateX(-100%)';
                         
                         setTimeout(() => {
+                            item.remove();
+                            
+                            // Atualizar contador do badge
+                            const modalBody = document.querySelector('.pendentes-modal-body');
+                            const itensRestantes = modalBody.querySelectorAll('.pendente-item').length;
+                            
+                            // Atualizar badge do botão flutuante
+                            const badge = document.querySelector('.pendentes-badge');
+                            const modalCount = document.querySelector('.pendentes-modal-count');
+                            
+                            if (itensRestantes > 0) {
+                                // Ainda tem itens, atualizar contador
+                                if (badge) badge.textContent = itensRestantes;
+                                if (modalCount) modalCount.textContent = itensRestantes;
+                            } else {
+                                // Não tem mais itens, fechar modal e esconder botão
+                                fecharPendentes();
+                                const btnFloat = document.querySelector('.btn-pendentes-float');
+                                if (btnFloat) {
+                                    btnFloat.style.transition = 'all 0.3s ease';
+                                    btnFloat.style.opacity = '0';
+                                    btnFloat.style.transform = 'scale(0.8)';
+                                    setTimeout(() => btnFloat.remove(), 300);
+                                }
+                            }
+                            
+                            // Se recarregar = true (botão "Confirmar + WhatsApp"), recarregar página
                             if (recarregar) {
-                                location.reload();
+                                setTimeout(() => location.reload(), 500);
                             }
                         }, 300);
-                    }, 1000);
+                    }, 800);
                 }
             } else {
                 alert('Erro ao confirmar agendamento. Tente novamente.');
