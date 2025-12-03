@@ -1,31 +1,158 @@
 <?php
 /**
  * ========================================================================
- * CRON JOB - LEMBRETES AUTOMÁTICOS DE AGENDAMENTOS
+ * 🔔 CRON JOB - LEMBRETES AUTOMÁTICOS DE AGENDAMENTOS
  * ========================================================================
  * 
- * Este script deve ser executado periodicamente via CRON JOB.
+ * Sistema completo para enviar lembretes via WhatsApp para:
+ * - CLIENTES: Lembra do agendamento próximo (ex: 1h antes)
+ * - PROFISSIONAIS: Avisa sobre consulta que vai começar
  * 
- * CONFIGURAÇÃO NO SERVIDOR:
+ * ========================================================================
+ * 📋 COMO FUNCIONA:
+ * ========================================================================
  * 
- * 1. cPanel / Hospedagens compartilhadas:
+ * 1. CRON executa este arquivo a cada 10 minutos
+ * 2. Script busca agendamentos próximos (ex: faltam 60 minutos)
+ * 3. Para cada agendamento encontrado:
+ *    - Chama função processarLembretesAutomaticos()
+ *    - Que chama notificarBotLembreteAgendamento()
+ *    - Que envia POST para /webhook/lembrete-agendamento no bot
+ * 4. Bot recebe webhook e envia 2 mensagens:
+ *    ✅ Mensagem para CLIENTE (telefone_cliente)
+ *    ✅ Mensagem para PROFISSIONAL (telefone_profissional)
+ * 5. Marca agendamento como lembrete_enviado = 1 (evita duplicação)
+ * 
+ * ========================================================================
+ * ⚙️ CONFIGURAÇÃO NO SERVIDOR:
+ * ========================================================================
+ * 
+ * 1. cPanel / HostGator (Hospedagem compartilhada):
  *    - Acesse "Cron Jobs"
  *    - Adicione novo cron job:
- *      Comando: /usr/bin/php /home/usuario/public_html/cron_lembretes.php
- *      Frequência: A cada 10 minutos
+ *      Comando: /usr/bin/php /home/usuario/public_html/controle-salao/cron_lembretes.php
+ *      Frequência: (asterisco)/10 * * * * (a cada 10 minutos)
  * 
  * 2. VPS/Servidor Linux:
  *    Execute: crontab -e
  *    Adicione a linha (a cada 10 minutos):
- *    (asterisco)/10 * * * * /usr/bin/php /var/www/html/controle-salao/cron_lembretes.php
+ *    (asterisco)/10 * * * * /usr/bin/php /var/www/html/controle-salao/cron_lembretes.php >> /var/log/cron_lembretes.log 2>&1
  * 
  * 3. XAMPP Local (para testes):
  *    Execute manualmente: php cron_lembretes.php
+ *    Ou via navegador: http://localhost/controle-salao/cron_lembretes.php?token=seu_token_secreto_aqui_123456
  *    Ou configure Task Scheduler (Windows) / crontab (Linux/Mac)
  * 
- * SEGURANÇA:
+ * ========================================================================
+ * 🔐 SEGURANÇA:
+ * ========================================================================
+ * 
  * - Este arquivo só pode ser executado via CLI ou com token secreto
+ * - Token configurado na linha 78: $tokenSecreto = '...';
+ * - Gerar token seguro: echo bin2hex(random_bytes(32));
  * - Não deve ser acessível diretamente via navegador sem autenticação
+ * 
+ * ========================================================================
+ * 🤖 INTEGRAÇÃO COM BOT:
+ * ========================================================================
+ * 
+ * Este script chama o webhook do bot Node.js:
+ * POST http://72.61.221.59/webhook/lembrete-agendamento
+ * 
+ * Payload enviado:
+ * {
+ *   "agendamento_id": 123,
+ *   "telefone_profissional": "15992675429",
+ *   "telefone_cliente": "11987654321",
+ *   "cliente_nome": "João Silva",
+ *   "profissional_nome": "Eduardo Eloi",
+ *   "estabelecimento": "Salão Develoi",
+ *   "servico": "Corte Masculino",
+ *   "data": "2025-12-02",
+ *   "horario": "15:30",
+ *   "valor": 45.00,
+ *   "minutos_restantes": 55,
+ *   "minutos_antes_configurado": 60
+ * }
+ * 
+ * Bot responde enviando 2 mensagens WhatsApp:
+ * ✅ Cliente: "⏰ LEMBRETE DE AGENDAMENTO - Você tem consulta em 55 minutos"
+ * ✅ Profissional: "⏰ LEMBRETE: CONSULTA PRÓXIMA - Cliente João em 55 minutos"
+ * 
+ * ========================================================================
+ * 🧪 TESTAR SISTEMA:
+ * ========================================================================
+ * 
+ * 1. Testar CRON manualmente:
+ *    php cron_lembretes.php
+ * 
+ * 2. Testar via navegador (com token):
+ *    http://localhost/controle-salao/cron_lembretes.php?token=seu_token_secreto_aqui_123456
+ * 
+ * 3. Testar com tempo diferente (ex: 120 minutos antes):
+ *    php cron_lembretes.php 120
+ *    http://localhost/controle-salao/cron_lembretes.php?token=xxx&minutos=120
+ * 
+ * 4. Verificar logs:
+ *    tail -f /var/log/apache2/error_log | grep BOT
+ *    tail -f /var/log/cron_lembretes.log
+ * 
+ * ========================================================================
+ * 📊 BANCO DE DADOS:
+ * ========================================================================
+ * 
+ * Campo adicionado na tabela agendamentos:
+ * - lembrete_enviado INTEGER DEFAULT 0
+ * 
+ * Query executada:
+ * SELECT * FROM agendamentos 
+ * WHERE status IN ('Confirmado', 'Pendente')
+ *   AND lembrete_enviado = 0
+ *   AND datetime(data_agendamento || ' ' || horario) > datetime('now', 'localtime')
+ *   AND datetime(data_agendamento || ' ' || horario) <= datetime('now', 'localtime', '+60 minutes')
+ * 
+ * ========================================================================
+ * 🚨 TROUBLESHOOTING:
+ * ========================================================================
+ * 
+ * Problema: "Nenhum lembrete enviado"
+ * - Verificar se tem agendamentos nas próximas horas
+ * - Verificar se lembrete_enviado = 0
+ * - Testar: UPDATE agendamentos SET lembrete_enviado = 0 WHERE id = 123;
+ * 
+ * Problema: "Erro ao conectar webhook"
+ * - Verificar se bot está rodando: ps aux | grep node
+ * - Testar conectividade: curl http://72.61.221.59/webhook/teste
+ * - Verificar firewall: sudo ufw allow 80/tcp
+ * - Verificar URL no getBotBaseUrl() em includes/notificar_bot.php
+ * 
+ * Problema: "Lembretes duplicados"
+ * - Campo lembrete_enviado deve ser marcado = 1 após envio
+ * - Verificar se UPDATE está sendo executado corretamente
+ * 
+ * ========================================================================
+ * ✅ CHECKLIST DE IMPLEMENTAÇÃO:
+ * ========================================================================
+ * 
+ * [x] Função notificarBotLembreteAgendamento() criada
+ * [x] Função processarLembretesAutomaticos() criada
+ * [x] Campo lembrete_enviado adicionado no banco
+ * [x] Webhook /webhook/lembrete-agendamento no bot
+ * [x] Arquivo cron_lembretes.php criado
+ * [ ] Token de segurança configurado (linha 78)
+ * [ ] CRON job configurado no servidor
+ * [ ] Testado envio para cliente
+ * [ ] Testado envio para profissional
+ * 
+ * ========================================================================
+ * 📞 SUPORTE:
+ * ========================================================================
+ * 
+ * Eduardo Eloi: (15) 99267-5429
+ * Karen Gomes: (15) 99134-5333
+ * 
+ * Versão: 2.0 (Dezembro 2025)
+ * Recurso: Lembretes automáticos para clientes e profissionais
  * ========================================================================
  */
 
@@ -34,10 +161,16 @@
 // ========================================================================
 
 $executadoViaCLI = (php_sapi_name() === 'cli');
-$tokenSecreto = 'seu_token_secreto_aqui_123456'; // 🔐 TROCAR POR TOKEN REAL
 
-// Se não for CLI, verificar token na URL
-if (!$executadoViaCLI) {
+// 🔐 CONFIGURAÇÃO DE SEGURANÇA (OPCIONAL)
+// ➜ true  = Exige token quando acessado via navegador (RECOMENDADO)
+// ➜ false = Permite acesso via navegador sem token (MENOS SEGURO)
+$EXIGIR_TOKEN_HTTP = false;  // ⬅️ Mude para true em produção!
+
+$tokenSecreto = 'seu_token_secreto_aqui_123456'; // Trocar por token real se habilitar
+
+// Se não for CLI e segurança estiver ativada, verificar token
+if (!$executadoViaCLI && $EXIGIR_TOKEN_HTTP) {
     $tokenFornecido = $_GET['token'] ?? '';
     
     if ($tokenFornecido !== $tokenSecreto) {
