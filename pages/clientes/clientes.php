@@ -24,6 +24,101 @@ if (file_exists('../../includes/db.php')) {
 // 2. LÓGICA PHP (SALVAR / EXCLUIR)
 // =========================================================
 
+// C. AGENDAR SERVIÇO RECORRENTE PARA CLIENTE
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cliente_id'], $_POST['servico_id'], $_POST['horario'], $_POST['data_inicio'], $_POST['periodicidade'], $_POST['quantidade'])) {
+    require_once __DIR__ . '/../../includes/recorrencia_helper.php';
+    $clienteId = (int)$_POST['cliente_id'];
+    $servicoId = (int)$_POST['servico_id'];
+    $horario = $_POST['horario'];
+    $dataInicio = $_POST['data_inicio'];
+    $periodicidade = $_POST['periodicidade'];
+    $quantidade = max(1, (int)$_POST['quantidade']);
+    $diasSemana = isset($_POST['dias_semana']) ? $_POST['dias_semana'] : [];
+    $diaMes = isset($_POST['dia_mes']) ? (int)$_POST['dia_mes'] : null;
+    $intervalo = isset($_POST['intervalo']) ? (int)$_POST['intervalo'] : null;
+
+    // Buscar nome do cliente
+    $stmt = $pdo->prepare('SELECT nome FROM clientes WHERE id=? AND user_id=?');
+    $stmt->execute([$clienteId, $userId]);
+    $clienteNome = $stmt->fetchColumn();
+    // Buscar nome e preço do serviço
+    $stmt = $pdo->prepare('SELECT nome, preco FROM servicos WHERE id=? AND user_id=?');
+    $stmt->execute([$servicoId, $userId]);
+    $servico = $stmt->fetch();
+    $servicoNome = $servico['nome'] ?? '';
+    $valor = $servico['preco'] ?? 0;
+
+    // Gerar datas recorrentes
+    $datas = [];
+    $data = $dataInicio;
+    $count = 0;
+    while ($count < $quantidade) {
+        $datas[] = $data;
+        if ($periodicidade === 'diaria') {
+            $data = date('Y-m-d', strtotime($data . ' +1 day'));
+        } else if ($periodicidade === 'semanal') {
+            // Pega o(s) próximo(s) dia(s) da semana
+            if (!empty($diasSemana)) {
+                $dias = is_array($diasSemana) ? $diasSemana : explode(',', $diasSemana);
+                $dataObj = new DateTime($data);
+                $dow = (int)$dataObj->format('w');
+                $proximo = null;
+                foreach ($dias as $d) {
+                    $d = (int)$d;
+                    if ($d > $dow) {
+                        $proximo = $d;
+                        break;
+                    }
+                }
+                if ($proximo === null) $proximo = (int)$dias[0];
+                $diasDiff = ($proximo >= $dow) ? $proximo - $dow : 7 - $dow + $proximo;
+                $dataObj->modify("+{$diasDiff} days");
+                $data = $dataObj->format('Y-m-d');
+            } else {
+                $data = date('Y-m-d', strtotime($data . ' +7 days'));
+            }
+        } else if ($periodicidade === 'mensal') {
+            $dataObj = new DateTime($data);
+            $dataObj->modify('+1 month');
+            if ($diaMes) {
+                $dataObj->setDate($dataObj->format('Y'), $dataObj->format('m'), $diaMes);
+            }
+            $data = $dataObj->format('Y-m-d');
+        } else if ($periodicidade === 'quinzenal') {
+            $data = date('Y-m-d', strtotime($data . ' +15 days'));
+        } else if ($periodicidade === 'personalizada' && $intervalo) {
+            $data = date('Y-m-d', strtotime($data . "+{$intervalo} days"));
+        } else {
+            break;
+        }
+        $count++;
+    }
+
+    // Inserir agendamentos
+    $serieId = uniqid('serie_', true);
+    $inseridos = 0;
+    foreach ($datas as $dataAg) {
+        $stmt = $pdo->prepare('INSERT INTO agendamentos (user_id, cliente_id, cliente_nome, servico, valor, data_agendamento, horario, status, e_recorrente, serie_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $ok = $stmt->execute([
+            $userId,
+            $clienteId,
+            $clienteNome,
+            $servicoNome,
+            $valor,
+            $dataAg,
+            $horario,
+            'Pendente',
+            1,
+            $serieId
+        ]);
+        if ($ok) $inseridos++;
+    }
+    // Resposta AJAX
+    header('Content-Type: application/json');
+    echo json_encode(['sucesso'=>true, 'qtd'=>$inseridos]);
+    exit;
+}
+
 // A. EXCLUIR
 if (isset($_GET['delete'])) {
     $idDelete = (int)$_GET['delete'];
@@ -862,6 +957,10 @@ include '../../includes/menu.php';
                     </div>
 
                     <div class="actions">
+                           <!-- Botão Agendar -->
+                           <button class="btn-icon btn-agendar" title="Agendar serviço" onclick="event.stopPropagation(); abrirModalAgendar(<?php echo $jsonCliente; ?>)">
+                               <i class="bi bi-calendar-plus"></i>
+                           </button>
                         <?php if(!empty($c['telefone'])): 
                             $num = preg_replace('/[^0-9]/', '', $c['telefone']);
                         ?>
@@ -899,6 +998,168 @@ include '../../includes/menu.php';
 <button class="fab-add" onclick="abrirModalCreate()">
     <i class="bi bi-plus"></i>
 </button>
+
+<!-- MODAL AGENDAR SERVIÇO RECORRENTE -->
+<div class="modal-overlay" id="modalAgendar">
+    <div class="sheet-box">
+        <div class="drag-handle"></div>
+        <h3 style="margin:0 0 14px 0; color:var(--text-dark); font-size:0.98rem;">Agendar Serviço para Cliente</h3>
+        <form id="formAgendarCliente" autocomplete="off">
+            <input type="hidden" name="cliente_id" id="agendarClienteId">
+            <div class="form-group">
+                <label class="label">Cliente</label>
+                <input type="text" id="agendarClienteNome" class="input" readonly>
+            </div>
+            <div class="form-group">
+                <label class="label">Serviço</label>
+                <select name="servico_id" id="agendarServicoId" class="input" required></select>
+            </div>
+            <div class="form-group">
+                <label class="label">Horário</label>
+                <input type="time" name="horario" id="agendarHorario" class="input" required>
+            </div>
+            <div class="form-group">
+                <label class="label">Data inicial</label>
+                <input type="date" name="data_inicio" id="agendarDataInicio" class="input" required>
+            </div>
+            <div class="form-group">
+                <label class="label">Periodicidade</label>
+                <select name="periodicidade" id="agendarPeriodicidade" class="input" required>
+                    <option value="diaria">Todos os dias</option>
+                    <option value="semanal">Semanal (escolher dia da semana)</option>
+                    <option value="mensal">Mensal (escolher dia do mês)</option>
+                    <option value="quinzenal">A cada 15 dias</option>
+                    <option value="personalizada">Personalizada</option>
+                </select>
+            </div>
+            <div class="form-group" id="grupoDiasSemana" style="display:none;">
+                <label class="label">Dia(s) da semana</label>
+                <select id="agendarDiasSemana" class="input" multiple>
+                    <option value="1">Segunda-feira</option>
+                    <option value="2">Terça-feira</option>
+                    <option value="3">Quarta-feira</option>
+                    <option value="4">Quinta-feira</option>
+                    <option value="5">Sexta-feira</option>
+                    <option value="6">Sábado</option>
+                    <option value="0">Domingo</option>
+                </select>
+            </div>
+            <div class="form-group" id="grupoDiaMes" style="display:none;">
+                <label class="label">Dia do mês</label>
+                <input type="number" id="agendarDiaMes" class="input" min="1" max="31">
+            </div>
+            <div class="form-group" id="grupoIntervalo" style="display:none;">
+                <label class="label">Intervalo (dias)</label>
+                <input type="number" id="agendarIntervalo" class="input" min="2" max="365">
+            </div>
+            <div class="form-group">
+                <label class="label">Quantidade de vezes</label>
+                <input type="number" name="quantidade" id="agendarQuantidade" class="input" min="1" max="100" value="12" required>
+                <small style="color:#64748b;">Ex: 12 para um ano, 999 para sempre</small>
+            </div>
+            <button type="submit" class="btn-block btn-primary">Agendar</button>
+            <button type="button" class="btn-block btn-secondary" onclick="fecharModalAgendar()">Cancelar</button>
+        </form>
+    </div>
+</div>
+
+<script>
+// Abrir modal de agendamento
+function abrirModalAgendar(cliente) {
+    document.getElementById('modalAgendar').classList.add('active');
+    document.getElementById('agendarClienteId').value = cliente.id;
+    document.getElementById('agendarClienteNome').value = cliente.nome;
+    // Carregar serviços via PHP embutido
+    var servicos = <?php echo json_encode($pdo->query("SELECT id, nome FROM servicos WHERE user_id=$userId ORDER BY nome ASC")->fetchAll()); ?>;
+    var select = document.getElementById('agendarServicoId');
+    select.innerHTML = '<option value="">Selecione</option>';
+    servicos.forEach(function(s) {
+        var opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.nome;
+        select.appendChild(opt);
+    });
+    // Reset campos
+    document.getElementById('agendarHorario').value = '';
+    document.getElementById('agendarDataInicio').value = '';
+    document.getElementById('agendarPeriodicidade').value = 'diaria';
+    document.getElementById('grupoDiasSemana').style.display = 'none';
+    document.getElementById('grupoDiaMes').style.display = 'none';
+    document.getElementById('grupoIntervalo').style.display = 'none';
+    document.getElementById('agendarQuantidade').value = 12;
+}
+function fecharModalAgendar() {
+    document.getElementById('modalAgendar').classList.remove('active');
+}
+// Mostrar campos conforme periodicidade
+document.getElementById('agendarPeriodicidade').addEventListener('change', function() {
+    var val = this.value;
+    document.getElementById('grupoDiasSemana').style.display = (val === 'semanal') ? 'block' : 'none';
+    document.getElementById('grupoDiaMes').style.display = (val === 'mensal') ? 'block' : 'none';
+    document.getElementById('grupoIntervalo').style.display = (val === 'personalizada') ? 'block' : 'none';
+});
+
+// Envio AJAX do formulário de agendamento
+const formAgendar = document.getElementById('formAgendarCliente');
+if (formAgendar) {
+    formAgendar.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(formAgendar);
+        // Dias da semana (array)
+        const diasSemanaSel = document.getElementById('agendarDiasSemana');
+        if (diasSemanaSel && diasSemanaSel.style.display !== 'none') {
+            const dias = Array.from(diasSemanaSel.selectedOptions).map(opt => opt.value);
+            formData.append('dias_semana', dias.join(','));
+        }
+        // Dia do mês
+        const diaMes = document.getElementById('agendarDiaMes');
+        if (diaMes && diaMes.parentElement.style.display !== 'none' && diaMes.value) {
+            formData.append('dia_mes', diaMes.value);
+        }
+        // Intervalo personalizado
+        const intervalo = document.getElementById('agendarIntervalo');
+        if (intervalo && intervalo.parentElement.style.display !== 'none' && intervalo.value) {
+            formData.append('intervalo', intervalo.value);
+        }
+        fetch(window.location.pathname, {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(res => {
+            fecharModalAgendar();
+            mostrarToast(res.sucesso ? `Agendados ${res.qtd} horários!` : 'Erro ao agendar', res.sucesso);
+            if (res.sucesso) setTimeout(() => window.location.reload(), 1200);
+        })
+        .catch(() => {
+            fecharModalAgendar();
+            mostrarToast('Erro ao agendar', false);
+        });
+    });
+}
+
+// Função toast já existe no outro modal, mas se não, adicione:
+if (typeof mostrarToast !== 'function') {
+    function mostrarToast(msg, sucesso) {
+        let toast = document.createElement('div');
+        toast.textContent = msg;
+        toast.style.position = 'fixed';
+        toast.style.bottom = '30px';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%)';
+        toast.style.background = sucesso ? '#10b981' : '#ef4444';
+        toast.style.color = 'white';
+        toast.style.padding = '14px 28px';
+        toast.style.borderRadius = '8px';
+        toast.style.fontWeight = 'bold';
+        toast.style.fontSize = '1rem';
+        toast.style.zIndex = 9999;
+        toast.style.boxShadow = '0 4px 16px rgba(0,0,0,0.18)';
+        document.body.appendChild(toast);
+        setTimeout(() => { toast.remove(); }, 2000);
+    }
+}
+</script>
 
 <!-- MODAL VISUALIZAÇÃO -->
 <div class="modal-overlay" id="modalView">
@@ -1096,6 +1357,8 @@ include '../../includes/menu.php';
 
     // CRUD
     function abrirModalCreate() {
+        // Fecha outros modais se estiverem abertos
+        if (typeof fecharModalAgendar === 'function') fecharModalAgendar();
         document.getElementById('inputAcao').value        = 'create';
         document.getElementById('inputId').value          = '';
         document.getElementById('inputNome').value        = '';

@@ -181,6 +181,16 @@ $pdo->exec('PRAGMA journal_mode = WAL;');  // melhor para concorrência
  
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN tamanho_embalagem REAL DEFAULT 0"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN cor_tema TEXT DEFAULT '#4f46e5'"); } catch (Exception $e) {} 
+    // Novas colunas para lembretes e restrições de agendamento
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_ativo INTEGER DEFAULT 0"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_tempo INTEGER DEFAULT 4"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_unidade TEXT DEFAULT 'horas'"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_cliente INTEGER DEFAULT 1"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_confirmar INTEGER DEFAULT 0"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_outro TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_copia INTEGER DEFAULT 0"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN agendamento_min_antecedencia INTEGER DEFAULT 4"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN agendamento_min_unidade TEXT DEFAULT 'horas'"); } catch (Exception $e) {}
     // Clientes 
     try { $pdo->exec("ALTER TABLE clientes ADD COLUMN cpf TEXT"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE clientes ADD COLUMN telefone TEXT"); } catch (Exception $e) {} 

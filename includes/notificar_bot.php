@@ -371,6 +371,8 @@ if (!function_exists('notificarBotLembreteAgendamento')) {
     }
 }
 
+require_once __DIR__ . '/mailer.php';
+
 if (!function_exists('processarLembretesAutomaticos')) {
     /**
      * Processa todos os agendamentos que precisam de lembrete automático.
@@ -388,9 +390,11 @@ if (!function_exists('processarLembretesAutomaticos')) {
             // ====================================
             // BUSCAR AGENDAMENTOS QUE PRECISAM DE LEMBRETE
             // ====================================
+
             $sql = "
                 SELECT 
                     a.id,
+                    a.user_id,
                     a.data_agendamento,
                     a.horario,
                     CAST((julianday(a.data_agendamento || ' ' || a.horario) - julianday('now', 'localtime')) * 24 * 60 AS INTEGER) AS minutos_ate_agendamento
@@ -408,9 +412,57 @@ if (!function_exists('processarLembretesAutomaticos')) {
             $totalEnviados = 0;
 
             foreach ($agendamentos as $ag) {
+                // Envia WhatsApp/bot
                 notificarBotLembreteAgendamento($pdo, $ag['id'], $minutosAntes);
+
+                // Busca config de lembrete por e-mail do dono
+                $userStmt = $pdo->prepare("SELECT nome, email, lembrete_email_ativo, lembrete_email_tempo, lembrete_email_unidade FROM usuarios WHERE id = ? LIMIT 1");
+                $userStmt->execute([$ag['user_id']]);
+                $user = $userStmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($user && !empty($user['email']) && intval($user['lembrete_email_ativo']) === 1) {
+                    // Calcula diferença de tempo para disparo
+                    $unidade = $user['lembrete_email_unidade'] ?? 'horas';
+                    $tempo = intval($user['lembrete_email_tempo'] ?? 4);
+                    $dataHoraAgendamento = $ag['data_agendamento'] . ' ' . $ag['horario'];
+                    $timestampAgendamento = strtotime($dataHoraAgendamento);
+                    $timestampAtual = time();
+                    $minutosRestantes = floor(($timestampAgendamento - $timestampAtual) / 60);
+
+                    $disparar = false;
+                    if ($unidade === 'horas') {
+                        if ($minutosRestantes <= ($tempo * 60) && $minutosRestantes > ($tempo * 60 - 10)) {
+                            $disparar = true;
+                        }
+                    } else { // minutos
+                        if ($minutosRestantes <= $tempo && $minutosRestantes > $tempo - 10) {
+                            $disparar = true;
+                        }
+                    }
+
+                    if ($disparar) {
+                        // Busca dados do agendamento para o e-mail
+                        $agStmt = $pdo->prepare("SELECT a.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM agendamentos a LEFT JOIN clientes c ON c.id = a.cliente_id WHERE a.id = ? LIMIT 1");
+                        $agStmt->execute([$ag['id']]);
+                        $agDet = $agStmt->fetch(PDO::FETCH_ASSOC);
+
+                        $subject = 'Lembrete de agendamento próximo';
+                        $body = '<p>Olá ' . htmlspecialchars($user['nome']) . ',</p>' .
+                                '<p>Você tem um agendamento próximo:</p>' .
+                                '<ul>' .
+                                '<li><b>Cliente:</b> ' . htmlspecialchars($agDet['cliente_nome'] ?? '-') . '</li>' .
+                                '<li><b>Serviço:</b> ' . htmlspecialchars($agDet['servico'] ?? '-') . '</li>' .
+                                '<li><b>Data:</b> ' . htmlspecialchars($agDet['data_agendamento'] ?? '-') . '</li>' .
+                                '<li><b>Horário:</b> ' . htmlspecialchars($agDet['horario'] ?? '-') . '</li>' .
+                                '<li><b>Valor:</b> R$ ' . number_format($agDet['valor'] ?? 0, 2, ',', '.') . '</li>' .
+                                '</ul>' .
+                                '<p>Faltam <b>' . $minutosRestantes . ' minutos</b> para o atendimento.</p>';
+
+                        sendMailDeveloi($user['email'], $user['nome'], $subject, $body);
+                    }
+                }
+
                 $totalEnviados++;
-                
                 // Pausa de 1 segundo entre envios para não sobrecarregar
                 sleep(1);
             }

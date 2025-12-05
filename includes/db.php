@@ -79,7 +79,6 @@ try {
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP 
     )");
 
-
     // 5. Usuários (profissionais) 
     $pdo->exec("CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -108,6 +107,17 @@ try {
         valor_mensal REAL DEFAULT 19.90,  -- Valor que esse cliente paga por mês
         token_recuperacao TEXT,           -- Token para resetar senha
         token_validade DATETIME,          -- Validade do token
+        -- Campos de lembrete por e-mail
+        lembrete_email_ativo INTEGER DEFAULT 0,
+        lembrete_email_tempo INTEGER DEFAULT 4,
+        lembrete_email_unidade TEXT DEFAULT 'horas',
+        lembrete_email_cliente INTEGER DEFAULT 1,
+        lembrete_email_confirmar INTEGER DEFAULT 0,
+        lembrete_email_outro TEXT,
+        lembrete_email_copia INTEGER DEFAULT 0,
+        -- Campos de antecedência mínima para agendamento
+        agendamento_min_antecedencia INTEGER DEFAULT 4,
+        agendamento_min_unidade TEXT DEFAULT 'horas',
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
@@ -128,6 +138,17 @@ try {
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP 
     )"); 
 
+    // Garantir campos de lembrete por e-mail e antecedência mínima em usuarios (migração)
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_ativo INTEGER DEFAULT 0"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_tempo INTEGER DEFAULT 4"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_unidade TEXT DEFAULT 'horas'"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_cliente INTEGER DEFAULT 1"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_confirmar INTEGER DEFAULT 0"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_outro TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_copia INTEGER DEFAULT 0"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN agendamento_min_antecedencia INTEGER DEFAULT 4"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN agendamento_min_unidade TEXT DEFAULT 'horas'"); } catch (Exception $e) {}
+
     // 7. Notificações / Alertas 
     $pdo->exec("CREATE TABLE IF NOT EXISTS notifications ( 
         id INTEGER PRIMARY KEY AUTOINCREMENT, 
@@ -139,38 +160,73 @@ try {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP 
     )"); 
 
-    // 8. Cálculo de serviços (custos e lucro) 
-    $pdo->exec("CREATE TABLE IF NOT EXISTS calculo_servico ( 
-        id INTEGER PRIMARY KEY AUTOINCREMENT, 
-        user_id INTEGER NOT NULL, 
-        nome_servico TEXT NOT NULL, 
-        valor_cobrado REAL NOT NULL, 
-        custo_materiais REAL NOT NULL, 
-        custo_taxas REAL NOT NULL, 
-        lucro REAL NOT NULL, 
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP 
+    // 8. Comandas (pacotes / comandas recorrentes do paciente)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS comandas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        cliente_id INTEGER NOT NULL,
+        titulo TEXT NOT NULL,
+        tipo TEXT DEFAULT 'normal',           -- normal | pacote
+        status TEXT DEFAULT 'aberta',         -- aberta | fechada
+        valor_total REAL DEFAULT 0,
+        valor_pago REAL DEFAULT 0,
+        qtd_total INTEGER DEFAULT 1,          -- quantidade total de sessões
+        data_inicio DATE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    // Itens / sessões da comanda
+    $pdo->exec("CREATE TABLE IF NOT EXISTS comanda_itens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        comanda_id INTEGER NOT NULL,
+        numero INTEGER,                       -- 1, 2, 3...
+        data_prevista DATE,
+        data_realizada DATE,
+        status TEXT DEFAULT 'pendente',       -- pendente | realizado | cancelado
+        valor_sessao REAL DEFAULT 0,
+        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(comanda_id) REFERENCES comandas(id) ON DELETE CASCADE
+    )");
+
+    // 9. Cálculo de serviços (custos e lucro)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS calculo_servico (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        nome_servico TEXT NOT NULL,
+        valor_cobrado REAL NOT NULL,
+        custo_materiais REAL NOT NULL,
+        custo_taxas REAL NOT NULL,
+        lucro REAL NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS calculo_servico_materiais (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        calculo_id INTEGER NOT NULL,
+        produto_id INTEGER,
+        nome_material TEXT NOT NULL,
+        quantidade_usada REAL,
+        unidade TEXT,
+        preco_produto REAL,
+        quantidade_embalagem REAL,
+        custo_calculado REAL,
+        FOREIGN KEY (calculo_id) REFERENCES calculo_servico(id) ON DELETE CASCADE
+    )");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS calculo_servico_taxas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        calculo_id INTEGER NOT NULL,
+        nome_taxa TEXT NOT NULL,
+        valor REAL NOT NULL,
+        FOREIGN KEY (calculo_id) REFERENCES calculo_servico(id) ON DELETE CASCADE
     )"); 
 
-    $pdo->exec("CREATE TABLE IF NOT EXISTS calculo_servico_materiais ( 
-        id INTEGER PRIMARY KEY AUTOINCREMENT, 
-        calculo_id INTEGER NOT NULL, 
-        produto_id INTEGER,          
-        nome_material TEXT NOT NULL, 
-        quantidade_usada REAL,       
-        unidade TEXT, 
-        preco_produto REAL, 
-        quantidade_embalagem REAL,   
-        custo_calculado REAL, 
-        FOREIGN KEY (calculo_id) REFERENCES calculo_servico(id) ON DELETE CASCADE 
-    )"); 
-
-    $pdo->exec("CREATE TABLE IF NOT EXISTS calculo_servico_taxas ( 
-        id INTEGER PRIMARY KEY AUTOINCREMENT, 
-        calculo_id INTEGER NOT NULL, 
-        nome_taxa TEXT NOT NULL, 
-        valor REAL NOT NULL, 
-        FOREIGN KEY (calculo_id) REFERENCES calculo_servico(id) ON DELETE CASCADE 
-    )"); 
+    // 9. Configurações gerais do sistema
+    $pdo->exec("CREATE TABLE IF NOT EXISTS configuracoes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chave VARCHAR(255) UNIQUE NOT NULL,
+        valor TEXT
+    )");
 
     // ========================================================= 
     // MIGRAÇÕES (para bancos antigos já existentes) 
@@ -223,10 +279,30 @@ try {
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN instagram TEXT"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN cpf TEXT"); } catch (Exception $e) {} 
 
-    // ⬇️⬇️ AQUI ESTÃO AS NOVAS COLUNAS PARA RECUPERAÇÃO DE SENHA ⬇️⬇️
+    // ⬇️ Novas colunas para recuperação de senha
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN token_recuperacao TEXT"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN token_validade DATETIME"); } catch (Exception $e) {}
-    
+
+    // Migrações Comandas (caso tabela antiga exista com outra estrutura)
+    try { $pdo->exec("ALTER TABLE comandas ADD COLUMN titulo TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE comandas ADD COLUMN valor_total REAL DEFAULT 0"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE comandas ADD COLUMN valor_pago REAL DEFAULT 0"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE comandas ADD COLUMN qtd_total INTEGER DEFAULT 1"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE comandas ADD COLUMN data_inicio DATE"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE comandas ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch (Exception $e) {}
+
+    // Migrações comanda_itens
+    try { $pdo->exec("ALTER TABLE comanda_itens ADD COLUMN numero INTEGER"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE comanda_itens ADD COLUMN data_prevista DATE"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE comanda_itens ADD COLUMN data_realizada DATE"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE comanda_itens ADD COLUMN status TEXT DEFAULT 'pendente'"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE comanda_itens ADD COLUMN valor_sessao REAL DEFAULT 0"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE comanda_itens ADD COLUMN criado_em DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch (Exception $e) {}
+
+    // Índices para comandas / comanda_itens
+    try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_comandas_user_status ON comandas(user_id, status)"); } catch (Exception $e) {}
+    try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_comanda_itens_comanda ON comanda_itens(comanda_id)"); } catch (Exception $e) {}
+
     // ========================================================= 
     // ÍNDICES E TABELAS PARA API REST
     // ========================================================= 
@@ -246,7 +322,7 @@ try {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )"); 
 
-    // Produtos 
+    // Produtos (migra extra, se veio de versões mais antigas)
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN marca TEXT"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN quantidade INTEGER DEFAULT 0"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN unidade TEXT DEFAULT 'unidade'"); } catch (Exception $e) {} 

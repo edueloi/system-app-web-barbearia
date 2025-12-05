@@ -405,7 +405,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $servicoNome  = $servicoDados['nome']  ?? 'Serviço'; 
     $servicoValor = $servicoDados['preco'] ?? 0; 
  
-    if ($nome && $telefone && $data && $horario) { 
+    if ($nome && $telefone && $data && $horario) {
+        // Validação de antecedência mínima
+        $minAntecedencia = isset($profissional['agendamento_min_antecedencia']) ? (int)$profissional['agendamento_min_antecedencia'] : 4;
+        $minUnidade = $profissional['agendamento_min_unidade'] ?? 'horas';
+        $agora = new DateTime('now', new DateTimeZone('America/Sao_Paulo'));
+        $dataHoraAgendamento = DateTime::createFromFormat('Y-m-d H:i', $data . ' ' . $horario, new DateTimeZone('America/Sao_Paulo'));
+        $diffMinutos = ($dataHoraAgendamento && $agora) ? round(($dataHoraAgendamento->getTimestamp() - $agora->getTimestamp()) / 60) : 0;
+        $minutosNecessarios = 0;
+        if ($minUnidade === 'minutos') {
+            $minutosNecessarios = $minAntecedencia;
+        } elseif ($minUnidade === 'horas') {
+            $minutosNecessarios = $minAntecedencia * 60;
+        } elseif ($minUnidade === 'dias') {
+            $minutosNecessarios = $minAntecedencia * 1440;
+        }
+        if ($diffMinutos < $minutosNecessarios) {
+            echo '<div style="font-family:sans-serif;text-align:center;padding:40px;color:#ef4444;">⏰ O agendamento deve ser feito com pelo menos ' . $minAntecedencia . ' ' . htmlspecialchars($minUnidade) . ' de antecedência.</div>';
+            exit;
+        }
         // Cliente 
         $stmt = $pdo->prepare("SELECT id FROM clientes WHERE REPLACE(REPLACE(REPLACE(REPLACE(telefone, '(', ''), ')', ''), '-', ''), ' ', '') = ? AND user_id = ?"); 
         $stmt->execute([$telefone, $profissionalId]); 

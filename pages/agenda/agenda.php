@@ -1331,7 +1331,7 @@ include '../../includes/menu.php';
             <button onclick="closeModal()" style="background:none; border:none; font-size:1.4rem; padding:0; line-height:1;"><i class="bi bi-x"></i></button>
         </div>
         
-        <form method="POST" onsubmit="sincronizarCamposFormulario()">
+        <form id="formNovoAgendamento" method="POST" autocomplete="off">
             <input type="hidden" name="novo_agendamento" value="1">
 
             <div class="form-group">
@@ -1622,6 +1622,72 @@ include '../../includes/menu.php';
 
             <button type="submit" class="btn-main">Salvar agendamento</button>
             <button type="button" class="btn-cancel" onclick="closeModal()">Cancelar</button>
+                </form>
+                <script>
+                // --- AJAX para novo agendamento ---
+                document.addEventListener('DOMContentLoaded', function() {
+                    const form = document.getElementById('formNovoAgendamento');
+                    if (form) {
+                        form.addEventListener('submit', function(e) {
+                            e.preventDefault();
+                            sincronizarCamposFormulario();
+                            const formData = new FormData(form);
+                            formData.append('novo_agendamento', '1');
+                            fetch(window.location.pathname, {
+                                method: 'POST',
+                                body: formData
+                            })
+                            .then(response => response.text())
+                            .then(html => {
+                                // Tenta extrair mensagem de sucesso/erro do HTML retornado
+                                let sucesso = false;
+                                let msg = '';
+                                if (html.includes('Série criada com')) {
+                                    sucesso = true;
+                                    msg = 'Agendamento recorrente criado com sucesso!';
+                                } else if (html.includes('mensagem_sucesso')) {
+                                    sucesso = true;
+                                    msg = 'Agendamento criado com sucesso!';
+                                } else if (html.includes('mensagem_erro')) {
+                                    sucesso = false;
+                                    msg = 'Erro ao criar agendamento.';
+                                } else {
+                                    sucesso = true;
+                                    msg = 'Agendamento salvo!';
+                                }
+                                closeModal();
+                                mostrarToast(msg, sucesso);
+                                // Opcional: recarregar agenda do dia sem reload total
+                                setTimeout(() => window.location.reload(), 1200);
+                            })
+                            .catch(() => {
+                                closeModal();
+                                mostrarToast('Erro ao salvar agendamento.', false);
+                            });
+                        });
+                    }
+                });
+
+                // Função simples de toast
+                function mostrarToast(msg, sucesso) {
+                    let toast = document.createElement('div');
+                    toast.textContent = msg;
+                    toast.style.position = 'fixed';
+                    toast.style.bottom = '30px';
+                    toast.style.left = '50%';
+                    toast.style.transform = 'translateX(-50%)';
+                    toast.style.background = sucesso ? '#10b981' : '#ef4444';
+                    toast.style.color = 'white';
+                    toast.style.padding = '14px 28px';
+                    toast.style.borderRadius = '8px';
+                    toast.style.fontWeight = 'bold';
+                    toast.style.fontSize = '1rem';
+                    toast.style.zIndex = 9999;
+                    toast.style.boxShadow = '0 4px 16px rgba(0,0,0,0.18)';
+                    document.body.appendChild(toast);
+                    setTimeout(() => { toast.remove(); }, 2000);
+                }
+                </script>
         </form>
     </div>
 </div>

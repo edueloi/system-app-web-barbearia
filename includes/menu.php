@@ -898,10 +898,17 @@ function isActive($pageName)
                 <i class="bi bi-clock-fill"></i> Expediente
             </a>
         </li>
+
         <li>
             <a href="<?php echo $isProd ? '/clientes' : '/karen_site/controle-salao/pages/clientes/clientes.php'; ?>"
                class="sidebar-link <?php echo isActive('clientes.php'); ?>">
                 <i class="bi bi-people-fill"></i> Clientes
+            </a>
+        </li>
+        <li>
+            <a href="<?php echo $isProd ? '/comandas' : '/karen_site/controle-salao/pages/comandas/comandas.php'; ?>"
+               class="sidebar-link <?php echo isActive('comandas.php'); ?>">
+                <i class="bi bi-clipboard"></i> Comandas
             </a>
         </li>
 

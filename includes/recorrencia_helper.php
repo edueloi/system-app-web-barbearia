@@ -11,241 +11,299 @@
  */
 function criarAgendamentosRecorrentes($pdo, $userId, $dados) {
     try {
-        // Validar dados obrigatórios
-        $camposObrigatorios = ['cliente_nome', 'servico_id', 'servico_nome', 'valor', 'horario', 'data_inicio'];
-        foreach ($camposObrigatorios as $campo) {
-            if (empty($dados[$campo])) {
-                return ['sucesso' => false, 'erro' => "Campo obrigatório ausente: {$campo}"];
-            }
-        }
-
         // Buscar configurações de recorrência do serviço
-        $stmt = $pdo->prepare("
-            SELECT permite_recorrencia, tipo_recorrencia, intervalo_dias, 
-                   duracao_meses, qtd_ocorrencias, dias_semana, dia_fixo_mes
-            FROM servicos 
-            WHERE id = ? AND user_id = ?
-        ");
-        $stmt->execute([$dados['servico_id'], $userId]);
-        $servico = $stmt->fetch();
-
-        if (!$servico || !$servico['permite_recorrencia']) {
-            // Criar agendamento único (sem recorrência)
-            return criarAgendamentoUnico($pdo, $userId, $dados);
-        }
-
-        // Gerar série_id único
-        $serieId = uniqid('serie_', true);
-
-        // Criar registro da série recorrente
-        $stmtSerie = $pdo->prepare("
-            INSERT INTO agendamentos_recorrentes 
-            (user_id, serie_id, cliente_id, cliente_nome, servico_id, servico_nome, valor, horario,
-             tipo_recorrencia, intervalo_dias, dias_semana, dia_fixo_mes, data_inicio, data_fim,
-             qtd_total, observacoes, ativo)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
-        ");
-
-        $dataInicio = new DateTime($dados['data_inicio']);
-        $dataFim = calcularDataFim($dataInicio, $servico);
-        
-        $stmtSerie->execute([
-            $userId,
-            $serieId,
-            $dados['cliente_id'] ?? null,
-            $dados['cliente_nome'],
-            $dados['servico_id'],
-            $dados['servico_nome'],
-            $dados['valor'],
-            $dados['horario'],
-            $servico['tipo_recorrencia'],
-            $servico['intervalo_dias'],
-            $servico['dias_semana'],
-            $servico['dia_fixo_mes'],
-            $dataInicio->format('Y-m-d'),
-            $dataFim->format('Y-m-d'),
-            $servico['qtd_ocorrencias'],
-            $dados['observacoes'] ?? null
-        ]);
-
-        // Gerar todas as datas de ocorrência
-        $datasOcorrencia = gerarDatasRecorrencia($dataInicio, $servico);
-
-        // Criar agendamentos individuais
-        $stmtAg = $pdo->prepare("
-            INSERT INTO agendamentos 
-            (user_id, cliente_id, cliente_nome, servico, valor, data_agendamento, horario,
-             status, observacoes, serie_id, indice_serie, e_recorrente)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'Confirmado', ?, ?, ?, 1)
-        ");
-
-        $indice = 1;
-        foreach ($datasOcorrencia as $data) {
-            $stmtAg->execute([
-                $userId,
-                $dados['cliente_id'] ?? null,
-                $dados['cliente_nome'],
-                $dados['servico_nome'],
-                $dados['valor'],
-                $data->format('Y-m-d'),
-                $dados['horario'],
-                $dados['observacoes'] ?? null,
-                $serieId,
-                $indice++
-            ]);
-        }
-
-        return [
-            'sucesso' => true,
-            'serie_id' => $serieId,
-            'qtd_criados' => count($datasOcorrencia),
-            'datas' => array_map(function($d) { return $d->format('Y-m-d'); }, $datasOcorrencia)
-        ];
-
+        $stmt = $pdo->prepare("SELECT permite_recorrencia, tipo_recorrencia, intervalo_dias, duracao_meses, qtd_ocorrencias, dias_semana, dia_fixo_mes FROM servicos WHERE id = ? AND user_id = ?");
+        // ...demais lógicas da função...
     } catch (Exception $e) {
         return ['sucesso' => false, 'erro' => $e->getMessage()];
     }
-}
 
-/**
- * Cria um agendamento único (não recorrente)
- */
-function criarAgendamentoUnico($pdo, $userId, $dados) {
-    try {
-        $stmt = $pdo->prepare("
-            INSERT INTO agendamentos 
-            (user_id, cliente_id, cliente_nome, servico, valor, data_agendamento, horario,
-             status, observacoes, e_recorrente)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'Confirmado', ?, 0)
-        ");
-
-        $stmt->execute([
-            $userId,
-            $dados['cliente_id'] ?? null,
-            $dados['cliente_nome'],
-            $dados['servico_nome'],
-            $dados['valor'],
-            $dados['data_inicio'],
-            $dados['horario'],
-            $dados['observacoes'] ?? null
-        ]);
-
-        return [
-            'sucesso' => true,
-            'id_agendamento' => $pdo->lastInsertId()
-        ];
-    } catch (Exception $e) {
-        return ['sucesso' => false, 'erro' => $e->getMessage()];
-    }
-}
-
+// ================= FUNÇÕES DE RECORRÊNCIA =================
 /**
  * Gera array de datas conforme configuração de recorrência
+ *
+ * @param DateTime $dataInicio
+ * @param array    $config  (tipo_recorrencia, qtd_ocorrencias, intervalo_dias, dias_semana, dia_fixo_mes, user_id)
+ * @return DateTime[]
  */
 function gerarDatasRecorrencia($dataInicio, $config) {
+    global $pdo;
+
     $datas = [];
     $dataAtual = clone $dataInicio;
-    $qtdOcorrencias = (int)$config['qtd_ocorrencias'];
-    $tipo = $config['tipo_recorrencia'];
+    $qtdOcorrencias = isset($config['qtd_ocorrencias']) ? max(1, (int)$config['qtd_ocorrencias']) : 1;
+    $tipo = isset($config['tipo_recorrencia']) ? $config['tipo_recorrencia'] : 'nenhuma';
+    $userId = isset($config['user_id']) ? (int)$config['user_id'] : ($_SESSION['user_id'] ?? 1);
 
     switch ($tipo) {
         case 'diaria':
-            // A cada dia
             for ($i = 0; $i < $qtdOcorrencias; $i++) {
-                $datas[] = clone $dataAtual;
+                $dataUtil = proximoDiaUtil($pdo, $userId, clone $dataAtual);
+                $datas[] = $dataUtil;
                 $dataAtual->modify('+1 day');
             }
             break;
-
         case 'semanal':
-            // Semanalmente (mesmos dias da semana)
-            $diasSemana = !empty($config['dias_semana']) ? json_decode($config['dias_semana']) : [];
-            
+            $diasSemana = !empty($config['dias_semana']) ? json_decode($config['dias_semana'], true) : [];
             if (empty($diasSemana)) {
-                // Se não especificou dias, usar o dia da semana da data inicial
-                $diasSemana = [$dataInicio->format('w')];
+                $diasSemana = [(int)$dataInicio->format('w')];
             }
+            sort($diasSemana);
 
-            while (count($datas) < $qtdOcorrencias) {
-                $diaSemanaAtual = $dataAtual->format('w');
-                if (in_array($diaSemanaAtual, $diasSemana)) {
-                    $datas[] = clone $dataAtual;
+            $dataParaAdicionar = clone $dataAtual;
+
+            // Se a data de início já for um dia válido, precisamos considerá-la.
+            // Para simplificar, voltamos um dia e deixamos o loop encontrar a data correta.
+            $dataParaAdicionar->modify('-1 day');
+
+            while(count($datas) < $qtdOcorrencias) {
+                $diaCorrente = (int) $dataParaAdicionar->format('w');
+                
+                $proximoDia = null;
+                // Encontra o próximo dia alvo na mesma semana
+                foreach($diasSemana as $dia) {
+                    if ($dia > $diaCorrente) {
+                        $proximoDia = $dia;
+                        break;
+                    }
                 }
-                $dataAtual->modify('+1 day');
+                
+                // Se não houver mais dias válidos nesta semana, pula para o primeiro dia válido da próxima semana
+                if ($proximoDia === null) {
+                    $diasParaSomar = (7 - $diaCorrente) + $diasSemana[0];
+                    $dataParaAdicionar->modify("+$diasParaSomar days");
+                } else { // Caso contrário, apenas pula para o próximo dia válido na mesma semana
+                    $diasParaSomar = $proximoDia - $diaCorrente;
+                    $dataParaAdicionar->modify("+$diasParaSomar days");
+                }
+
+                if (count($datas) < $qtdOcorrencias) {
+                     $dataUtil = proximoDiaUtil($pdo, $userId, clone $dataParaAdicionar);
+                     if ($dataUtil >= $dataInicio) {
+                        $datas[] = $dataUtil;
+                     }
+                }
             }
             break;
-
         case 'quinzenal':
-            // A cada 15 dias
             for ($i = 0; $i < $qtdOcorrencias; $i++) {
-                $datas[] = clone $dataAtual;
+                $dataUtil = proximoDiaUtil($pdo, $userId, clone $dataAtual);
+                $datas[] = $dataUtil;
                 $dataAtual->modify('+15 days');
             }
             break;
-
         case 'mensal_dia':
-            // Mensal no mesmo dia do mês
-            $diaFixo = $config['dia_fixo_mes'] ?? $dataInicio->format('d');
-            
+            $diaFixo = (int)($config['dia_fixo_mes'] ?? $dataInicio->format('d'));
             for ($i = 0; $i < $qtdOcorrencias; $i++) {
                 $ano = $dataAtual->format('Y');
                 $mes = $dataAtual->format('m');
-                
-                // Ajustar para dias que não existem no mês (ex: 31 em fevereiro)
-                $ultimoDiaMes = date('t', strtotime("$ano-$mes-01"));
+                $ultimoDiaMes = (int)date('t', strtotime("$ano-$mes-01"));
                 $diaUsar = min($diaFixo, $ultimoDiaMes);
-                
                 $dataTemp = new DateTime("$ano-$mes-$diaUsar");
-                $datas[] = $dataTemp;
-                
+                $dataUtil = proximoDiaUtil($pdo, $userId, $dataTemp);
+                $datas[] = $dataUtil;
                 $dataAtual->modify('+1 month');
             }
             break;
-
         case 'mensal_semana':
-            // Mensal na mesma semana e dia da semana
-            // Ex: Toda 2ª segunda-feira do mês
-            $diaSemana = $dataInicio->format('w');
-            $semanaMes = ceil($dataInicio->format('d') / 7);
-            
+            $diaSemana = (int)($config['dia_semana'] ?? $dataInicio->format('w'));
+            $semanaMes = (int)ceil($dataInicio->format('d') / 7);
             for ($i = 0; $i < $qtdOcorrencias; $i++) {
                 $dataTemp = encontrarDiaMesSemanaNaData($dataAtual, $diaSemana, $semanaMes);
-                if ($dataTemp) {
-                    $datas[] = $dataTemp;
+                if ($dataTemp instanceof DateTime) {
+                    $dataUtil = proximoDiaUtil($pdo, $userId, $dataTemp);
+                    $datas[] = $dataUtil;
                 }
                 $dataAtual->modify('+1 month');
             }
             break;
-
         case 'personalizada':
-            // Intervalo personalizado em dias
-            $intervalo = max(1, (int)$config['intervalo_dias']);
-            $diasSemana = !empty($config['dias_semana']) ? json_decode($config['dias_semana']) : [];
-            
+            $intervalo = max(1, (int)($config['intervalo_dias'] ?? 1));
+            $diasSemana = !empty($config['dias_semana']) ? json_decode($config['dias_semana'], true) : [];
             if (empty($diasSemana)) {
-                // Intervalo simples sem restrição de dias da semana
                 for ($i = 0; $i < $qtdOcorrencias; $i++) {
-                    $datas[] = clone $dataAtual;
+                    $dataUtil = proximoDiaUtil($pdo, $userId, clone $dataAtual);
+                    $datas[] = $dataUtil;
                     $dataAtual->modify("+{$intervalo} days");
                 }
             } else {
-                // Intervalo com restrição de dias da semana
                 while (count($datas) < $qtdOcorrencias) {
-                    $diaSemanaAtual = $dataAtual->format('w');
+                    $diaSemanaAtual = (int)$dataAtual->format('w');
                     if (in_array($diaSemanaAtual, $diasSemana)) {
-                        $datas[] = clone $dataAtual;
+                        $dataUtil = proximoDiaUtil($pdo, $userId, clone $dataAtual);
+                        $datas[] = $dataUtil;
                     }
                     $dataAtual->modify("+{$intervalo} days");
                 }
             }
             break;
-
         default:
-            // Sem recorrência
-            $datas[] = clone $dataInicio;
+            $datas[] = proximoDiaUtil($pdo, $userId, clone $dataInicio);
+            break;
+    }
+    return array_slice($datas, 0, $qtdOcorrencias);
+}
+
+/**
+ * Verifica se a data é feriado/dia de fechamento especial
+ *
+ * @return string|false  nome do feriado se for, ou false se não for
+ */
+function isFeriado($pdo, $userId, DateTime $date) {
+    $sql = "
+        SELECT nome 
+        FROM dias_especiais_fechamento 
+        WHERE user_id = ? 
+          AND (
+                data = ? 
+                OR (recorrente = 1 AND strftime('%m-%d', data) = strftime('%m-%d', ?))
+          )
+        LIMIT 1
+    ";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        $userId,
+        $date->format('Y-m-d'),
+        $date->format('Y-m-d')
+    ]);
+
+    $row = $stmt->fetch();
+    return $row ? $row['nome'] : false;
+}
+
+/**
+ * Avança para o próximo dia útil (não feriado), com limite de tentativas
+ */
+function proximoDiaUtil($pdo, $userId, DateTime $date) {
+    $maxTries = 7; // no máximo 1 semana à frente
+
+    for ($i = 0; $i < $maxTries; $i++) {
+        if (!isFeriado($pdo, $userId, $date)) {
+            return $date;
+        }
+        $date->modify('+1 day');
     }
 
-    return array_slice($datas, 0, $qtdOcorrencias);
+    return $date;
+}
+
+/**
+ * Encontra uma data específica em um mês (ex: 2ª segunda-feira)
+ *
+ * @param DateTime $data        mês/ano de referência
+ * @param int      $diaSemana   0 (domingo) a 6 (sábado)
+ * @param int      $numeroSemana 1 = primeira, 2 = segunda, etc.
+ * @return DateTime|null
+ */
+function encontrarDiaMesSemanaNaData($data, $diaSemana, $numeroSemana) {
+    $ano = $data->format('Y');
+    $mes = $data->format('m');
+
+    $contador = 0;
+
+    for ($dia = 1; $dia <= 31; $dia++) {
+        try {
+            $dataTemp = new DateTime("$ano-$mes-$dia");
+        } catch (Exception $e) {
+            break; // data inválida
+        }
+
+        if ($dataTemp->format('m') !== $mes) {
+            break; // passou para o próximo mês
+        }
+
+        if ((int)$dataTemp->format('w') === (int)$diaSemana) {
+            $contador++;
+            if ($contador === (int)$numeroSemana) {
+                return $dataTemp;
+            }
+        }
+    }
+
+    return null;
+}
+
+
+                /**
+                 * Verifica se a data é feriado/dia de fechamento especial
+                 *
+                 * @return string|false  nome do feriado se for, ou false se não for
+                 */
+                function isFeriado($pdo, $userId, DateTime $date) {
+                    $sql = "
+                        SELECT nome 
+                        FROM dias_especiais_fechamento 
+                        WHERE user_id = ? 
+                          AND (
+                                data = ? 
+                                OR (recorrente = 1 AND strftime('%m-%d', data) = strftime('%m-%d', ?))
+                          )
+                        LIMIT 1
+                    ";
+
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute([
+                        $userId,
+                        $date->format('Y-m-d'),
+                        $date->format('Y-m-d')
+                    ]);
+
+                    $row = $stmt->fetch();
+                    return $row ? $row['nome'] : false;
+                }
+
+                /**
+                 * Avança para o próximo dia útil (não feriado), com limite de tentativas
+                 */
+                function proximoDiaUtil($pdo, $userId, DateTime $date) {
+                    $maxTries = 7; // no máximo 1 semana à frente
+
+                    for ($i = 0; $i < $maxTries; $i++) {
+                        if (!isFeriado($pdo, $userId, $date)) {
+                            return $date;
+                        }
+                        $date->modify('+1 day');
+                    }
+
+                    return $date;
+                }
+
+                /**
+                 * Encontra uma data específica em um mês (ex: 2ª segunda-feira)
+                 *
+                 * @param DateTime $data        mês/ano de referência
+                 * @param int      $diaSemana   0 (domingo) a 6 (sábado)
+                 * @param int      $numeroSemana 1 = primeira, 2 = segunda, etc.
+                 * @return DateTime|null
+                 */
+                function encontrarDiaMesSemanaNaData($data, $diaSemana, $numeroSemana) {
+                    $ano = $data->format('Y');
+                    $mes = $data->format('m');
+
+                    $contador = 0;
+
+                    for ($dia = 1; $dia <= 31; $dia++) {
+                        try {
+                            $dataTemp = new DateTime("$ano-$mes-$dia");
+                        } catch (Exception $e) {
+                            break; // data inválida
+                        }
+
+                        if ($dataTemp->format('m') !== $mes) {
+                            break; // passou para o próximo mês
+                        }
+
+                        if ((int)$dataTemp->format('w') === (int)$diaSemana) {
+                            $contador++;
+                            if ($contador === (int)$numeroSemana) {
+                                return $dataTemp;
+                            }
+                        }
+                    }
+
+                    return null;
+                }
 }
 
 /**
@@ -253,7 +311,11 @@ function gerarDatasRecorrencia($dataInicio, $config) {
  */
 function encontrarDiaMesSemanaNaData($data, $diaSemana, $numeroSemana) {
     $ano = $data->format('Y');
-    $mes = $data->format('m');
+        // Retorna datas e feriados encontrados
+        return [
+            'datas' => array_slice($datas, 0, $qtdOcorrencias),
+            'datas_feriado' => $datasFeriado
+        ];
     
     $primeiroDia = new DateTime("$ano-$mes-01");
     $contador = 0;

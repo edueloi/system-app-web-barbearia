@@ -21,6 +21,57 @@ $userId = $_SESSION['user_id'];
 
 // --- PROCESSAR FORMULÁRIOS ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // 3. SALVAR LEMBRETES E RESTRIÇÕES DE AGENDAMENTO
+    if (isset($_POST['acao']) && $_POST['acao'] === 'salvar_lembretes_email') {
+        $lembrete_email_ativo = isset($_POST['lembrete_email_ativo']) ? 1 : 0;
+        $receber_email_diario = isset($_POST['receber_email_diario']) ? 1 : 0;
+        $lembrete_email_tempo = isset($_POST['lembrete_email_tempo']) ? (int)$_POST['lembrete_email_tempo'] : 4;
+        $lembrete_email_unidade = $_POST['lembrete_email_unidade'] ?? 'horas';
+        $lembrete_email_cliente = isset($_POST['lembrete_email_cliente']) ? 1 : 0;
+        $lembrete_email_confirmar = isset($_POST['lembrete_email_confirmar']) ? 1 : 0;
+        $lembrete_email_outro = trim($_POST['lembrete_email_outro'] ?? '');
+        $lembrete_email_copia = isset($_POST['lembrete_email_copia']) ? 1 : 0;
+        $agendamento_min_antecedencia = isset($_POST['agendamento_min_antecedencia']) ? (int)$_POST['agendamento_min_antecedencia'] : 4;
+        $agendamento_min_unidade = $_POST['agendamento_min_unidade'] ?? 'horas';
+
+        // Atualiza configurações gerais se necessário
+        $stmt = $pdo->prepare("UPDATE configuracoes SET valor = ? WHERE chave = 'lembrete_email_ativo'");
+        $stmt->execute([$lembrete_email_ativo]);
+
+        // Atualiza configurações do usuário
+        $sql = "UPDATE usuarios SET 
+            receber_email_diario = ?,
+            lembrete_email_ativo = ?,
+            lembrete_email_tempo = ?,
+            lembrete_email_unidade = ?,
+            lembrete_email_cliente = ?,
+            lembrete_email_confirmar = ?,
+            lembrete_email_outro = ?,
+            lembrete_email_copia = ?,
+            agendamento_min_antecedencia = ?,
+            agendamento_min_unidade = ?
+            WHERE id = ?";
+        $pdo->prepare($sql)->execute([
+            $receber_email_diario,
+            $lembrete_email_ativo,
+            $lembrete_email_tempo,
+            $lembrete_email_unidade,
+            $lembrete_email_cliente,
+            $lembrete_email_confirmar,
+            $lembrete_email_outro,
+            $lembrete_email_copia,
+            $agendamento_min_antecedencia,
+            $agendamento_min_unidade,
+            $userId
+        ]);
+
+        $_SESSION['config_msg'] = 'Configurações de lembretes e restrições salvas!';
+        $_SESSION['config_msgType'] = 'success';
+        $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+        $configUrl = $isProd ? '/configuracoes' : '/karen_site/controle-salao/pages/configuracoes/configuracoes.php';
+        header("Location: {$configUrl}");
+        exit;
+    }
 
     // 1. ALTERAR SENHA
     if (isset($_POST['acao']) && $_POST['acao'] === 'nova_senha') {
@@ -103,11 +154,22 @@ if ($isProd) {
     $linkFinal = $protocol . '://' . $host . '/karen_site/controle-salao/agendar.php?user=' . $userId;
 }
 
-// Cor atual
-$stmt = $pdo->prepare("SELECT cor_tema FROM usuarios WHERE id = ?");
+
+// Buscar configurações do usuário
+$stmt = $pdo->prepare("SELECT cor_tema, lembrete_email_ativo, lembrete_email_tempo, lembrete_email_unidade, lembrete_email_cliente, lembrete_email_confirmar, lembrete_email_outro, lembrete_email_copia, agendamento_min_antecedencia, agendamento_min_unidade, receber_email_diario FROM usuarios WHERE id = ?");
 $stmt->execute([$userId]);
 $dadosUser = $stmt->fetch();
 $corAtual  = $dadosUser['cor_tema'] ?? '#4f46e5';
+$lembrete_email_ativo = isset($dadosUser['lembrete_email_ativo']) ? (int)$dadosUser['lembrete_email_ativo'] : 0;
+$lembrete_email_tempo = isset($dadosUser['lembrete_email_tempo']) ? (int)$dadosUser['lembrete_email_tempo'] : 4;
+$lembrete_email_unidade = $dadosUser['lembrete_email_unidade'] ?? 'horas';
+$lembrete_email_cliente = isset($dadosUser['lembrete_email_cliente']) ? (int)$dadosUser['lembrete_email_cliente'] : 1;
+$lembrete_email_confirmar = isset($dadosUser['lembrete_email_confirmar']) ? (int)$dadosUser['lembrete_email_confirmar'] : 0;
+$lembrete_email_outro = $dadosUser['lembrete_email_outro'] ?? '';
+$lembrete_email_copia = isset($dadosUser['lembrete_email_copia']) ? (int)$dadosUser['lembrete_email_copia'] : 0;
+$agendamento_min_antecedencia = isset($dadosUser['agendamento_min_antecedencia']) ? (int)$dadosUser['agendamento_min_antecedencia'] : 4;
+$agendamento_min_unidade = $dadosUser['agendamento_min_unidade'] ?? 'horas';
+$receber_email_diario = isset($dadosUser['receber_email_diario']) ? (int)$dadosUser['receber_email_diario'] : 0;
 
 // =========================================================
 // 3. INCLUSÃO DE HTML E APRESENTAÇÃO
@@ -697,6 +759,72 @@ include '../../includes/menu.php';
         <p>Gerencie segurança, aparência e backups do seu painel e agendamentos.</p>
     </div>
 
+    <!-- NOVO CARD: LEMBRETES POR E-MAIL E ANTECEDÊNCIA DE AGENDAMENTO -->
+    <div class="card card-full">
+        <h3 class="card-title">
+            <i class="bi bi-envelope-fill" style="color:#6366f1;"></i>
+            Lembretes por E-mail
+        </h3>
+        <p class="card-desc">
+            Configure o envio automático de lembretes por e-mail para os clientes antes do atendimento e defina o tempo mínimo de antecedência para novos agendamentos.
+        </p>
+
+        <form method="POST">
+            <input type="hidden" name="acao" value="salvar_lembretes_email">
+
+
+<div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="lembrete_email_ativo" name="lembrete_email_ativo" <?php echo $lembrete_email_ativo ? 'checked' : ''; ?>>
+    <label class="form-check-label" for="lembrete_email_ativo">Lembrete de agendamento por e-mail</label>
+</div>
+<div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="receber_email_diario" name="receber_email_diario" <?php echo $receber_email_diario ? 'checked' : ''; ?>>
+    <label class="form-check-label" for="receber_email_diario">Receber resumo diário de agendamentos por e-mail</label>
+</div>
+
+            <div class="form-group">
+                <label class="form-label">Tempo antes do atendimento para envio do lembrete</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="number" min="1" name="lembrete_email_tempo" class="form-control" style="max-width: 100px;" placeholder="Ex: 4" value="<?php echo htmlspecialchars($lembrete_email_tempo); ?>">
+                    <select name="lembrete_email_unidade" class="form-control" style="max-width: 120px;">
+                        <option value="minutos" <?php if($lembrete_email_unidade=='minutos') echo 'selected'; ?>>Minutos</option>
+                        <option value="horas" <?php if($lembrete_email_unidade=='horas') echo 'selected'; ?>>Horas</option>
+                        <option value="dias" <?php if($lembrete_email_unidade=='dias') echo 'selected'; ?>>Dias</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">E-mail(s) de destino</label>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-weight:400;"><input type="checkbox" name="lembrete_email_cliente" value="1" <?php if($lembrete_email_cliente) echo 'checked'; ?>> Usar e-mail do cliente</label>
+                    <label style="font-weight:400;"><input type="checkbox" name="lembrete_email_confirmar" value="1" <?php if($lembrete_email_confirmar) echo 'checked'; ?>> Confirmar outro e-mail</label>
+                    <input type="email" name="lembrete_email_outro" class="form-control" placeholder="E-mail adicional (opcional)" value="<?php echo htmlspecialchars($lembrete_email_outro); ?>">
+                    <label style="font-weight:400;"><input type="checkbox" name="lembrete_email_copia" value="1" <?php if($lembrete_email_copia) echo 'checked'; ?>> Enviar cópia para este e-mail</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Tempo mínimo de antecedência para agendamento</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="number" min="0" name="agendamento_min_antecedencia" class="form-control" style="max-width: 100px;" placeholder="Ex: 4" value="<?php echo htmlspecialchars($agendamento_min_antecedencia); ?>">
+                    <select name="agendamento_min_unidade" class="form-control" style="max-width: 120px;">
+                        <option value="minutos" <?php if($agendamento_min_unidade=='minutos') echo 'selected'; ?>>Minutos</option>
+                        <option value="horas" <?php if($agendamento_min_unidade=='horas') echo 'selected'; ?>>Horas</option>
+                        <option value="dias" <?php if($agendamento_min_unidade=='dias') echo 'selected'; ?>>Dias</option>
+                    </select>
+                </div>
+                <small style="color:var(--text-muted);font-size:0.8em;">Exemplo: se definir 4 horas, clientes só poderão agendar horários com pelo menos 4 horas de antecedência.</small>
+            </div>
+
+            <div style="margin-top: 14px;">
+                <button type="submit" class="btn-primary">
+                    <i class="bi bi-check-circle-fill"></i> Salvar lembretes e restrições
+                </button>
+            </div>
+        </form>
+    </div>
+
     <?php if ($msg): ?>
         <div class="alert <?php echo $msgType; ?>">
             <i class="bi <?php echo $msgType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'; ?>"></i>
@@ -830,9 +958,9 @@ include '../../includes/menu.php';
                                 <span class="theme-swatch" style="background:#fed7aa;"></span>
                             </div>
                             <div class="theme-preview-bar">
-                                <div class="theme-preview-bar-inner"></div>
-                            </div>
-                        </div>
+        <div class="theme-preview-bar-inner"></div>
+    </div>
+</div>
 
                         <!-- Tema Dark Luxo -->
                         <div class="theme-card" data-color="#0f172a">
