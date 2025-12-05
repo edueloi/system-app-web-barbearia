@@ -39,6 +39,9 @@ RewriteRule ^estoque$ pages/produtos-estoque/produtos-estoque.php [L]
 # Rota: /produtos-estoque -> abre pages/produtos-estoque/produtos-estoque.php
 RewriteRule ^produtos-estoque$ pages/produtos-estoque/produtos-estoque.php [L]
 
+# Rota: /comandas -> abre pages/comandas/comandas.php
+RewriteRule ^comandas$ pages/comandas/comandas.php [L]
+
 # Rota: /perfil -> abre pages/perfil/perfil.php
 RewriteRule ^perfil$ pages/perfil/perfil.php [L]
 
