@@ -642,6 +642,180 @@ include '../../includes/menu.php';
         max-height:85vh;overflow-y:auto;
         animation:slideUp .3s ease-out;
     }
+    /* ============================================
+       MODAL "NOVO AGENDAMENTO" - VISUAL PREMIUM
+       ============================================ */
+    .sheet-modal-form {
+        border-radius: 22px 22px 0 0;
+        padding: 1.35rem 1.2rem 1.5rem;
+        box-shadow: 0 -16px 40px rgba(15,23,42,0.32);
+    }
+
+    /* Cabeçalho do modal (ícone + título + x) */
+    .sheet-modal-form .sheet-header {
+        margin: -0.25rem -0.25rem 1rem;
+        padding-bottom: 0.85rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .sheet-avatar-form {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        box-shadow: 0 4px 14px rgba(34,197,94,0.35);
+    }
+
+    .sheet-header-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: #6b7280;
+        font-weight: 700;
+        margin-bottom: 0.15rem;
+    }
+
+    .sheet-header-tag i {
+        font-size: 0.8rem;
+    }
+
+    .sheet-close {
+        margin-left: auto;
+        background: transparent;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        color: #94a3b8;
+        padding: 0;
+        cursor: pointer;
+        transition: all .18s ease;
+    }
+
+    .sheet-close:hover {
+        color: #0f172a;
+        transform: scale(1.06);
+    }
+
+    /* Blocos do formulário */
+    .form-section {
+        background: #f8fafc;
+        border-radius: var(--radius-md);
+        padding: 0.8rem 0.85rem 0.9rem;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 0.75rem;
+    }
+
+    .form-section-title {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #94a3b8;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .form-section-title i {
+        font-size: 0.85rem;
+    }
+
+    /* Pequenas fileiras dentro das sections */
+    .form-row {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 0.65rem;
+    }
+
+    .form-row-3 {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 0.65rem;
+    }
+
+    /* Caixinha dos serviços */
+    .services-box {
+        max-height: 170px;
+        overflow-y: auto;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: #f9fafb;
+        padding: 0.4rem 0.5rem;
+    }
+
+    .service-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.3rem 0.15rem;
+        font-size: 0.8rem;
+    }
+
+    .service-item input[type="checkbox"] {
+        accent-color: #6366f1;
+    }
+
+    /* Toggle de recorrência tipo "pill" */
+    .toggle-group {
+        display: flex;
+        gap: 0.4rem;
+        background: #e5e7eb;
+        padding: 0.25rem;
+        border-radius: 999px;
+    }
+
+    .toggle-pill {
+        position: relative;
+        flex: 1;
+    }
+
+    .toggle-pill input {
+        display: none;
+    }
+
+    .toggle-pill span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        padding: 0.38rem 0.1rem;
+        border-radius: 999px;
+        font-weight: 600;
+        color: #6b7280;
+        cursor: pointer;
+        transition: all .18s ease;
+    }
+
+    .toggle-pill input:checked + span {
+        background: linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);
+        color: #fff;
+        box-shadow: 0 3px 10px rgba(99,102,241,0.4);
+    }
+
+    /* Área de recorrência aberta */
+    #divRec {
+        margin-top: 8px;
+        display: none;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    /* Botões principais do modal novo */
+    .modal-actions {
+        margin-top: 0.9rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+    }
+
+    @media (max-width: 768px) {
+        .form-row, .form-row-3 {
+            grid-template-columns: 1fr;
+        }
+    }
     @keyframes slideUp{from{transform:translateY(100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
     @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 
@@ -857,79 +1031,224 @@ include '../../includes/menu.php';
 <button class="fab-add" onclick="openModal()"><i class="bi bi-plus"></i></button>
 
 <!-- MODAL NOVO AGENDAMENTO -->
+<!-- MODAL NOVO AGENDAMENTO -->
 <div class="modal-overlay" id="modalAdd">
-    <div class="sheet-modal">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-            <h3 style="margin:0; font-size:1rem; font-weight:700;">Novo Agendamento</h3>
-            <button onclick="closeModal()" style="background:none; border:none; font-size:1.2rem; padding:0;"><i class="bi bi-x-lg"></i></button>
+    <div class="sheet-modal sheet-modal-form">
+        <div class="sheet-header">
+            <div class="sheet-avatar sheet-avatar-form">
+                <i class="bi bi-calendar-plus" style="font-size:1.1rem;"></i>
+            </div>
+            <div>
+                <div class="sheet-header-tag">
+                    <i class="bi bi-lightning-charge-fill"></i>
+                    novo horário
+                </div>
+                <div class="sheet-header-info-title">Novo agendamento</div>
+                <div class="sheet-header-info-sub">
+                    Cadastre rápido o horário do cliente e já deixe tudo pronto na agenda.
+                </div>
+            </div>
         </div>
 
         <form method="POST" id="formNovo" autocomplete="off">
             <input type="hidden" name="novo_agendamento" value="1">
 
-            <div class="form-group">
-                <label class="form-label">Data</label>
-                <input type="date" name="data_agendamento" value="<?php echo $viewType==='day'?$dataExibida:$hoje; ?>" class="form-input" required>
+            <!-- 1. Data e horário -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <i class="bi bi-clock-history"></i>
+                    Data e horário
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Data</label>
+                        <input
+                            type="date"
+                            name="data_agendamento"
+                            value="<?php echo $viewType==='day' ? $dataExibida : $hoje; ?>"
+                            class="form-input"
+                            required
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Horário</label>
+                        <input type="time" name="horario" class="form-input" required>
+                    </div>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Cliente</label>
-                <input type="text" name="cliente" id="inputNome" list="dlClientes" class="form-input" placeholder="Nome do cliente" autocomplete="off" onchange="preencherTel()">
-                <datalist id="dlClientes">
-                    <?php foreach($clientes as $c) echo "<option value='".htmlspecialchars($c['nome'])."'>"; ?>
-                </datalist>
-                <input type="hidden" name="cliente_id" id="clienteIdHidden">
+            <!-- 2. Dados do cliente -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <i class="bi bi-person-circle"></i>
+                    Cliente
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nome do cliente</label>
+                    <input
+                        type="text"
+                        name="cliente"
+                        id="inputNome"
+                        list="dlClientes"
+                        class="form-input"
+                        placeholder="Digite o nome ou escolha da lista"
+                        autocomplete="off"
+                        onchange="preencherTel()"
+                    >
+                    <datalist id="dlClientes">
+                        <?php foreach($clientes as $c) echo "<option value='".htmlspecialchars($c['nome'])."'>"; ?>
+                    </datalist>
+                    <input type="hidden" name="cliente_id" id="clienteIdHidden">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Telefone</label>
+                    <input
+                        type="tel"
+                        name="telefone"
+                        id="inputTel"
+                        class="form-input"
+                        placeholder="(11) 99999-9999"
+                    >
+                </div>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Telefone</label>
-                <input type="tel" name="telefone" id="inputTel" class="form-input" placeholder="(11) 99999-9999">
+            <!-- 3. Serviços e valor -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <i class="bi bi-scissors"></i>
+                    Serviços e valor
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Serviços</label>
+                    <div class="services-box">
+                        <?php foreach($servicos as $s): ?>
+                            <div class="service-item">
+                                <input
+                                    type="checkbox"
+                                    name="servicos_ids[]"
+                                    value="<?php echo $s['id']; ?>"
+                                    data-preco="<?php echo $s['preco']; ?>"
+                                    onchange="calcTotal()"
+                                >
+                                <span>
+                                    <?php echo htmlspecialchars($s['nome']) . ' (R$ ' . number_format($s['preco'],2,',','.'); ?>
+                                </span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <div class="form-row-3">
+                    <div class="form-group">
+                        <label class="form-label">Valor total</label>
+                        <input
+                            type="number"
+                            name="valor"
+                            id="inputValor"
+                            step="0.01"
+                            class="form-input"
+                            placeholder="Será somado automaticamente pelos serviços"
+                        >
+                    </div>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Serviços</label>
-                <div style="max-height:150px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
-                    <?php foreach($servicos as $s): ?>
-                        <div style="margin-bottom:6px;">
-                            <label style="display:flex; gap:8px; align-items:center; font-size:0.85rem;">
-                                <input type="checkbox" name="servicos_ids[]" value="<?php echo $s['id']; ?>" data-preco="<?php echo $s['preco']; ?>" onchange="calcTotal()">
-                                <?php echo htmlspecialchars($s['nome']) . ' (R$ ' . number_format($s['preco'],2,',','.') . ')'; ?>
-                            </label>
+            <!-- 4. Recorrência -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <i class="bi bi-arrow-repeat"></i>
+                    Recorrência
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="margin-bottom:0.35rem;">Repetir este agendamento?</label>
+                    <div class="toggle-group">
+                        <label class="toggle-pill">
+                            <input
+                                type="radio"
+                                name="recorrencia_ativa"
+                                value="0"
+                                checked
+                                onclick="toggleRec(false)"
+                            >
+                            <span>Não repetir</span>
+                        </label>
+                        <label class="toggle-pill">
+                            <input
+                                type="radio"
+                                name="recorrencia_ativa"
+                                value="1"
+                                onclick="toggleRec(true)"
+                            >
+                            <span>Repetir</span>
+                        </label>
+                    </div>
+
+                    <div id="divRec">
+                        <div class="form-group">
+                            <label class="form-label">Intervalo (dias)</label>
+                            <input
+                                type="number"
+                                name="recorrencia_intervalo"
+                                value="15"
+                                class="form-input"
+                            >
                         </div>
-                    <?php endforeach; ?>
+                        <div class="form-group">
+                            <label class="form-label">Qtd. Sessões</label>
+                            <input
+                                type="number"
+                                name="recorrencia_qtd"
+                                value="4"
+                                class="form-input"
+                            >
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <!-- 5. Observações -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <i class="bi bi-journal-text"></i>
+                    Observações
+                </div>
                 <div class="form-group">
-                    <label class="form-label">Horário</label>
-                    <input type="time" name="horario" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Valor Total</label>
-                    <input type="number" name="valor" id="inputValor" step="0.01" class="form-input">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Recorrência</label>
-                <div style="display:flex; gap:10px; font-size:0.8rem;">
-                    <label><input type="radio" name="recorrencia_ativa" value="0" checked onclick="toggleRec(false)"> Não repetir</label>
-                    <label><input type="radio" name="recorrencia_ativa" value="1" onclick="toggleRec(true)"> Repetir</label>
-                </div>
-                <div id="divRec" style="display:none; margin-top:8px; grid-template-columns:1fr 1fr; gap:10px;">
-                    <div><label class="form-label">Intervalo (dias)</label><input type="number" name="recorrencia_intervalo" value="15" class="form-input"></div>
-                    <div><label class="form-label">Qtd. Sessões</label><input type="number" name="recorrencia_qtd" value="4" class="form-input"></div>
+                    <label class="form-label">Anotações importantes</label>
+                    <textarea
+                        name="obs"
+                        class="form-input"
+                        placeholder="Ex.: prefere água com gás, está em transição capilar, lembrar de oferecer tratamento X..."
+                    ></textarea>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Observações</label>
-                <textarea name="obs" class="form-input" placeholder="Anotações importantes (opcional)"></textarea>
-            </div>
-
-            <button type="submit" class="btn-main">Salvar</button>
-            <button type="button" class="btn-cancel" onclick="closeModal()">Cancelar</button>
+            <!-- Ações -->
+        </form>
+        <div class="modal-actions modal-actions-fixed">
+            <button type="submit" form="formNovo" class="btn-main">
+                <i class="bi bi-check2-circle" style="margin-right:4px;"></i>
+                Salvar agendamento
+            </button>
+            <button type="button" class="btn-cancel" onclick="closeModal()">
+                Cancelar
+            </button>
+        </div>
+        <style>
+        .modal-actions-fixed {
+                position: sticky;
+                bottom: -24px;
+                left: 0;
+                right: 0;
+                background: #fff;
+                z-index: 10;
+                /* box-shadow: 0 -2px 16px rgba(15, 23, 42, 0.08); */
+                padding-bottom: 1rem;
+                padding-top: 0.5rem;
+        }
+        </style>
         </form>
     </div>
 </div>
