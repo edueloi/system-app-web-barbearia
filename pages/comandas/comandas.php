@@ -63,7 +63,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if (isset($_GET['del'])) {
     $id = (int)$_GET['del'];
     $pdo->prepare("DELETE FROM comandas WHERE id = ? AND user_id = ?")->execute([$id, $uid]);
-    header("Location: /comandas"); 
+    // Redireciona corretamente tanto em produção quanto em localhost
+    $redirectUrl = (strpos($_SERVER['HTTP_HOST'], 'localhost') !== false)
+        ? 'http://localhost/karen_site/controle-salao/pages/comandas/comandas.php'
+        : '/comandas';
+    header("Location: $redirectUrl");
     exit;
 }
 
@@ -772,9 +776,9 @@ include '../../includes/menu.php';
                         <button type="button" onclick="abrirModalEditar(JSON.parse(this.closest('tr').dataset.comanda), true)" class="btn-icon-danger" style="background:#eef2ff;color:#4f46e5;margin-right:6px;">
                             <i class="bi bi-pencil"></i>
                         </button>
-                        <a href="?del=<?= $c['id'] ?>" onclick="return confirm('Excluir esta comanda?')" class="btn-icon-danger">
+                        <button type="button" onclick="abrirModalExcluir(<?= $c['id'] ?>)" class="btn-icon-danger">
                             <i class="bi bi-trash"></i>
-                        </a>
+                        </button>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -830,15 +834,41 @@ include '../../includes/menu.php';
                 <button
                     class="btn-icon-sm"
                     type="button"
-                    onclick="if(confirm('Excluir esta comanda?')) { window.location='?del=<?= $c['id'] ?>'; }"
+                    onclick="abrirModalExcluir(<?= $c['id'] ?>)"
                 >
                     <i class="bi bi-trash"></i>
                 </button>
+            // ...existing code...
             </div>
         </div>
         <?php endforeach; ?>
     </div>
 
+
+<!-- MODAL EXCLUIR COMANDA (GLOBAL, FORA DE LOOPS) -->
+<div id="modalExcluir" class="modal-overlay">
+    <div class="sheet-box" style="max-width:350px;">
+        <div class="drag-handle"></div>
+        <div class="modal-header">
+            <h3>Excluir Comanda</h3>
+            <button type="button" onclick="fecharModalExcluir()" class="modal-close">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <div style="margin-bottom:18px; color:#b91c1c; font-weight:500;">
+            Tem certeza que deseja excluir esta comanda?<br>
+            <span style="font-size:0.95em; color:#64748b;">Esta ação não pode ser desfeita.</span>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button type="button" onclick="confirmarExcluirComanda()" class="btn-main" style="background:#b91c1c;">
+                Excluir
+            </button>
+            <button type="button" onclick="fecharModalExcluir()" class="btn-modal-cancel">
+                Cancelar
+            </button>
+        </div>
+    </div>
+</div>
 </main>
 
 <!-- MODAL EDITAR -->
@@ -985,6 +1015,34 @@ include '../../includes/menu.php';
 </div>
 
 <script>
+        let comandaExcluirId = null;
+
+        function abrirModalExcluir(id) {
+            comandaExcluirId = id;
+            const modal = document.getElementById('modalExcluir');
+            if (modal) {
+                modal.classList.add('open');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        function fecharModalExcluir() {
+            comandaExcluirId = null;
+            const modal = document.getElementById('modalExcluir');
+            if (modal) {
+                modal.classList.remove('open');
+                document.body.style.overflow = 'auto';
+            }
+        }
+        function confirmarExcluirComanda() {
+            if (comandaExcluirId) {
+                window.location = '?del=' + comandaExcluirId;
+            }
+        }
+        if (document.getElementById('modalExcluir')) {
+            document.getElementById('modalExcluir').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('modalExcluir')) fecharModalExcluir();
+            });
+        }
     const modalNova   = document.getElementById('modalNova');
     const modalEditar = document.getElementById('modalEditar');
 
