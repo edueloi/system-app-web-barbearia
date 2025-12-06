@@ -290,6 +290,9 @@ try {
     try { $pdo->exec("ALTER TABLE comandas ADD COLUMN qtd_total INTEGER DEFAULT 1"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE comandas ADD COLUMN data_inicio DATE"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE comandas ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch (Exception $e) {}
+    // novas colunas usadas pelas comandas
+    try { $pdo->exec("ALTER TABLE comandas ADD COLUMN servico_id INTEGER"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE comandas ADD COLUMN frequencia TEXT DEFAULT 'unico'"); } catch (Exception $e) {}
 
     // Migrações comanda_itens
     try { $pdo->exec("ALTER TABLE comanda_itens ADD COLUMN numero INTEGER"); } catch (Exception $e) {}
