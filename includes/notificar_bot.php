@@ -153,6 +153,7 @@ if (!function_exists('notificarBotAgendamentoConfirmado')) {
                     a.id,
                     a.user_id,
                     a.cliente_id,
+                    a.cliente_nome      AS ag_cliente_nome,   -- nome salvo no agendamento
                     a.servico,
                     a.valor,
                     a.data_agendamento,
@@ -160,12 +161,12 @@ if (!function_exists('notificarBotAgendamentoConfirmado')) {
                     a.status,
                     a.observacoes,
                     
-                    u.telefone        AS telefone_profissional,
-                    u.nome            AS profissional_nome,
-                    u.estabelecimento AS estabelecimento,
+                    u.telefone          AS telefone_profissional,
+                    u.nome              AS profissional_nome,
+                    u.estabelecimento   AS estabelecimento,
                     
-                    c.nome            AS cliente_nome,
-                    c.telefone        AS cliente_telefone
+                    c.nome              AS cliente_nome,
+                    c.telefone          AS cliente_telefone
                 FROM agendamentos a
                 JOIN usuarios u ON u.id = a.user_id
                 LEFT JOIN clientes c ON c.id = a.cliente_id
@@ -182,9 +183,55 @@ if (!function_exists('notificarBotAgendamentoConfirmado')) {
                 return;
             }
 
-            // Se não tiver telefone do cliente, não tem pra quem confirmar
-            if (empty($ag['cliente_telefone'])) {
-                error_log("[BOT] Cliente sem telefone cadastrado (agendamento {$agendamentoId}).");
+            // ================================
+            // RESOLVE TELEFONE DO CLIENTE
+            // ================================
+            $telefoneCliente = $ag['cliente_telefone'] ?? null;
+
+            // Se não veio telefone pelo JOIN, tenta achar pelo nome do agendamento
+            if (empty($telefoneCliente) && !empty($ag['ag_cliente_nome'])) {
+                error_log("[BOT-DEBUG] Agendamento {$agendamentoId} sem telefone pelo JOIN. Tentando fallback por nome: '{$ag['ag_cliente_nome']}'.");
+
+                $stmtCli = $pdo->prepare("
+                    SELECT id, telefone 
+                    FROM clientes 
+                    WHERE user_id = :user_id 
+                      AND nome = :nome
+                    LIMIT 1
+                ");
+                $stmtCli->execute([
+                    ':user_id' => $ag['user_id'],
+                    ':nome'    => $ag['ag_cliente_nome']
+                ]);
+                $cli = $stmtCli->fetch(PDO::FETCH_ASSOC);
+
+                if ($cli && !empty($cli['telefone'])) {
+                    $telefoneCliente = $cli['telefone'];
+
+                    // Se o agendamento ainda não tinha cliente_id, aproveita e corrige
+                    if (empty($ag['cliente_id'])) {
+                        try {
+                            $upd = $pdo->prepare("UPDATE agendamentos SET cliente_id = :cid WHERE id = :id");
+                            $upd->execute([
+                                ':cid' => $cli['id'],
+                                ':id'  => $agendamentoId
+                            ]);
+                            error_log("[BOT-DEBUG] Vinculado cliente_id={$cli['id']} ao agendamento {$agendamentoId} via nome.");
+                        } catch (Throwable $e) {
+                            error_log("[BOT-DEBUG] Falha ao atualizar cliente_id do agendamento {$agendamentoId}: " . $e->getMessage());
+                        }
+                    }
+
+                    error_log("[BOT-DEBUG] Fallback por nome funcionou para o agendamento {$agendamentoId}.");
+                } else {
+                    error_log("[BOT-DEBUG] Nenhum cliente encontrado por nome '{$ag['ag_cliente_nome']}' para user_id={$ag['user_id']}.");
+                }
+            }
+
+            // Se ainda assim não tiver telefone -> aborta
+            if (empty($telefoneCliente)) {
+                error_log("[BOT] Cliente sem telefone cadastrado (agendamento {$agendamentoId}). "
+                    . "ag_cliente_nome='{$ag['ag_cliente_nome']}', cliente_id=" . ($ag['cliente_id'] ?? 'null'));
                 return;
             }
 
@@ -192,8 +239,8 @@ if (!function_exists('notificarBotAgendamentoConfirmado')) {
             // MONTAR PAYLOAD PARA CONFIRMAÇÃO
             // ====================================
             $payload = [
-                'telefone_cliente'  => $ag['cliente_telefone'],
-                'cliente_nome'      => $ag['cliente_nome'] ?? 'Cliente',
+                'telefone_cliente'  => $telefoneCliente,
+                'cliente_nome'      => $ag['ag_cliente_nome'] ?? $ag['cliente_nome'] ?? 'Cliente',
                 'profissional_nome' => $ag['profissional_nome'] ?? 'Profissional',
                 'estabelecimento'   => $ag['estabelecimento'] ?? 'Salão',
                 'servico'           => $ag['servico'] ?? 'Serviço',
@@ -234,6 +281,7 @@ if (!function_exists('notificarBotAgendamentoConfirmado')) {
         }
     }
 }
+
 
 if (!function_exists('notificarBotLembreteAgendamento')) {
     /**

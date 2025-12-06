@@ -101,8 +101,8 @@ try {
         $stmt = $pdo->prepare("UPDATE agendamentos SET status=? WHERE id=? AND user_id=?");
         $stmt->execute([$novoStatus, $agendamentoId, $userId]);
 
-        // Se confirmou, notifica o bot (case-insensitive, ignora espaços)
-        if (mb_strtolower(trim($novoStatus)) === 'confirmado' && function_exists('notificarBotAgendamentoConfirmado')) {
+        // Se confirmou, notifica o bot
+        if ($novoStatus === 'Confirmado' && function_exists('notificarBotAgendamentoConfirmado')) {
             notificarBotAgendamentoConfirmado($pdo, $agendamentoId);
         }
 
@@ -111,29 +111,6 @@ try {
 
     // 2.3 Novo Agendamento (POST) - LÓGICA + BOT
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['novo_agendamento'])) {
-                // Garante que temos um cliente_id válido:
-                // - se digitou um nome que já existe em clientes, usamos o id existente
-                // - se não existir e tiver telefone, criamos o cliente automaticamente
-                if ($cliente && !$clienteId) {
-                    // tenta encontrar pelo nome
-                    $stmtCli = $pdo->prepare("SELECT id, telefone FROM clientes WHERE user_id = ? AND nome = ? LIMIT 1");
-                    $stmtCli->execute([$userId, $cliente]);
-                    $cli = $stmtCli->fetch(PDO::FETCH_ASSOC);
-
-                    if ($cli) {
-                        $clienteId = (int)$cli['id'];
-                        // se o cliente já existe mas estava sem telefone, atualiza
-                        if ($telefone && empty($cli['telefone'])) {
-                            $upd = $pdo->prepare("UPDATE clientes SET telefone = ? WHERE id = ?");
-                            $upd->execute([$telefone, $clienteId]);
-                        }
-                    } elseif ($telefone) {
-                        // cliente novo: cria cadastro básico
-                        $ins = $pdo->prepare("INSERT INTO clientes (user_id, nome, telefone) VALUES (?, ?, ?)");
-                        $ins->execute([$userId, $cliente, $telefone]);
-                        $clienteId = (int)$pdo->lastInsertId();
-                    }
-                }
         require_once __DIR__ . '/../../includes/recorrencia_helper.php';
 
         $cliente   = trim($_POST['cliente'] ?? '');
@@ -242,10 +219,10 @@ try {
 
                     $stmt = $pdo->prepare("
                         INSERT INTO agendamentos 
-                            (user_id, cliente_id, cliente_nome, servico, valor, data_agendamento, horario, status, observacoes) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendente', ?)
+                            (user_id, cliente_nome, servico, valor, data_agendamento, horario, status, observacoes) 
+                        VALUES (?, ?, ?, ?, ?, ?, 'Pendente', ?)
                     ");
-                    $stmt->execute([$userId, $clienteId, $cliente, $servicoNome, $valor, $dataAg, $horario, $obs]);
+                    $stmt->execute([$userId, $cliente, $servicoNome, $valor, $dataAg, $horario, $obs]);
 
                     // 🔔 Notifica o BOT mesmo no fallback
                     if (function_exists('notificarBotNovoAgendamento')) {
@@ -260,10 +237,10 @@ try {
                 $_SESSION['mensagem_erro'] = 'Função de recorrência não encontrada. Salvando agendamento simples.';
                 $stmt = $pdo->prepare("
                     INSERT INTO agendamentos 
-                        (user_id, cliente_id, cliente_nome, servico, valor, data_agendamento, horario, status, observacoes) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendente', ?)
+                        (user_id, cliente_nome, servico, valor, data_agendamento, horario, status, observacoes) 
+                    VALUES (?, ?, ?, ?, ?, ?, 'Pendente', ?)
                 ");
-                $stmt->execute([$userId, $clienteId, $cliente, $servicoNome, $valor, $dataAg, $horario, $obs]);
+                $stmt->execute([$userId, $cliente, $servicoNome, $valor, $dataAg, $horario, $obs]);
 
                 // 🔔 Notifica o BOT no modo simples
                 if (function_exists('notificarBotNovoAgendamento')) {
@@ -326,7 +303,7 @@ $raw = $stmt->fetchAll();
 
 // Listas para os Modais
 $servicos = $pdo->query("SELECT id, nome, preco, duracao, permite_recorrencia, tipo_recorrencia, dias_semana FROM servicos WHERE user_id=$userId ORDER BY nome ASC")->fetchAll();
-$clientes = $pdo->query("SELECT id, nome, telefone FROM clientes WHERE user_id=$userId ORDER BY nome ASC")->fetchAll();
+$clientes = $pdo->query("SELECT nome, telefone FROM clientes WHERE user_id=$userId ORDER BY nome ASC")->fetchAll();
 
 // corrige valor 0 usando preço do serviço
 foreach ($raw as &$r) {
@@ -878,7 +855,6 @@ include '../../includes/menu.php';
                 <datalist id="dlClientes">
                     <?php foreach($clientes as $c) echo "<option value='".htmlspecialchars($c['nome'])."'>"; ?>
                 </datalist>
-                <input type="hidden" name="cliente_id" id="clienteIdHidden">
             </div>
 
             <div class="form-group">
@@ -1069,14 +1045,7 @@ function renderCard($ag, $clientes) {
     function preencherTel(){
         let nome = document.getElementById('inputNome').value;
         let c = clientesDB.find(x => x.nome === nome);
-        const telInput = document.getElementById('inputTel');
-        const hiddenId = document.getElementById('clienteIdHidden');
-        if (c) {
-            telInput.value = c.telefone || '';
-            hiddenId.value = c.id || '';
-        } else {
-            hiddenId.value = '';
-        }
+        if(c) document.getElementById('inputTel').value = c.telefone;
     }
 
     // Soma serviços
