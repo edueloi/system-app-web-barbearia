@@ -975,6 +975,10 @@ function isActive($pageName)
                     setTimeout(() => {
                         card.remove();
                         updateNotificationCount();
+                        // Se não restar mais notificações, fecha o dropdown
+                        if (document.querySelectorAll('.notif-card').length === 0 && notifDropdown) {
+                            notifDropdown.classList.remove('active');
+                        }
                     }, 300); // Tempo da animação
                 })
                 .catch(() => {
@@ -999,6 +1003,10 @@ function isActive($pageName)
                         setTimeout(() => {
                             this.remove();
                             updateNotificationCount();
+                            // Se não restar mais notificações, fecha o dropdown
+                            if (document.querySelectorAll('.notif-card').length === 0 && notifDropdown) {
+                                notifDropdown.classList.remove('active');
+                            }
                         }, 300);
                     })
                     .catch(() => {
