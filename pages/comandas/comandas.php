@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $pdo->commit();
-            header("Location: comandas.php?msg=sucesso"); 
+            header("Location: /comandas?msg=sucesso"); 
             exit;
         } catch (Exception $e) {
             $pdo->rollBack();
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if (isset($_GET['del'])) {
     $id = (int)$_GET['del'];
     $pdo->prepare("DELETE FROM comandas WHERE id = ? AND user_id = ?")->execute([$id, $uid]);
-    header("Location: comandas.php"); 
+    header("Location: /comandas"); 
     exit;
 }
 
