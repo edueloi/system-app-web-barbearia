@@ -1497,9 +1497,19 @@ include '../../includes/menu.php';
                 </datalist>
 
                 <!-- Mobile: Input simples (sem datalist para melhor UX no mobile) -->
-                <input type="tel" name="telefone_mobile" id="inputTelefoneMobile" class="form-input select-mobile" placeholder="(11) 99999-9999" oninput="sincronizarTelefone(this);" required>
+                <input type="tel" name="telefone_mobile" id="inputTelefoneMobile" class="form-input select-mobile" placeholder="(11) 99999-9999" oninput="sincronizarTelefone(this);">
             </div>
             <script>
+                                        let valorEditadoManualmente = false;
+
+                                        document.addEventListener('DOMContentLoaded', function() {
+                                            const inputValor = document.getElementById('inputValor');
+                                            if (inputValor) {
+                                                inputValor.addEventListener('input', function () {
+                                                    valorEditadoManualmente = true;
+                                                });
+                                            }
+                                        });
                 // Máscara de telefone
                 function mascaraTelefone(i) {
                     let v = i.value.replace(/\D/g, "");
@@ -1629,7 +1639,7 @@ include '../../includes/menu.php';
                                 span.textContent = 'R$ ' + totalFinal.toFixed(2).replace('.', ',') + (recorrenciaQtd > 1 ? ' (' + recorrenciaQtd + 'x)' : '');
                             }
                             var inputValor = document.getElementById('inputValor');
-                            if (inputValor && (!inputValor.value || parseFloat(inputValor.value) === 0)) {
+                            if (inputValor && !valorEditadoManualmente) {
                                 inputValor.value = totalFinal.toFixed(2);
                             }
                         }
@@ -2146,7 +2156,7 @@ function renderCard($ag, $clientes)
             </div>
             {$infoRecorrencia}
         </div>
-        <button onclick='openActions($jsonData)'><i class='bi bi-three-dots-vertical'></i></button>
+        <button type='button' onclick='openActions($jsonData)'><i class='bi bi-three-dots-vertical'></i></button>
     </div>";
 }
 ?>
