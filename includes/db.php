@@ -139,6 +139,7 @@ try {
     )"); 
 
     // Garantir campos de lembrete por e-mail e antecedência mínima em usuarios (migração)
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN is_teste INTEGER DEFAULT 0"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_ativo INTEGER DEFAULT 0"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_tempo INTEGER DEFAULT 4"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_unidade TEXT DEFAULT 'horas'"); } catch (Exception $e) {}

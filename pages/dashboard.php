@@ -47,7 +47,7 @@ $dataFim    = $_GET['data_fim'] ?? date('Y-m-t');     // Último dia do mês atu
 $mesFiltro  = $_GET['mes_aniversario'] ?? $mesAtual;
 
 // --- BUSCA NOME DO USUÁRIO E ESTABELECIMENTO ---
-$stmt = $pdo->prepare("SELECT nome, estabelecimento, is_vitalicio, data_expiracao FROM usuarios WHERE id = ?");
+$stmt = $pdo->prepare("SELECT nome, estabelecimento, is_vitalicio, data_expiracao, is_teste FROM usuarios WHERE id = ?");
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
 if ($user && !empty($user['nome'])) {
@@ -56,52 +56,64 @@ if ($user && !empty($user['nome'])) {
 $nomeEstabelecimento = $user['estabelecimento'] ?? 'Nosso Salão';
 
 // --- CÁLCULO DA LICENÇA ---
-$isVitalicio = $user['is_vitalicio'] ?? 0;
+$isTeste       = !empty($user['is_teste']);
+$isVitalicio   = $user['is_vitalicio'] ?? 0;
 $dataExpiracao = $user['data_expiracao'] ?? null;
-$diasRestantes = null;
-$statusLicenca = 'ativo'; // ativo, alerta, critico, expirado
-$corLicenca = '#10b981'; // verde padrão
-$mostrarNotificacao = false;
-$mensagemNotificacao = '';
-$tipoLicenca = 'Período de Teste';
 
-if ($isVitalicio) {
-    $tipoLicenca = 'Vitalício';
+$diasRestantes       = null;
+$mostrarNotificacao  = false;
+$mensagemNotificacao = '';
+
+// valores padrão para conta normal (paga)
+$tipoLicenca   = 'Plano Mensal';
+$statusLicenca = 'ativo';
+$corLicenca    = '#10b981'; // verde
+
+// Se for conta de teste, sobrescreve
+if ($isTeste) {
+    $tipoLicenca   = 'Período de Teste';
+    $statusLicenca = 'teste';
+    $corLicenca    = '#3730a3'; // azul
+}
+// Se for vitalício, sobrescreve de novo
+elseif ($isVitalicio) {
+    $tipoLicenca   = 'Vitalício';
     $statusLicenca = 'vitalicio';
-    $corLicenca = '#8b5cf6'; // roxo para vitalício
-} elseif (!empty($dataExpiracao)) {
-    $dataExp = new DateTime($dataExpiracao);
+    $corLicenca    = '#8b5cf6';
+}
+// Se for plano normal com data de expiração
+elseif (!empty($dataExpiracao)) {
+    $dataExp  = new DateTime($dataExpiracao);
     $dataHoje = new DateTime();
-    $diff = $dataHoje->diff($dataExp);
-    
+    $diff     = $dataHoje->diff($dataExp);
+
     if ($dataHoje > $dataExp) {
-        // Expirado
-        $statusLicenca = 'expirado';
-        $corLicenca = '#ef4444';
-        $diasRestantes = 0;
-        $mostrarNotificacao = true;
+        $statusLicenca       = 'expirado';
+        $corLicenca          = '#ef4444';
+        $diasRestantes       = 0;
+        $mostrarNotificacao  = true;
         $mensagemNotificacao = 'Sua licença expirou! Entre em contato para renovar.';
     } else {
         $diasRestantes = $diff->days;
-        
+
         if ($diasRestantes <= 1) {
             $statusLicenca = 'critico';
-            $corLicenca = '#ef4444'; // vermelho
+            $corLicenca    = '#ef4444';
             $mostrarNotificacao = true;
-            $mensagemNotificacao = $diasRestantes == 0 
-                ? 'Sua licença expira HOJE! Renove agora para não perder o acesso.' 
+            $mensagemNotificacao = $diasRestantes == 0
+                ? 'Sua licença expira HOJE! Renove agora para não perder o acesso.'
                 : 'Sua licença expira AMANHÃ! Renove o quanto antes.';
         } elseif ($diasRestantes <= 2) {
             $statusLicenca = 'critico';
-            $corLicenca = '#ef4444';
+            $corLicenca    = '#ef4444';
             $mostrarNotificacao = true;
             $mensagemNotificacao = "Faltam apenas {$diasRestantes} dias para sua licença expirar!";
         } elseif ($diasRestantes <= 5) {
             $statusLicenca = 'critico';
-            $corLicenca = '#ef4444';
+            $corLicenca    = '#ef4444';
         } elseif ($diasRestantes <= 15) {
             $statusLicenca = 'alerta';
-            $corLicenca = '#f59e0b'; // laranja
+            $corLicenca    = '#f59e0b';
         }
     }
 }
@@ -240,6 +252,7 @@ $mesNomes = [
     '12' => 'Dezembro',
 ];
 $nomeMesAtual = $mesNomes[$mesAtual] ?? $mesAtual;
+
 
 $stmtAniv = $pdo->prepare("
     SELECT nome, data_nascimento, telefone
@@ -823,7 +836,8 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         .custom-table.small tr {
             display: block;
             margin: 0 0 0.75rem;
-            border-radius: var(--radius-sm);\n            background: var(--bg-card);
+            border-radius: var(--radius-sm);          
+            background: var(--bg-card);
             box-shadow: var(--shadow-card);
             overflow: hidden;
             border: 1px solid var(--border);
@@ -1914,67 +1928,103 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
     </div>
 
     <!-- Card de Licença -->
-    <?php if (!$isVitalicio): ?>
-    <div class="license-card" style="background: linear-gradient(135deg, <?php echo $corLicenca; ?>15 0%, <?php echo $corLicenca; ?>08 100%); border: 2px solid <?php echo $corLicenca; ?>40; border-radius: 16px; padding: 20px; margin-bottom: 24px; position: relative; overflow: hidden;">
-        <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: <?php echo $corLicenca; ?>10; border-radius: 50%;"></div>
-        <div style="position: relative; z-index: 1;">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
-                <div style="flex: 1; min-width: 200px;">
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                        <div style="width: 48px; height: 48px; background: <?php echo $corLicenca; ?>; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px <?php echo $corLicenca; ?>40;">
-                            <i class="bi bi-shield-check" style="font-size: 24px; color: #fff;"></i>
-                        </div>
+<!-- Card de Licença -->
+<div class="license-card" style="background: linear-gradient(135deg, <?php echo $corLicenca; ?>15 0%, <?php echo $corLicenca; ?>08 100%); border: 2px solid <?php echo $corLicenca; ?>40; border-radius: 16px; padding: 20px; margin-bottom: 24px; position: relative; overflow: hidden;">
+    <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: <?php echo $corLicenca; ?>10; border-radius: 50%;"></div>
+    <div style="position: relative; z-index: 1;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+            <div style="flex: 1; min-width: 200px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 48px; height: 48px; background: <?php echo $corLicenca; ?>; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px <?php echo $corLicenca; ?>40;">
+                        <i class="bi bi-shield-check" style="font-size: 24px; color: #fff;"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.125rem; font-weight: 700; color: var(--dash-text);">
+                            Status da Licença
+                        </h3>
+                        <p style="margin: 0; font-size: 0.875rem; color: var(--dash-text-light); font-weight: 500;">
+                            <?php echo $tipoLicenca; ?>
+                        </p>
+                    </div>
+                </div>
+
+                <?php if ($isVitalicio): ?>
+                    <!-- VITALÍCIO: sem dias restantes -->
+                    <p style="margin: 0; font-size: 0.875rem; color: var(--dash-text-light); font-weight: 500;">
+                        Acesso vitalício liberado, sem data de expiração. 🎉
+                    </p>
+
+                <?php elseif ($statusLicenca === 'expirado'): ?>
+                    <!-- EXPIRADO -->
+                    <div style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #fee2e2; border-radius: 10px; border-left: 4px solid #ef4444;">
+                        <i class="bi bi-exclamation-triangle-fill" style="color: #dc2626; font-size: 20px;"></i>
                         <div>
-                            <h3 style="margin: 0; font-size: 1.125rem; font-weight: 700; color: var(--dash-text);">Status da Licença</h3>
-                            <p style="margin: 0; font-size: 0.875rem; color: var(--dash-text-light); font-weight: 500;"><?php echo $tipoLicenca; ?></p>
+                            <span style="display:block; color: #991b1b; font-weight: 600; font-size: 0.9375rem;">Licença Expirada</span>
+                            <?php if (!empty($dataExpiracao)): ?>
+                                <small style="display:block; margin-top:4px; color:#b91c1c; font-size:0.75rem;">
+                                    Expirou em <?php echo date('d/m/Y', strtotime($dataExpiracao)); ?>.
+                                </small>
+                            <?php endif; ?>
                         </div>
                     </div>
-                    
-                    <?php if ($statusLicenca == 'expirado'): ?>
-                        <div style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #fee2e2; border-radius: 10px; border-left: 4px solid #ef4444;">
-                            <i class="bi bi-exclamation-triangle-fill" style="color: #dc2626; font-size: 20px;"></i>
-                            <span style="color: #991b1b; font-weight: 600; font-size: 0.9375rem;">Licença Expirada</span>
-                        </div>
-                    <?php elseif ($diasRestantes !== null): ?>
-                        <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;">
-                            <span style="font-size: 2.5rem; font-weight: 800; color: <?php echo $corLicenca; ?>; line-height: 1;">
-                                <?php echo $diasRestantes; ?>
-                            </span>
-                            <span style="font-size: 1rem; font-weight: 600; color: var(--dash-text-light);">
-                                <?php echo $diasRestantes == 1 ? 'dia restante' : 'dias restantes'; ?>
-                            </span>
-                        </div>
+
+                <?php elseif ($diasRestantes !== null): ?>
+                    <!-- TESTE OU PLANO NORMAL COM DIAS RESTANTES -->
+                    <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;">
+                        <span style="font-size: 2.5rem; font-weight: 800; color: <?php echo $corLicenca; ?>; line-height: 1;">
+                            <?php echo $diasRestantes; ?>
+                        </span>
+                        <span style="font-size: 1rem; font-weight: 600; color: var(--dash-text-light);">
+                            <?php
+                            if ($isTeste) {
+                                echo $diasRestantes == 1
+                                    ? 'dia de teste restante'
+                                    : 'dias de teste restantes';
+                            } else {
+                                echo $diasRestantes == 1
+                                    ? 'dia restante de plano'
+                                    : 'dias restantes de plano';
+                            }
+                            ?>
+                        </span>
+                    </div>
+
+                    <?php if (!empty($dataExpiracao)): ?>
                         <p style="margin: 0; font-size: 0.8125rem; color: var(--dash-text-light);">
-                            Expira em: <strong style="color: var(--dash-text);"><?php echo date('d/m/Y', strtotime($dataExpiracao)); ?></strong>
+                            Expira em:
+                            <strong style="color: var(--dash-text);">
+                                <?php echo date('d/m/Y', strtotime($dataExpiracao)); ?>
+                            </strong>
                         </p>
                     <?php endif; ?>
-                </div>
-                
-                <?php if ($statusLicenca != 'expirado'): ?>
-                <div style="text-align: right;">
-                    <a href="https://wa.me/5511999999999?text=Olá! Gostaria de renovar minha licença" 
-                       target="_blank"
-                       style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: <?php echo $corLicenca; ?>; color: #fff; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 0.9375rem; box-shadow: 0 4px 12px <?php echo $corLicenca; ?>40; transition: all 0.3s ease;">
-                        <i class="bi bi-whatsapp" style="font-size: 18px;"></i>
-                        <span>Renovar Licença</span>
-                    </a>
-                </div>
-                <?php else: ?>
-                <div style="text-align: right;">
-                    <a href="https://wa.me/5511999999999?text=Olá! Minha licença expirou, preciso reativar" 
+
+                <?php endif; ?>
+            </div>
+
+            <!-- Botão WhatsApp (muda texto se expirado) -->
+            <div style="text-align: right;">
+                <?php if ($statusLicenca === 'expirado'): ?>
+                    <a href="https://wa.me/5511999999999?text=Ol! Minha licença expirou, preciso reativar"
                        target="_blank"
                        style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; background: #ef4444; color: #fff; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 1rem; box-shadow: 0 4px 16px #ef444460; animation: pulse 2s infinite;">
                         <i class="bi bi-exclamation-circle-fill" style="font-size: 20px;"></i>
                         <span>Reativar Agora</span>
                     </a>
-                </div>
+                <?php else: ?>
+                    <a href="https://wa.me/5511999999999?text=Ol! Gostaria de renovar minha licença"
+                       target="_blank"
+                       style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: <?php echo $corLicenca; ?>; color: #fff; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 0.9375rem; box-shadow: 0 4px 12px <?php echo $corLicenca; ?>40; transition: all 0.3s ease;">
+                        <i class="bi bi-whatsapp" style="font-size: 18px;"></i>
+                        <span>Renovar Licença</span>
+                    </a>
                 <?php endif; ?>
             </div>
         </div>
     </div>
-    <?php endif; ?>
+</div>
+<!-- Fim Card de Licença -->
 
-    <!-- Filtros de Período -->
+<!-- Filtros de Período -->
     <div class="filters-card">
         <div class="filters-header">
             <i class="bi bi-funnel-fill filters-icon"></i>
