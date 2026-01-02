@@ -15,53 +15,158 @@ if (session_status() === PHP_SESSION_NONE) {
  */
 function criarAgendamentosRecorrentes($pdo, $userId, $dados) {
     try {
-        // Buscar configurações de recorrência do serviço
-        $stmt = $pdo->prepare("
-            SELECT permite_recorrencia,
-                   tipo_recorrencia,
-                   intervalo_dias,
-                   duracao_meses,
-                   qtd_ocorrencias,
-                   dias_semana,
-                   dia_fixo_mes
-            FROM servicos
-            WHERE id = ? AND user_id = ?
-        ");
-        $stmt->execute([$dados['servico_id'], $userId]);
-        $config = $stmt->fetch(PDO::FETCH_ASSOC);
+        $recorrenciaAtiva = !empty($dados['recorrencia_ativa']);
+        $servicoId = $dados['servico_id'] ?? null;
+        $recDiasSemana = $dados['recorrencia_dias_semana'] ?? null;
+        if (is_array($recDiasSemana)) {
+            $recDiasSemana = json_encode(array_values($recDiasSemana));
+        }
+        $temDiasSemana = !empty($recDiasSemana);
+        $config = null;
 
-        if (!$config || !$config['permite_recorrencia']) {
-            return [
-                'sucesso' => false,
-                'erro'    => 'Serviço não permite recorrência.'
-            ];
+        if (!empty($servicoId)) {
+            // Buscar configurações de recorrência do serviço
+            $stmt = $pdo->prepare("
+                SELECT permite_recorrencia,
+                       tipo_recorrencia,
+                       intervalo_dias,
+                       duracao_meses,
+                       qtd_ocorrencias,
+                       dias_semana,
+                       dia_fixo_mes
+                FROM servicos
+                WHERE id = ? AND user_id = ?
+            ");
+            $stmt->execute([$servicoId, $userId]);
+            $config = $stmt->fetch(PDO::FETCH_ASSOC);
         }
 
         // Montar configuração de datas
-        $dataInicio = new DateTime($dados['data_agendamento']);
+        $dataInicioStr = $dados['data_inicio'] ?? ($dados['data_agendamento'] ?? null);
+        if (empty($dataInicioStr)) {
+            return [
+                'sucesso' => false,
+                'erro'    => 'Data de início não informada.'
+            ];
+        }
 
-        $configDatas = [
-            'tipo_recorrencia' => $config['tipo_recorrencia'],
-            'qtd_ocorrencias'  => $config['qtd_ocorrencias'],
-            'intervalo_dias'   => $config['intervalo_dias'],
-            'dias_semana'      => $config['dias_semana'],
-            'dia_fixo_mes'     => $config['dia_fixo_mes'],
-            'user_id'          => $userId
-        ];
+        $dataInicio = new DateTime($dataInicioStr);
+
+        if ($recorrenciaAtiva) {
+            if ($temDiasSemana) {
+                $configDatas = [
+                    'tipo_recorrencia' => 'semanal',
+                    'qtd_ocorrencias'  => max(1, (int)($dados['recorrencia_qtd'] ?? 1)),
+                    'intervalo_dias'   => max(1, (int)($dados['recorrencia_intervalo'] ?? 7)),
+                    'dias_semana'      => $recDiasSemana,
+                    'dia_fixo_mes'     => null,
+                    'user_id'          => $userId
+                ];
+            } else {
+                $configDatas = [
+                    'tipo_recorrencia' => 'personalizada',
+                    'qtd_ocorrencias'  => max(1, (int)($dados['recorrencia_qtd'] ?? 1)),
+                    'intervalo_dias'   => max(1, (int)($dados['recorrencia_intervalo'] ?? 1)),
+                    'dias_semana'      => null,
+                    'dia_fixo_mes'     => null,
+                    'user_id'          => $userId
+                ];
+            }
+        } elseif (!empty($config) && !empty($config['permite_recorrencia'])
+            && !empty($config['tipo_recorrencia'])
+            && $config['tipo_recorrencia'] !== 'sem_recorrencia') {
+            $configDatas = [
+                'tipo_recorrencia' => $config['tipo_recorrencia'],
+                'qtd_ocorrencias'  => $config['qtd_ocorrencias'],
+                'intervalo_dias'   => $config['intervalo_dias'],
+                'dias_semana'      => $config['dias_semana'],
+                'dia_fixo_mes'     => $config['dia_fixo_mes'],
+                'user_id'          => $userId
+            ];
+        } else {
+            return [
+                'sucesso' => false,
+                'erro'    => 'Recorrência não ativada ou não permitida para este serviço.'
+            ];
+        }
 
         $datas = gerarDatasRecorrencia($dataInicio, $configDatas);
 
-        // TODO: aqui entra a lógica para:
-        // - Criar registro em agendamentos_recorrentes (tabela de séries)
-        // - Inserir cada ocorrência na tabela agendamentos com serie_id / indice_serie
-        // Por enquanto, retornamos só as datas para não quebrar o sistema.
-        
+        if (empty($datas)) {
+            return [
+                'sucesso' => false,
+                'erro'    => 'Nenhuma data gerada para a recorrência.'
+            ];
+        }
+
+        $serieId = 'SER' . bin2hex(random_bytes(6));
+        $dataFim = end($datas)->format('Y-m-d');
+        $qtdTotal = count($datas);
+
+        $pdo->beginTransaction();
+
+        $stmtSerie = $pdo->prepare("
+            INSERT INTO agendamentos_recorrentes
+                (user_id, serie_id, cliente_id, cliente_nome, servico_id, servico_nome, valor, horario,
+                 tipo_recorrencia, intervalo_dias, dias_semana, dia_fixo_mes, data_inicio, data_fim, qtd_total, observacoes, ativo)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+        ");
+        $stmtSerie->execute([
+            $userId,
+            $serieId,
+            $dados['cliente_id'] ?? null,
+            $dados['cliente_nome'],
+            $dados['servico_id'] ?? null,
+            $dados['servico_nome'] ?? '',
+            $dados['valor'] ?? 0,
+            $dados['horario'],
+            $configDatas['tipo_recorrencia'],
+            $configDatas['intervalo_dias'] ?? 1,
+            $configDatas['dias_semana'] ?? null,
+            $configDatas['dia_fixo_mes'] ?? null,
+            $dataInicio->format('Y-m-d'),
+            $dataFim,
+            $qtdTotal,
+            $dados['observacoes'] ?? null
+        ]);
+
+        $stmtAg = $pdo->prepare("
+            INSERT INTO agendamentos
+                (user_id, cliente_id, cliente_nome, servico, valor, data_agendamento, horario, status, observacoes, e_recorrente, serie_id, indice_serie)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendente', ?, 1, ?, ?)
+        ");
+
+        $idsCriados = [];
+        foreach ($datas as $i => $dataObj) {
+            $stmtAg->execute([
+                $userId,
+                $dados['cliente_id'] ?? null,
+                $dados['cliente_nome'],
+                $dados['servico_nome'] ?? '',
+                $dados['valor'] ?? 0,
+                $dataObj->format('Y-m-d'),
+                $dados['horario'],
+                $dados['observacoes'] ?? null,
+                $serieId,
+                $i + 1
+            ]);
+            $idsCriados[] = (int)$pdo->lastInsertId();
+        }
+
+        $pdo->commit();
+
         return [
-            'sucesso' => true,
-            'datas'   => $datas
+            'sucesso'     => true,
+            'datas'       => $datas,
+            'serie_id'    => $serieId,
+            'qtd_criados' => $qtdTotal,
+            'ids_criados' => $idsCriados
         ];
 
     } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         return ['sucesso' => false, 'erro' => $e->getMessage()];
     }
 }

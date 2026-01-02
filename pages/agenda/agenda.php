@@ -111,29 +111,6 @@ try {
 
     // 2.3 Novo Agendamento (POST) - LÓGICA + BOT
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['novo_agendamento'])) {
-                // Garante que temos um cliente_id válido:
-                // - se digitou um nome que já existe em clientes, usamos o id existente
-                // - se não existir e tiver telefone, criamos o cliente automaticamente
-                if ($cliente && !$clienteId) {
-                    // tenta encontrar pelo nome
-                    $stmtCli = $pdo->prepare("SELECT id, telefone FROM clientes WHERE user_id = ? AND nome = ? LIMIT 1");
-                    $stmtCli->execute([$userId, $cliente]);
-                    $cli = $stmtCli->fetch(PDO::FETCH_ASSOC);
-
-                    if ($cli) {
-                        $clienteId = (int)$cli['id'];
-                        // se o cliente já existe mas estava sem telefone, atualiza
-                        if ($telefone && empty($cli['telefone'])) {
-                            $upd = $pdo->prepare("UPDATE clientes SET telefone = ? WHERE id = ?");
-                            $upd->execute([$telefone, $clienteId]);
-                        }
-                    } elseif ($telefone) {
-                        // cliente novo: cria cadastro básico
-                        $ins = $pdo->prepare("INSERT INTO clientes (user_id, nome, telefone) VALUES (?, ?, ?)");
-                        $ins->execute([$userId, $cliente, $telefone]);
-                        $clienteId = (int)$pdo->lastInsertId();
-                    }
-                }
         require_once __DIR__ . '/../../includes/recorrencia_helper.php';
 
         $cliente   = trim($_POST['cliente'] ?? '');
@@ -143,6 +120,30 @@ try {
         $clienteId = !empty($_POST['cliente_id']) ? (int)$_POST['cliente_id'] : null;
         // Garante que o telefone venha de qualquer campo
         $telefone  = trim($_POST['telefone'] ?? ($_POST['telefone_mobile'] ?? ''));
+
+        // Garante que temos um cliente_id válido:
+        // - se digitou um nome que já existe em clientes, usamos o id existente
+        // - se não existir e tiver telefone, criamos o cliente automaticamente
+        if ($cliente && !$clienteId) {
+            // tenta encontrar pelo nome
+            $stmtCli = $pdo->prepare("SELECT id, telefone FROM clientes WHERE user_id = ? AND nome = ? LIMIT 1");
+            $stmtCli->execute([$userId, $cliente]);
+            $cli = $stmtCli->fetch(PDO::FETCH_ASSOC);
+
+            if ($cli) {
+                $clienteId = (int)$cli['id'];
+                // se o cliente já existe mas estava sem telefone, atualiza
+                if ($telefone && empty($cli['telefone'])) {
+                    $upd = $pdo->prepare("UPDATE clientes SET telefone = ? WHERE id = ?");
+                    $upd->execute([$telefone, $clienteId]);
+                }
+            } elseif ($telefone) {
+                // cliente novo: cria cadastro básico
+                $ins = $pdo->prepare("INSERT INTO clientes (user_id, nome, telefone) VALUES (?, ?, ?)");
+                $ins->execute([$userId, $cliente, $telefone]);
+                $clienteId = (int)$pdo->lastInsertId();
+            }
+        }
 
         // VÁRIOS SERVIÇOS
         $servicosIds = isset($_POST['servicos_ids']) ? (array)$_POST['servicos_ids'] : [];
@@ -187,6 +188,9 @@ try {
         $recorrenciaQtd       = isset($_POST['recorrencia_qtd']) ? (int)$_POST['recorrencia_qtd'] : 1;
         if ($recorrenciaIntervalo < 1) $recorrenciaIntervalo = 1;
         if ($recorrenciaQtd < 1) $recorrenciaQtd = 1;
+        $recorrenciaDiasSemana = isset($_POST['recorrencia_dias_semana']) ? (array)$_POST['recorrencia_dias_semana'] : [];
+        $recorrenciaDiasSemana = array_values(array_unique(array_filter(array_map('intval', $recorrenciaDiasSemana), function($d){ return $d >= 0 && $d <= 6; })));
+        $recorrenciaDiasSemanaJson = !empty($recorrenciaDiasSemana) ? json_encode($recorrenciaDiasSemana) : null;
 
         if ($cliente && $horario) {
             $dadosAgendamento = [
@@ -200,7 +204,8 @@ try {
                 'observacoes'   => $obs,
                 'recorrencia_ativa'     => $recorrenciaAtiva,
                 'recorrencia_intervalo' => $recorrenciaIntervalo,
-                'recorrencia_qtd'       => $recorrenciaQtd
+                'recorrencia_qtd'       => $recorrenciaQtd,
+                'recorrencia_dias_semana' => $recorrenciaDiasSemanaJson
             ];
 
             // Tenta usar helper de recorrência
@@ -372,6 +377,16 @@ if ($viewType === 'day') {
 $mod = ($viewType === 'month') ? 'month' : (($viewType === 'week') ? 'week' : 'day');
 $dataAnt = date('Y-m-d', strtotime($dataExibida . " -1 $mod"));
 $dataPro = date('Y-m-d', strtotime($dataExibida . " +1 $mod"));
+
+// Pré-separa serviços / pacotes para o modal
+$servicosList = array_filter($servicos, function($s){
+    return empty($s['tipo_recorrencia']) || $s['tipo_recorrencia'] === 'servico';
+});
+$pacotesList = array_filter($servicos, function($s){
+    return !empty($s['tipo_recorrencia']) && $s['tipo_recorrencia'] !== 'servico';
+});
+$hasServicos = count($servicosList) > 0;
+$hasPacotes  = count($pacotesList) > 0;
 
 // Includes visuais
 $pageTitle = 'Minha Agenda';
@@ -642,6 +657,7 @@ include '../../includes/menu.php';
         max-height:85vh;overflow-y:auto;
         animation:slideUp .3s ease-out;
     }
+
     /* ============================================
        MODAL "NOVO AGENDAMENTO" - VISUAL PREMIUM
        ============================================ */
@@ -651,7 +667,6 @@ include '../../includes/menu.php';
         box-shadow: 0 -16px 40px rgba(15,23,42,0.32);
     }
 
-    /* Cabeçalho do modal (ícone + título + x) */
     .sheet-modal-form .sheet-header {
         margin: -0.25rem -0.25rem 1rem;
         padding-bottom: 0.85rem;
@@ -698,7 +713,6 @@ include '../../includes/menu.php';
         transform: scale(1.06);
     }
 
-    /* Blocos do formulário */
     .form-section {
         background: #f8fafc;
         border-radius: var(--radius-md);
@@ -723,7 +737,6 @@ include '../../includes/menu.php';
         font-size: 0.85rem;
     }
 
-    /* Pequenas fileiras dentro das sections */
     .form-row {
         display: grid;
         grid-template-columns: 1.1fr 0.9fr;
@@ -736,7 +749,6 @@ include '../../includes/menu.php';
         gap: 0.65rem;
     }
 
-    /* Caixinha dos serviços */
     .services-box {
         max-height: 170px;
         overflow-y: auto;
@@ -758,7 +770,6 @@ include '../../includes/menu.php';
         accent-color: #6366f1;
     }
 
-    /* Toggle de recorrência tipo "pill" */
     .toggle-group {
         display: flex;
         gap: 0.4rem;
@@ -795,7 +806,6 @@ include '../../includes/menu.php';
         box-shadow: 0 3px 10px rgba(99,102,241,0.4);
     }
 
-    /* Área de recorrência aberta */
     #divRec {
         margin-top: 8px;
         display: none;
@@ -803,7 +813,49 @@ include '../../includes/menu.php';
         gap: 10px;
     }
 
-    /* Botões principais do modal novo */
+    .rec-days-group {
+        grid-column: 1 / -1;
+    }
+
+    .rec-days {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .rec-day input {
+        display: none;
+    }
+
+    .rec-day span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.35rem 0.6rem;
+        border-radius: 999px;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #475569;
+        cursor: pointer;
+        transition: all .18s ease;
+    }
+
+    .rec-day input:checked + span {
+        background: linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 4px 10px rgba(99,102,241,.35);
+    }
+
+    .rec-hint {
+        display: block;
+        margin-top: 0.4rem;
+        color: #64748b;
+        font-size: 0.7rem;
+    }
+
     .modal-actions {
         margin-top: 0.9rem;
         display: flex;
@@ -815,7 +867,17 @@ include '../../includes/menu.php';
         .form-row, .form-row-3 {
             grid-template-columns: 1fr;
         }
+        .services-box {
+            max-height: 220px;
+            min-height: 120px;
+            font-size: 1rem;
+        }
+        .service-item {
+            font-size: 0.95rem;
+            padding: 0.45rem 0.15rem;
+        }
     }
+    
     @keyframes slideUp{from{transform:translateY(100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
     @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 
@@ -877,7 +939,6 @@ include '../../includes/menu.php';
     }
     .action-item.danger{color:var(--danger);}
 
-    /* Header do ActionSheet mais bonito */
     .sheet-header {
         display:flex;
         align-items:center;
@@ -900,12 +961,110 @@ include '../../includes/menu.php';
         font-size:.78rem;color:#64748b;
     }
 
+    /* COMBOBOX DE CLIENTES (dropdown interno mobile) */
+    .combo {
+        position: relative;
+    }
+
+    .combo .form-input {
+        padding-right: 2rem;
+        cursor: pointer;
+    }
+
+    .combo-arrow {
+        position: absolute;
+        right: 0.6rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.75rem;
+        color: #9ca3af;
+        pointer-events: none;
+    }
+
+    .combo-list {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: calc(100% + 4px);
+        max-height: 230px;
+        background: #ffffff;
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 10px 30px rgba(15,23,42,0.15);
+        padding: 0.25rem 0;
+        z-index: 3000;
+        display: none;
+    }
+
+    .combo-list.open {
+        display: block;
+    }
+
+    .combo-item {
+        padding: 0.4rem 0.75rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        font-size: 0.8rem;
+    }
+
+    .combo-item:hover {
+        background: #f3f4f6;
+    }
+
+    .combo-item small {
+        color: #9ca3af;
+        font-size: 0.7rem;
+    }
+
+    /* ABAS SERVIÇOS / PACOTES */
+    .services-tabs {
+        display: flex;
+        gap: 0.35rem;
+        margin-bottom: 0.5rem;
+        background: #e5e7eb;
+        padding: 0.25rem;
+        border-radius: 999px;
+    }
+
+    .services-tab {
+        flex: 1;
+        border: none;
+        background: transparent;
+        border-radius: 999px;
+        padding: 0.3rem 0.1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #6b7280;
+        cursor: pointer;
+        transition: all .18s ease;
+    }
+
+    .services-tab.active {
+        background: #ffffff;
+        color: #111827;
+        box-shadow: 0 3px 8px rgba(15,23,42,0.12);
+    }
+
     @media (max-width:768px){
         .link-input-group{flex-direction:column;}
         .link-input,.btn-copy-link,.btn-share-link{width:100%;}
         .free-slots-grid{grid-template-columns:repeat(3,1fr);}
         .fab-add{bottom:1.25rem;right:1.25rem;width:3rem;height:3rem;font-size:1.25rem;}
         .sheet-modal{max-height:92vh;padding:1.25rem 1rem 1.5rem;}
+    }
+
+    .modal-actions-fixed {
+        position: sticky;
+        bottom: -24px;
+        left: 0;
+        right: 0;
+        background: #fff;
+        z-index: 10;
+        padding-bottom: 1rem;
+        padding-top: 0.5rem;
     }
 </style>
 
@@ -1031,7 +1190,6 @@ include '../../includes/menu.php';
 <button class="fab-add" onclick="openModal()"><i class="bi bi-plus"></i></button>
 
 <!-- MODAL NOVO AGENDAMENTO -->
-<!-- MODAL NOVO AGENDAMENTO -->
 <div class="modal-overlay" id="modalAdd">
     <div class="sheet-modal sheet-modal-form">
         <div class="sheet-header">
@@ -1085,19 +1243,39 @@ include '../../includes/menu.php';
                 </div>
                 <div class="form-group">
                     <label class="form-label">Nome do cliente</label>
-                    <input
-                        type="text"
-                        name="cliente"
-                        id="inputNome"
-                        list="dlClientes"
-                        class="form-input"
-                        placeholder="Digite o nome ou escolha da lista"
-                        autocomplete="off"
-                        onchange="preencherTel()"
-                    >
-                    <datalist id="dlClientes">
-                        <?php foreach($clientes as $c) echo "<option value='".htmlspecialchars($c['nome'])."'>"; ?>
-                    </datalist>
+
+                    <div class="combo" onclick="abrirListaClientes()">
+                        <input
+                            type="text"
+                            name="cliente"
+                            id="inputNome"
+                            class="form-input"
+                            placeholder="Digite o nome ou escolha da lista"
+                            autocomplete="off"
+                            oninput="filtrarClientes()"
+                        >
+                        <span class="combo-arrow">
+                            <i class="bi bi-chevron-down"></i>
+                        </span>
+
+                        <div id="listaClientes" class="combo-list">
+                            <?php foreach($clientes as $c): ?>
+                                <div
+                                    class="combo-item"
+                                    data-id="<?php echo $c['id']; ?>"
+                                    data-nome="<?php echo htmlspecialchars($c['nome']); ?>"
+                                    data-tel="<?php echo htmlspecialchars($c['telefone']); ?>"
+                                    onclick="selecionarCliente(this)"
+                                >
+                                    <span><?php echo htmlspecialchars($c['nome']); ?></span>
+                                    <?php if (!empty($c['telefone'])): ?>
+                                        <small><?php echo htmlspecialchars($c['telefone']); ?></small>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
                     <input type="hidden" name="cliente_id" id="clienteIdHidden">
                 </div>
 
@@ -1121,23 +1299,58 @@ include '../../includes/menu.php';
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Serviços</label>
-                    <div class="services-box">
-                        <?php foreach($servicos as $s): ?>
-                            <div class="service-item">
-                                <input
-                                    type="checkbox"
-                                    name="servicos_ids[]"
-                                    value="<?php echo $s['id']; ?>"
-                                    data-preco="<?php echo $s['preco']; ?>"
-                                    onchange="calcTotal()"
-                                >
-                                <span>
-                                    <?php echo htmlspecialchars($s['nome']) . ' (R$ ' . number_format($s['preco'],2,',','.'); ?>
-                                </span>
+                    <label class="form-label">Serviços e Pacotes</label>
+
+                    <?php if ($hasServicos || $hasPacotes): ?>
+                        <?php if ($hasServicos && $hasPacotes): ?>
+                            <div class="services-tabs">
+                                <button type="button" class="services-tab active" data-target="servicosListBox">Serviços</button>
+                                <button type="button" class="services-tab" data-target="pacotesListBox">Pacotes</button>
                             </div>
-                        <?php endforeach; ?>
-                    </div>
+                        <?php endif; ?>
+
+                        <div class="services-box">
+                            <?php if ($hasServicos): ?>
+                            <div id="servicosListBox" style="<?php echo ($hasServicos && $hasPacotes) ? '' : ''; ?>">
+                                <?php foreach($servicosList as $s): ?>
+                                    <div class="service-item">
+                                        <input
+                                            type="checkbox"
+                                            name="servicos_ids[]"
+                                            value="<?php echo $s['id']; ?>"
+                                            data-preco="<?php echo $s['preco']; ?>"
+                                            onchange="calcTotal()"
+                                        >
+                                        <span>
+                                            <?php echo htmlspecialchars($s['nome']) . ' (R$ ' . number_format($s['preco'],2,',','.') . ')'; ?>
+                                            <span style="color:#64748b;font-size:0.72rem;margin-left:4px;">[Serviço]</span>
+                                        </span>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php endif; ?>
+
+                            <?php if ($hasPacotes): ?>
+                            <div id="pacotesListBox" style="<?php echo ($hasServicos && $hasPacotes) ? 'display:none;' : ''; ?>">
+                                <?php foreach($pacotesList as $s): ?>
+                                    <div class="service-item">
+                                        <input
+                                            type="checkbox"
+                                            name="servicos_ids[]"
+                                            value="<?php echo $s['id']; ?>"
+                                            data-preco="<?php echo $s['preco']; ?>"
+                                            onchange="calcTotal()"
+                                        >
+                                        <span>
+                                            <?php echo htmlspecialchars($s['nome']) . ' (R$ ' . number_format($s['preco'],2,',','.') . ')'; ?>
+                                            <span style="color:#64748b;font-size:0.72rem;margin-left:4px;">[Pacote]</span>
+                                        </span>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <div class="form-row-3">
@@ -1197,13 +1410,47 @@ include '../../includes/menu.php';
                             >
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Qtd. Sessões</label>
+                            <label class="form-label">Qtd. Sess?es</label>
                             <input
                                 type="number"
                                 name="recorrencia_qtd"
                                 value="4"
                                 class="form-input"
                             >
+                        </div>
+                        <div class="form-group rec-days-group">
+                            <label class="form-label">Dias da semana</label>
+                            <div class="rec-days" id="recDiasSemana">
+                                <label class="rec-day">
+                                    <input type="checkbox" name="recorrencia_dias_semana[]" value="0">
+                                    <span>Dom</span>
+                                </label>
+                                <label class="rec-day">
+                                    <input type="checkbox" name="recorrencia_dias_semana[]" value="1">
+                                    <span>Seg</span>
+                                </label>
+                                <label class="rec-day">
+                                    <input type="checkbox" name="recorrencia_dias_semana[]" value="2">
+                                    <span>Ter</span>
+                                </label>
+                                <label class="rec-day">
+                                    <input type="checkbox" name="recorrencia_dias_semana[]" value="3">
+                                    <span>Qua</span>
+                                </label>
+                                <label class="rec-day">
+                                    <input type="checkbox" name="recorrencia_dias_semana[]" value="4">
+                                    <span>Qui</span>
+                                </label>
+                                <label class="rec-day">
+                                    <input type="checkbox" name="recorrencia_dias_semana[]" value="5">
+                                    <span>Sex</span>
+                                </label>
+                                <label class="rec-day">
+                                    <input type="checkbox" name="recorrencia_dias_semana[]" value="6">
+                                    <span>Sab</span>
+                                </label>
+                            </div>
+                            <small class="rec-hint" id="recDiaHint">Dias: nao selecionado</small>
                         </div>
                     </div>
                 </div>
@@ -1224,9 +1471,8 @@ include '../../includes/menu.php';
                     ></textarea>
                 </div>
             </div>
-
-            <!-- Ações -->
         </form>
+
         <div class="modal-actions modal-actions-fixed">
             <button type="submit" form="formNovo" class="btn-main">
                 <i class="bi bi-check2-circle" style="margin-right:4px;"></i>
@@ -1236,20 +1482,6 @@ include '../../includes/menu.php';
                 Cancelar
             </button>
         </div>
-        <style>
-        .modal-actions-fixed {
-                position: sticky;
-                bottom: -24px;
-                left: 0;
-                right: 0;
-                background: #fff;
-                z-index: 10;
-                /* box-shadow: 0 -2px 16px rgba(15, 23, 42, 0.08); */
-                padding-bottom: 1rem;
-                padding-top: 0.5rem;
-        }
-        </style>
-        </form>
     </div>
 </div>
 
@@ -1381,22 +1613,67 @@ function renderCard($ag, $clientes) {
         openModal();
         document.querySelector('input[name="data_agendamento"]').value = data;
         document.querySelector('input[name="horario"]').value = hora;
+        setRecDaysFromDate();
     }
 
-    // Clientes -> telefone
-    var clientesDB = <?php echo json_encode($clientes); ?>;
-    function preencherTel(){
-        let nome = document.getElementById('inputNome').value;
-        let c = clientesDB.find(x => x.nome === nome);
-        const telInput = document.getElementById('inputTel');
-        const hiddenId = document.getElementById('clienteIdHidden');
-        if (c) {
-            telInput.value = c.telefone || '';
-            hiddenId.value = c.id || '';
+    // === COMBOBOX DE CLIENTES (FUNCIONA NO CELULAR) ===
+    function abrirListaClientes() {
+        const lista = document.getElementById('listaClientes');
+        if (!lista) return;
+        lista.classList.add('open');
+    }
+
+    function fecharListaClientes() {
+        const lista = document.getElementById('listaClientes');
+        if (!lista) return;
+        lista.classList.remove('open');
+    }
+
+    function selecionarCliente(el) {
+        const nome = el.dataset.nome || '';
+        const tel  = el.dataset.tel || '';
+        const id   = el.dataset.id || '';
+
+        document.getElementById('inputNome').value = nome;
+        document.getElementById('inputTel').value  = tel;
+        document.getElementById('clienteIdHidden').value = id;
+
+        fecharListaClientes();
+    }
+
+    function filtrarClientes() {
+        const termo = (document.getElementById('inputNome').value || '').toLowerCase();
+        const lista = document.getElementById('listaClientes');
+        if (!lista) return;
+
+        const itens = lista.querySelectorAll('.combo-item');
+        let algumVisivel = false;
+
+        itens.forEach(item => {
+            const nome = (item.dataset.nome || '').toLowerCase();
+            const tel  = (item.dataset.tel || '').toLowerCase();
+            const show = nome.includes(termo) || tel.includes(termo);
+            item.style.display = show ? 'flex' : 'none';
+            if (show) algumVisivel = true;
+        });
+
+        if (algumVisivel) {
+            lista.classList.add('open');
         } else {
-            hiddenId.value = '';
+            lista.classList.remove('open');
         }
     }
+
+    // Fecha lista de clientes se clicar fora
+    document.addEventListener('click', function(e){
+        const combo = document.querySelector('.combo');
+        const lista = document.getElementById('listaClientes');
+        if (!combo || !lista) return;
+
+        if (!combo.contains(e.target)) {
+            lista.classList.remove('open');
+        }
+    });
 
     // Soma serviços
     let valorEditadoManualmente = false;
@@ -1407,7 +1684,45 @@ function renderCard($ag, $clientes) {
                 valorEditadoManualmente = true;
             });
         }
+
+        // Tabs Serviços / Pacotes
+        const tabs = document.querySelectorAll('.services-tab');
+        if (tabs.length) {
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    const target = tab.dataset.target;
+                    const servBox = document.getElementById('servicosListBox');
+                    const pacBox  = document.getElementById('pacotesListBox');
+
+                    if (servBox) servBox.style.display = (target === 'servicosListBox') ? 'block' : 'none';
+                    if (pacBox)  pacBox.style.display  = (target === 'pacotesListBox')  ? 'block' : 'none';
+                });
+            });
+        }
+
+        const formNovo = document.getElementById('formNovo');
+        if (formNovo) {
+            formNovo.addEventListener('submit', function(){
+                closeModal();
+            });
+        }
+
+        const recInputs = getRecDayInputs();
+        if (recInputs.length) {
+            recInputs.forEach(input => input.addEventListener('change', updateRecHint));
+        }
+        const dataInput = document.querySelector('input[name="data_agendamento"]');
+        if (dataInput) {
+            dataInput.addEventListener('change', function(){
+                setRecDaysFromDate();
+            });
+        }
+        setRecDaysFromDate();
     });
+
     function calcTotal(){
         let checks = document.querySelectorAll('input[name="servicos_ids[]"]:checked');
         let tot = 0;
@@ -1418,7 +1733,36 @@ function renderCard($ag, $clientes) {
     }
 
     function toggleRec(active){
-        document.getElementById('divRec').style.display = active ? 'grid' : 'none';
+        const rec = document.getElementById('divRec');
+        if (rec) rec.style.display = active ? 'grid' : 'none';
+        if (active) setRecDaysFromDate();
+    }
+
+    function getRecDayInputs(){
+        return document.querySelectorAll('input[name="recorrencia_dias_semana[]"]');
+    }
+
+    function updateRecHint(){
+        const hint = document.getElementById('recDiaHint');
+        if (!hint) return;
+        const labels = {0:'Dom',1:'Seg',2:'Ter',3:'Qua',4:'Qui',5:'Sex',6:'Sab'};
+        const inputs = Array.from(getRecDayInputs());
+        const selected = inputs.filter(i => i.checked).map(i => labels[parseInt(i.value, 10)]);
+        hint.textContent = selected.length ? 'Dias: ' + selected.join(', ') : 'Dias: nao selecionado';
+    }
+
+    function setRecDaysFromDate(){
+        const dateInput = document.querySelector('input[name="data_agendamento"]');
+        if (!dateInput || !dateInput.value) return;
+        const date = new Date(dateInput.value + 'T00:00:00');
+        if (Number.isNaN(date.getTime())) return;
+        const day = date.getDay();
+        const inputs = Array.from(getRecDayInputs());
+        const anyChecked = inputs.some(i => i.checked);
+        if (!anyChecked) {
+            inputs.forEach(i => i.checked = (parseInt(i.value, 10) === day));
+        }
+        updateRecHint();
     }
 
     // ACTION SHEET
@@ -1459,6 +1803,7 @@ function renderCard($ag, $clientes) {
             .replace(/&?status=\w+/,'')
             .replace(/&?delete=\d+/,'')
             .replace(/&?tipo_exclusao=\w+/,'');
+
         let urlBase = basePath + qs;
         let sep = urlBase.includes('?') ? '&' : '?';
         let finalUrl = urlBase + sep + 'id=' + data.id;
@@ -1510,6 +1855,7 @@ function renderCard($ag, $clientes) {
             .replace(/&?delete=\d+/,'')
             .replace(/&?tipo_exclusao=\w+/,'')
             .replace(/&?id=\d+/,'');
+
         let urlBase = basePath + qs;
         let sep = urlBase.includes('?') ? '&' : '?';
         window.location.href = urlBase + sep + 'delete=' + currentAgId + '&tipo_exclusao=' + tipo;
