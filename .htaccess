@@ -28,6 +28,9 @@ RewriteRule ^agenda$ pages/agenda/agenda.php [L]
 # Rota: /clientes -> abre pages/clientes/clientes.php
 RewriteRule ^clientes$ pages/clientes/clientes.php [L]
 
+# Rota: /financeiro -> abre pages/financeiro/financeiro.php
+RewriteRule ^financeiro$ pages/financeiro/financeiro.php [L]
+
 # Rota: /recorrencias -> abre pages/clientes/recorrencias.php (com query string preservada)
 RewriteRule ^recorrencias$ pages/clientes/recorrencias.php [L,QSA]
 

@@ -230,8 +230,8 @@ function isActive($pageName)
     .avatar-circle {
         width: 52px;
         height: 52px;
-        background: linear-gradient(135deg, #a855f7, #6366f1);
-        border-radius: 16px;
+        background: linear-gradient(135deg, #0f2f66, #1e3a8a);
+        border-radius: 999px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -240,7 +240,7 @@ function isActive($pageName)
         font-size: 1.05rem;
         letter-spacing: 1px;
         flex-shrink: 0;
-        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.25);
+        box-shadow: 0 8px 20px rgba(15, 47, 102, 0.28);
         border: 2px solid rgba(255, 255, 255, 0.12);
     }
 
@@ -384,7 +384,7 @@ function isActive($pageName)
         .app-sidebar.collapsed .avatar-circle {
             width: 44px;
             height: 44px;
-            border-radius: 14px;
+            border-radius: 999px;
         }
 
         .app-sidebar.collapsed .sidebar-link {
@@ -989,6 +989,12 @@ function isActive($pageName)
             <a href="<?php echo $isProd ? '/produtos-estoque' : '/karen_site/controle-salao/pages/produtos-estoque/produtos-estoque.php'; ?>"
                class="sidebar-link <?php echo isActive('produtos-estoque.php'); ?>">
                 <i class="bi bi-box-seam-fill"></i> <span class="menu-text">Produtos
+            </span></a>
+        </li>
+        <li>
+            <a href="<?php echo $isProd ? '/financeiro' : '/karen_site/controle-salao/pages/financeiro/financeiro.php'; ?>"
+               class="sidebar-link <?php echo isActive('financeiro.php'); ?>">
+                <i class="bi bi-cash-stack"></i> <span class="menu-text">Financeiro
             </span></a>
         </li>
         <li>

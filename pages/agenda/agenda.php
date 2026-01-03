@@ -1305,7 +1305,7 @@ include '../../includes/menu.php';
                                     data-id="<?php echo $c['id']; ?>"
                                     data-nome="<?php echo htmlspecialchars($c['nome']); ?>"
                                     data-tel="<?php echo htmlspecialchars($c['telefone']); ?>"
-                                    onclick="selecionarCliente(this)"
+                                    onclick="selecionarCliente(this, event)"
                                 >
                                     <span><?php echo htmlspecialchars($c['nome']); ?></span>
                                     <?php if (!empty($c['telefone'])): ?>
@@ -1669,7 +1669,10 @@ function renderCard($ag, $clientes) {
         lista.classList.remove('open');
     }
 
-    function selecionarCliente(el) {
+    function selecionarCliente(el, ev) {
+        if (ev && typeof ev.stopPropagation === 'function') {
+            ev.stopPropagation();
+        }
         const nome = el.dataset.nome || '';
         const tel  = el.dataset.tel || '';
         const id   = el.dataset.id || '';
@@ -1920,7 +1923,8 @@ function renderCard($ag, $clientes) {
     }
     function compartilharLink(){
         let url = document.getElementById('linkAgendamento').value;
-        if(navigator.share) navigator.share({title:'Agendamento', url:url});
-        else window.open('https://wa.me/?text='+encodeURIComponent(url));
+        const isMobile = /Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const host = isMobile ? 'api.whatsapp.com' : 'web.whatsapp.com';
+        window.open(`https://${host}/send?text=${encodeURIComponent(url)}`, '_blank');
     }
 </script>

@@ -222,6 +222,20 @@ try {
         FOREIGN KEY (calculo_id) REFERENCES calculo_servico(id) ON DELETE CASCADE
     )"); 
 
+    // 10. Financeiro (entradas e saidas)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS financeiro_movimentos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        tipo TEXT NOT NULL,              -- entrada | saida
+        categoria TEXT,
+        descricao TEXT,
+        valor REAL NOT NULL,
+        data_movimento DATE NOT NULL,
+        origem TEXT,                     -- manual | agendamento
+        referencia_id INTEGER,           -- id relacionado (ex: agendamento)
+        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
     // 9. Configurações gerais do sistema
     $pdo->exec("CREATE TABLE IF NOT EXISTS configuracoes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -265,6 +279,10 @@ try {
     try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN valor REAL DEFAULT 0"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN observacoes TEXT"); } catch (Exception $e) {} 
 
+    // Financeiro - campos de origem e referência
+    try { $pdo->exec("ALTER TABLE financeiro_movimentos ADD COLUMN origem TEXT DEFAULT 'manual'"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE financeiro_movimentos ADD COLUMN referencia_id INTEGER"); } catch (Exception $e) {} 
+
     // Usuários (migrando para colunas novas caso não existam)
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN senha TEXT"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN foto TEXT"); } catch (Exception $e) {} 
@@ -306,6 +324,9 @@ try {
     // Índices para comandas / comanda_itens
     try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_comandas_user_status ON comandas(user_id, status)"); } catch (Exception $e) {}
     try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_comanda_itens_comanda ON comanda_itens(comanda_id)"); } catch (Exception $e) {}
+    try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_financeiro_user_data ON financeiro_movimentos(user_id, data_movimento)"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE financeiro_movimentos ADD COLUMN origem TEXT"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE financeiro_movimentos ADD COLUMN referencia_id INTEGER"); } catch (Exception $e) {}
 
     // ========================================================= 
     // ÍNDICES E TABELAS PARA API REST
