@@ -564,6 +564,26 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
         transition: all 0.2s ease;
     }
 
+    .material-item.from-stock {
+        border-color: rgba(37,99,235,0.35);
+        background: #eef6ff;
+        padding-top: 34px;
+    }
+
+    .material-badge {
+        position: absolute;
+        top: 8px;
+        left: 12px;
+        font-size: 0.62rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #1e3a8a;
+        background: #dbeafe;
+        padding: 3px 8px;
+        border-radius: 999px;
+    }
+
     .material-item:hover {
         background: #ffffff;
         border-color: rgba(15,47,102,0.2);
@@ -629,6 +649,18 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
     .btn-remove:hover {
         background: #fee2e2;
         transform: translateY(-1px);
+    }
+
+    .btn-remove.inline {
+        position: static;
+        width: 45px;
+        height: 35px;
+        padding: 0;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
     }
 
     .btn-primary {
@@ -814,6 +846,11 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
         transition: all 0.2s ease;
     }
 
+    .cs-chip.disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
     .cs-chip-primary {
         background: rgba(15,47,102,0.08);
         border-color: rgba(15,47,102,0.3);
@@ -897,6 +934,16 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
         max-height: 60vh;
         overflow-y: auto;
         padding-top: 4px;
+    }
+
+    .cs-empty {
+        background: #f8fafc;
+        border: 1px dashed rgba(148,163,184,0.4);
+        border-radius: 14px;
+        padding: 16px;
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        text-align: center;
     }
 
     .cs-product-row {
@@ -1110,19 +1157,21 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
                                ?>">
                     </div>
 
+                    <?php $produtosCount = is_array($produtosCalc) ? count($produtosCalc) : 0; ?>
                     <div class="cs-product-actions">
-                        <?php if ($produtosCalc): ?>
-                            <button type="button" class="cs-chip cs-chip-primary" onclick="openProdutoSheet()">
-                                <span>📦</span> Usar produto do estoque
-                            </button>
-                            <button type="button" class="cs-chip cs-chip-outline" onclick="addMaterial()">
-                                <span>➕</span> Adicionar manual
-                            </button>
-                        <?php else: ?>
-                            <button type="button" class="cs-chip cs-chip-primary" onclick="addMaterial()">
-                                <span>➕</span> Adicionar material
-                            </button>
-                        <?php endif; ?>
+                        <button
+                            type="button"
+                            class="cs-chip cs-chip-primary <?php echo $produtosCount ? '' : 'disabled'; ?>"
+                            <?php echo $produtosCount ? 'onclick="openProdutoSheet()"' : 'onclick="return false;"'; ?>
+                        >
+                            <span>📦</span> Usar produto do estoque
+                        </button>
+                        <button type="button" class="cs-chip cs-chip-outline" onclick="addMaterial()">
+                            <span>➕</span> Adicionar manual
+                        </button>
+                    </div>
+                    <div class="helper-text" style="margin-top:6px;">
+                        <?php echo $produtosCount; ?> produto(s) no estoque cadastrados.
                     </div>
 
                     <div class="section-title" style="margin-top:12px;"><span>2</span> Materiais utilizados</div>
@@ -1272,7 +1321,6 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
     </form>
 </div>
 
-<?php if ($produtosCalc): ?>
 <div class="cs-sheet-overlay" id="produtoSheet">
     <div class="cs-sheet">
         <div class="cs-sheet-header">
@@ -1280,37 +1328,42 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
             <button type="button" class="cs-sheet-close" onclick="closeProdutoSheet()">&times;</button>
         </div>
         <div class="cs-sheet-body">
-            <?php foreach ($produtosCalc as $p): ?>
-                <?php
-                    $nomeExibir = $p['nome'] . ($p['marca'] ? ' - ' . $p['marca'] : '');
-                    $tamanhoEmb = (float)($p['tamanho_embalagem'] ?? 0);
-                    $unMedida   = $p['unidade'] ?: 'un';
-                ?>
-                <button
-                    type="button"
-                    class="cs-product-row"
-                    data-id="<?php echo (int)$p['id']; ?>"
-                    data-nome="<?php echo htmlspecialchars($nomeExibir); ?>"
-                    data-unidade="<?php echo htmlspecialchars(strtolower($unMedida)); ?>"
-                    data-tamanho="<?php echo $tamanhoEmb; ?>"
-                    data-preco="<?php echo (float)$p['custo_unitario']; ?>"
-                    onclick="selectProdutoFromSheet(this)"
-                >
+            <?php if ($produtosCalc): ?>
+                <?php foreach ($produtosCalc as $p): ?>
+                    <?php
+                        $nomeExibir = $p['nome'] . ($p['marca'] ? ' - ' . $p['marca'] : '');
+                        $tamanhoEmb = (float)($p['tamanho_embalagem'] ?? 0);
+                        $unMedida   = $p['unidade'] ?: 'un';
+                    ?>
+                    <button
+                        type="button"
+                        class="cs-product-row"
+                        data-id="<?php echo (int)$p['id']; ?>"
+                        data-nome="<?php echo htmlspecialchars($nomeExibir); ?>"
+                        data-unidade="<?php echo htmlspecialchars(strtolower($unMedida)); ?>"
+                        data-tamanho="<?php echo $tamanhoEmb; ?>"
+                        data-preco="<?php echo (float)$p['custo_unitario']; ?>"
+                        onclick="selectProdutoFromSheet(this)"
+                    >
 
-                    <span class="cs-product-row-name"><?php echo htmlspecialchars($p['nome']); ?></span>
-                    <?php if ($p['marca']): ?>
-                        <span class="cs-product-row-meta"><?php echo htmlspecialchars($p['marca']); ?></span>
-                    <?php endif; ?>
-                    <span class="cs-product-row-meta">
-                        Embalagem: <?php echo $tamanhoEmb; ?> <?php echo htmlspecialchars($unMedida); ?> •
-                        Custo pago: R$ <?php echo number_format($p['custo_unitario'], 2, ',', '.'); ?>
-                    </span>
-                </button>
-            <?php endforeach; ?>
+                        <span class="cs-product-row-name"><?php echo htmlspecialchars($p['nome']); ?></span>
+                        <?php if ($p['marca']): ?>
+                            <span class="cs-product-row-meta"><?php echo htmlspecialchars($p['marca']); ?></span>
+                        <?php endif; ?>
+                        <span class="cs-product-row-meta">
+                            Embalagem: <?php echo $tamanhoEmb; ?> <?php echo htmlspecialchars($unMedida); ?> •
+                            Custo pago: R$ <?php echo number_format($p['custo_unitario'], 2, ',', '.'); ?>
+                        </span>
+                    </button>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="cs-empty">
+                    Nenhum produto cadastrado no estoque ainda.
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
-<?php endif; ?>
 
 <script>
     // Opções de unidade usadas nos selects
@@ -1364,7 +1417,16 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
                 <input type="number" step="0.01" name="materiais_preco_prod[]" class="form-control" placeholder="R$ total">
             </div>
         `;
-        container.appendChild(div);
+        if (produtoId) {
+            div.classList.add('from-stock');
+            const badge = document.createElement('div');
+            badge.className = 'material-badge';
+            badge.textContent = 'estoque';
+            div.appendChild(badge);
+            container.prepend(div);
+        } else {
+            container.appendChild(div);
+        }
 
         // Preenche dados se vieram de produto do estoque / edição
         if (nome) {
@@ -1398,10 +1460,12 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
             <div style="flex:2;">
                 <input type="text" name="taxa_nome[]" class="form-control" placeholder="Nome da taxa">
             </div>
-            <div style="flex:1;">
+            <div style="flex:1; display:flex; gap:8px; align-items:center;">
                 <input type="number" step="0.01" name="taxa_valor[]" class="form-control" placeholder="R$">
+                <button type="button" class="btn-remove inline" onclick="this.closest('.material-item').remove()">
+                    <i class="bi bi-trash"></i>
+                </button>
             </div>
-            <button type="button" class="btn-remove" onclick="this.closest('.material-item').remove()">x</button>
         `;
         container.appendChild(div);
     }

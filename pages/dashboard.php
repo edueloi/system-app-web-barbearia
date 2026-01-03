@@ -887,11 +887,17 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         }
     }
 
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
     .filters-card {
         background: linear-gradient(135deg, #0f2f66 0%, #1e3a8a 100%);
         border-radius: var(--radius-md);
         padding: 1.5rem;
-        margin-bottom: 1.5rem;
         box-shadow: var(--shadow-card);
         color: white;
     }
@@ -2032,37 +2038,56 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
 <?php endif; ?>
 
 <!-- Filtros de Período -->
-    <div class="filters-card">
-        <div class="filters-header">
-            <i class="bi bi-funnel-fill filters-icon"></i>
-            <h2 class="filters-title">Filtrar Faturamento por Período</h2>
+    <div class="filters-grid">
+        <div class="filters-card">
+            <div class="filters-header">
+                <i class="bi bi-funnel-fill filters-icon"></i>
+                <h2 class="filters-title">Filtro de Faturamento</h2>
+            </div>
+            <form method="GET" class="filters-form">
+                <div class="filter-group">
+                    <label class="filter-label">Data Início</label>
+                    <input type="date" name="data_inicio" class="filter-input" value="<?php echo htmlspecialchars($dataInicio); ?>" required>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Data Fim</label>
+                    <input type="date" name="data_fim" class="filter-input" value="<?php echo htmlspecialchars($dataFim); ?>" required>
+                </div>
+                <div class="filter-group">
+                    <button type="submit" class="btn-filter">
+                        <i class="bi bi-search"></i>
+                        Aplicar Filtro
+                    </button>
+                </div>
+            </form>
         </div>
-        <form method="GET" class="filters-form">
-            <div class="filter-group">
-                <label class="filter-label">Data Início</label>
-                <input type="date" name="data_inicio" class="filter-input" value="<?php echo htmlspecialchars($dataInicio); ?>" required>
+
+        <div class="filters-card">
+            <div class="filters-header">
+                <i class="bi bi-gift-fill filters-icon"></i>
+                <h2 class="filters-title">Aniversários do Mês</h2>
             </div>
-            <div class="filter-group">
-                <label class="filter-label">Data Fim</label>
-                <input type="date" name="data_fim" class="filter-input" value="<?php echo htmlspecialchars($dataFim); ?>" required>
-            </div>
-            <div class="filter-group">
-                <label class="filter-label">Aniversários</label>
-                <select name="mes_aniversario" class="filter-input">
-                    <?php foreach ($mesNomes as $num => $nome): ?>
-                        <option value="<?php echo $num; ?>" <?php echo ($num == $mesFiltro) ? 'selected' : ''; ?>>
-                            <?php echo $nome; ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="filter-group">
-                <button type="submit" class="btn-filter">
-                    <i class="bi bi-search"></i>
-                    Aplicar Filtros
-                </button>
-            </div>
-        </form>
+            <form method="GET" class="filters-form">
+                <input type="hidden" name="data_inicio" value="<?php echo htmlspecialchars($dataInicio); ?>">
+                <input type="hidden" name="data_fim" value="<?php echo htmlspecialchars($dataFim); ?>">
+                <div class="filter-group">
+                    <label class="filter-label">Mês</label>
+                    <select name="mes_aniversario" class="filter-input">
+                        <?php foreach ($mesNomes as $num => $nome): ?>
+                            <option value="<?php echo $num; ?>" <?php echo ($num == $mesFiltro) ? 'selected' : ''; ?>>
+                                <?php echo $nome; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <button type="submit" class="btn-filter">
+                        <i class="bi bi-calendar-heart"></i>
+                        Ver Aniversários
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Cards de Resumo -->
