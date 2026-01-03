@@ -110,9 +110,9 @@ include '../../includes/ui-confirm.php';
     */
 
     :root {
-        --primary-color: #4f46e5;
-        --primary-dark: #4338ca;
-        --accent: #ec4899;
+        --primary-color: #0f2f66;
+        --primary-dark: #1e3a8a;
+        --accent: #2563eb;
         --bg-page: #f8fafc;
         --bg-card: #ffffff;
         --text-main: #0f172a;
@@ -136,7 +136,7 @@ include '../../includes/ui-confirm.php';
     }
 
     .estoque-wrapper {
-        max-width: 1000px;
+        max-width: 1100px;
         margin: 0 auto;
         padding: 20px 12px 80px 12px;
     }
@@ -194,7 +194,7 @@ include '../../includes/ui-confirm.php';
         gap: 6px;
         text-decoration: none;
         transition: all 0.25s ease;
-        box-shadow: 0 4px 10px rgba(79,70,229,0.25);
+        box-shadow: 0 4px 10px rgba(15,47,102,0.25);
         white-space: nowrap;
         outline: none;
     }
@@ -205,7 +205,7 @@ include '../../includes/ui-confirm.php';
 
     .btn-new:hover {
         transform: translateY(-1px);
-        box-shadow: 0 7px 16px rgba(79,70,229,0.35);
+        box-shadow: 0 7px 16px rgba(15,47,102,0.35);
     }
 
     .btn-new:active {
@@ -235,7 +235,7 @@ include '../../includes/ui-confirm.php';
     .stat-card:hover {
         box-shadow: var(--shadow-hover);
         transform: translateY(-1px);
-        border-color: rgba(79,70,229,0.25);
+        border-color: rgba(15,47,102,0.2);
     }
 
     .stat-icon {
@@ -309,7 +309,7 @@ include '../../includes/ui-confirm.php';
     }
 
     .custom-table thead {
-        background: #f9fafb;
+        background: #f8fafc;
     }
 
     .custom-table th {
@@ -340,7 +340,7 @@ include '../../includes/ui-confirm.php';
     }
 
     .custom-table tbody tr:hover {
-        background: #f9fafb;
+        background: #f8fafc;
     }
 
     /* Badges */
@@ -440,12 +440,12 @@ include '../../includes/ui-confirm.php';
     .modal-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(15,23,42,0.3);
+        background: rgba(15,23,42,0.45);
         z-index: 1000;
         display: none;
         align-items: center;
         justify-content: center;
-        backdrop-filter: blur(4px);
+        backdrop-filter: blur(6px);
         padding: 16px;
     }
 
@@ -454,7 +454,7 @@ include '../../includes/ui-confirm.php';
     }
 
     .modal-content {
-        background: var(--bg-card);
+        background: #f8fafc;
         border-radius: 20px;
         width: 100%;
         max-width: 540px;
@@ -464,6 +464,21 @@ include '../../includes/ui-confirm.php';
         box-shadow: 0 20px 50px rgba(15,23,42,0.3);
         position: relative;
         border: 1px solid rgba(148,163,184,0.20);
+    }
+
+    .modal-content::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 64px;
+        border-radius: 20px 20px 0 0;
+        background: linear-gradient(135deg, rgba(15,47,102,0.12), rgba(37,99,235,0.08));
+        pointer-events: none;
+    }
+
+    .modal-content > * {
+        position: relative;
+        z-index: 1;
     }
 
     .modal-header {
@@ -489,7 +504,7 @@ include '../../includes/ui-confirm.php';
     }
 
     .close-modal {
-        background: #f9fafb;
+        background: #f1f5f9;
         border: 1px solid var(--border-color);
         width: 30px;
         height: 30px;
@@ -515,8 +530,22 @@ include '../../includes/ui-confirm.php';
         gap: 12px;
     }
 
+    .modal-content form {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .modal-title strong {
+        font-weight: 800;
+    }
+
     .form-group {
         margin-bottom: 12px;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        padding: 10px 12px;
     }
 
     .form-group label {
@@ -533,7 +562,7 @@ include '../../includes/ui-confirm.php';
         border: 1px solid var(--border-color);
         border-radius: 12px;
         font-size: 0.8rem;
-        background: var(--bg-card);
+        background: #f8fafc;
         color: var(--text-main);
         font-family: inherit;
         box-sizing: border-box;
@@ -543,7 +572,8 @@ include '../../includes/ui-confirm.php';
 
     .form-control:focus {
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(79,70,229,0.15);
+        box-shadow: 0 0 0 3px rgba(15,47,102,0.12);
+        background: #ffffff;
     }
 
     textarea.form-control {
@@ -555,7 +585,7 @@ include '../../includes/ui-confirm.php';
         margin: 12px 0;
         padding: 10px 12px;
         border-radius: 14px;
-        background: #f9fafb;
+        background: #f8fafc;
         border: 1px dashed rgba(148,163,184,0.4);
     }
 
@@ -588,8 +618,8 @@ include '../../includes/ui-confirm.php';
     .product-sheet-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(15,23,42,0.3);
-        backdrop-filter: blur(3px);
+        background: rgba(15,23,42,0.4);
+        backdrop-filter: blur(4px);
         display: none;
         align-items: flex-end;
         justify-content: center;
@@ -603,7 +633,7 @@ include '../../includes/ui-confirm.php';
     .product-sheet {
         width: 100%;
         max-width: 460px;
-        background: var(--bg-card);
+        background: #f8fafc;
         border-radius: 24px 24px 0 0;
         box-shadow: 0 -12px 30px rgba(15,23,42,0.25);
         padding: 16px 18px 18px;
@@ -646,7 +676,7 @@ include '../../includes/ui-confirm.php';
         height: 28px;
         border-radius: 999px;
         border: 1px solid var(--border-color);
-        background: #f9fafb;
+        background: #f1f5f9;
         color: var(--text-muted);
         display: inline-flex;
         align-items: center;
@@ -717,8 +747,8 @@ include '../../includes/ui-confirm.php';
     }
 
     .product-sheet-btn-edit {
-        background: #eef2ff;
-        color: #4338ca;
+        background: #dbeafe;
+        color: #1e3a8a;
     }
 
     .product-sheet-btn-delete {

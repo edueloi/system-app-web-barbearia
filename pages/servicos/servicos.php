@@ -181,9 +181,9 @@ $calculos = $stmtCalcs->fetchAll();
     /* Fundo neutro, cards brancos, 100% responsivo */
     
     :root {
-        --primary-color: #4f46e5;
-        --primary-dark: #4338ca;
-        --primary-light: #eef2ff;
+        --primary-color: #0f2f66;
+        --primary-dark: #1e3a8a;
+        --primary-light: #dbeafe;
         
         --bg-page: #f8fafc;
         --bg-card: #ffffff;
@@ -192,18 +192,20 @@ $calculos = $stmtCalcs->fetchAll();
         --text-muted: #64748b;
         
         --border: #e2e8f0;
+        --border-soft: #f1f5f9;
         
         --danger: #ef4444;
-        --success: #10b981;
+        --success: #16a34a;
         --warning: #f59e0b;
         
-        --radius-sm: 8px;
-        --radius-md: 12px;
-        --radius-lg: 16px;
+        --radius-sm: 10px;
+        --radius-md: 14px;
+        --radius-lg: 18px;
         
-        --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-        --shadow-card: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
-        --shadow-hover: 0 4px 12px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+        --shadow-sm: 0 1px 2px rgba(15,23,42,0.06);
+        --shadow-card: 0 6px 14px rgba(15,23,42,0.08);
+        --shadow-hover: 0 12px 28px rgba(15,23,42,0.12);
+        --shadow-strong: 0 18px 40px rgba(15,23,42,0.2);
     }
 
     * {
@@ -211,7 +213,7 @@ $calculos = $stmtCalcs->fetchAll();
     }
 
     body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
         font-size: 0.875rem;
         background: var(--bg-page);
         color: var(--text-main);
@@ -279,7 +281,7 @@ $calculos = $stmtCalcs->fetchAll();
     }
 
     .btn-chip {
-        border-radius: var(--radius-md);
+        border-radius: 999px;
         border: none;
         padding: 0.625rem 1rem;
         font-size: 0.8125rem;
@@ -288,7 +290,7 @@ $calculos = $stmtCalcs->fetchAll();
         align-items: center;
         gap: 0.375rem;
         cursor: pointer;
-        background: var(--primary-color);
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
         color: #fff;
         box-shadow: var(--shadow-card);
         transition: all 0.2s ease;
@@ -298,7 +300,6 @@ $calculos = $stmtCalcs->fetchAll();
         font-size: 0.875rem;
     }
     .btn-chip:hover {
-        background: var(--primary-dark);
         transform: translateY(-1px);
         box-shadow: var(--shadow-hover);
     }
@@ -324,7 +325,7 @@ $calculos = $stmtCalcs->fetchAll();
     .search-input:focus {
         outline: none;
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px var(--primary-light);
+        box-shadow: 0 0 0 3px rgba(15,47,102,0.15);
     }
     .search-input::placeholder {
         color: var(--text-muted);
@@ -344,12 +345,14 @@ $calculos = $stmtCalcs->fetchAll();
         margin-bottom: 18px;
     }
     .tabs-pill {
-        background: #e5e7eb;
+        background: #ffffff;
         padding: 4px;
         border-radius: 50px;
         display: inline-flex;
         align-items: center;
         gap: 4px;
+        border: 1px solid rgba(148,163,184,0.25);
+        box-shadow: var(--shadow-sm);
     }
     .tab-btn {
         padding: 7px 16px;
@@ -371,12 +374,12 @@ $calculos = $stmtCalcs->fetchAll();
         transition: transform 0.2s;
     }
     .tab-btn.active {
-        background: var(--primary-color);
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
         color: #ffffff;
         box-shadow: var(--shadow-card);
     }
     .tab-btn:hover:not(.active) {
-        background: rgba(79,70,229,0.08);
+        background: rgba(15,47,102,0.08);
         color: var(--primary-color);
     }
 
@@ -394,7 +397,7 @@ $calculos = $stmtCalcs->fetchAll();
 
     .service-card {
         background: var(--bg-card);
-        border-radius: var(--radius-md);
+        border-radius: 18px;
         overflow: hidden;
         box-shadow: var(--shadow-card);
         border: 1px solid var(--border);
@@ -408,7 +411,7 @@ $calculos = $stmtCalcs->fetchAll();
     .service-card:hover {
         transform: translateY(-2px);
         box-shadow: var(--shadow-hover);
-        border-color: var(--primary-color);
+        border-color: rgba(15,47,102,0.2);
     }
 
     .service-chip {
@@ -438,7 +441,7 @@ $calculos = $stmtCalcs->fetchAll();
     .action-btn {
         width: 1.75rem;
         height: 1.75rem;
-        border-radius: 50%;
+        border-radius: 10px;
         background: var(--bg-card);
         border: 1px solid var(--border);
         box-shadow: var(--shadow-sm);
@@ -473,7 +476,7 @@ $calculos = $stmtCalcs->fetchAll();
 
     .service-img {
         height: 7.5rem;
-        background-color: var(--bg-page);
+        background: linear-gradient(135deg, #eff6ff, #f8fafc);
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
@@ -515,12 +518,12 @@ $calculos = $stmtCalcs->fetchAll();
     }
 
     .btn-submit {
-        background: var(--primary-color);
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
         color: white;
         width: 100%;
         padding: 0.75rem 1.5rem;
         border: none;
-        border-radius: var(--radius-sm);
+        border-radius: 999px;
         font-weight: 600;
         font-size: 0.8125rem;
         cursor: pointer;
@@ -536,28 +539,79 @@ $calculos = $stmtCalcs->fetchAll();
         font-size: 0.9375rem;
     }
     .btn-submit:hover {
-        background: #4338ca;
         box-shadow: var(--shadow-card);
     }
     .btn-submit:active {
         transform: scale(0.98);
     }
 
+    .modal-box form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .recorrencia-box {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .weekday-options {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .weekday-chip {
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+    }
+
+    .weekday-chip input {
+        display: none;
+    }
+
+    .weekday-chip span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        padding: 7px 12px;
+        border-radius: 999px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        transition: all 0.15s ease;
+    }
+
+    .weekday-chip input:checked + span {
+        background: #dbeafe;
+        color: #1e3a8a;
+        border-color: #bfdbfe;
+        box-shadow: 0 6px 14px rgba(15,47,102,0.15);
+    }
+
     .modal-overlay {
         display: none;
         position: fixed;
         inset: 0;
-        background: rgba(15,23,42,0.5);
+        background: rgba(15,23,42,0.45);
         z-index: 9999;
         align-items: center;
         justify-content: center;
-        backdrop-filter: blur(4px);
+        backdrop-filter: blur(6px);
     }
     .modal-overlay.active {
         display: flex;
     }
     .modal-box {
-        background: var(--bg-card);
+        background: #f8fafc;
         padding: 1.5rem;
         border-radius: var(--radius-lg);
         width: 96%;
@@ -566,6 +620,23 @@ $calculos = $stmtCalcs->fetchAll();
         overflow-y: auto;
         box-shadow: var(--shadow-strong);
         animation: modalSlideUp 0.2s ease-out forwards;
+        border: 1px solid rgba(148,163,184,0.25);
+        position: relative;
+    }
+
+    .modal-box::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 64px;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        background: linear-gradient(135deg, rgba(15,47,102,0.12), rgba(37,99,235,0.08));
+        pointer-events: none;
+    }
+
+    .modal-box > * {
+        position: relative;
+        z-index: 1;
     }
     
     @keyframes modalSlideUp {
@@ -593,8 +664,12 @@ $calculos = $stmtCalcs->fetchAll();
         }
     }
 
-    .form-group {
+.form-group {
         margin-bottom: 1rem;
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 0.75rem;
     }
     .form-label {
         display: block;
@@ -610,21 +685,21 @@ $calculos = $stmtCalcs->fetchAll();
         color: var(--primary-color);
         font-size: 0.875rem;
     }
-    .form-control {
+.form-control {
         width: 100%;
         padding: 0.625rem 0.75rem;
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
         box-sizing: border-box;
         font-size: 0.8125rem;
-        background: var(--bg-card);
+        background: #f8fafc;
         transition: all 0.2s ease;
     }
-    .form-control:focus {
+.form-control:focus {
         outline: none;
         border-color: var(--primary-color);
-        background: var(--bg-card);
-        box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgba(15,47,102,0.12);
     }
     .form-control::placeholder {
         color: #94a3b8;
@@ -640,13 +715,13 @@ $calculos = $stmtCalcs->fetchAll();
     }
 
     /* Lista de serviços dentro do pacote */
-    .checkbox-list {
+.checkbox-list {
         max-height: 280px;
         overflow-y: auto;
-        border: 2px solid var(--border-soft);
-        border-radius: var(--radius-md);
+        border: 1px solid var(--border);
+        border-radius: 14px;
         padding: 12px;
-        background: #ffffff;
+        background: #f8fafc;
         box-shadow: inset 0 2px 4px rgba(0,0,0,0.04);
     }
     .checkbox-list::-webkit-scrollbar {
@@ -663,9 +738,9 @@ $calculos = $stmtCalcs->fetchAll();
     .checkbox-list::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
     }
-    .check-item {
-        padding: 0.625rem 0;
-        border-bottom: 1px solid var(--border);
+.check-item {
+        padding: 0.625rem 0.25rem;
+        border-bottom: 1px solid var(--border-soft);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -759,23 +834,24 @@ $calculos = $stmtCalcs->fetchAll();
         display: none;
         position: fixed;
         inset: 0;
-        background: rgba(15,23,42,0.5);
+        background: rgba(15,23,42,0.45);
         z-index: 10000;
         align-items: center;
         justify-content: center;
-        backdrop-filter: blur(4px);
+        backdrop-filter: blur(6px);
     }
     .confirm-modal.active {
         display: flex;
     }
     .confirm-box {
-        background: var(--bg-card);
+        background: #f8fafc;
         padding: 1.75rem;
         border-radius: var(--radius-lg);
         width: 90%;
         max-width: 25rem;
         box-shadow: var(--shadow-strong);
         text-align: center;
+        border: 1px solid rgba(148,163,184,0.25);
     }
     .confirm-icon {
         width: 3rem;
@@ -809,7 +885,7 @@ $calculos = $stmtCalcs->fetchAll();
     .btn-confirm-cancel,
     .btn-confirm-delete {
         padding: 0.625rem 1.25rem;
-        border-radius: var(--radius-sm);
+        border-radius: 999px;
         border: none;
         font-weight: 600;
         font-size: 0.75rem;
@@ -820,13 +896,13 @@ $calculos = $stmtCalcs->fetchAll();
         gap: 0.375rem;
     }
     .btn-confirm-cancel {
-        background: var(--bg-page);
+        background: #e2e8f0;
         color: var(--text-muted);
         flex: 1;
         border: 1px solid var(--border);
     }
     .btn-confirm-cancel:hover {
-        background: var(--border);
+        background: #dbeafe;
         color: var(--text-main);
     }
     .btn-confirm-delete {
@@ -851,11 +927,11 @@ $calculos = $stmtCalcs->fetchAll();
     }
     .btn-cancel {
         flex: 1;
-        background: var(--bg-page);
+        background: #e2e8f0;
         color: var(--text-muted);
         border: 1px solid var(--border);
         padding: 0.75rem 1.25rem;
-        border-radius: var(--radius-sm);
+        border-radius: 999px;
         font-weight: 600;
         font-size: 0.8125rem;
         cursor: pointer;
@@ -866,7 +942,7 @@ $calculos = $stmtCalcs->fetchAll();
         gap: 0.375rem;
     }
     .btn-cancel:hover {
-        background: var(--border);
+        background: #dbeafe;
         color: var(--text-main);
     }
     .btn-cancel:active {
@@ -1167,7 +1243,7 @@ $calculos = $stmtCalcs->fetchAll();
 
             <!-- CONFIGURAÇÕES DE RECORRÊNCIA (só aparece para pacotes) -->
             <div id="areaRecorrencia" style="display:none;">
-                <div style="background:#f0f9ff; border:2px solid #0ea5e9; border-radius:16px; padding:16px; margin-bottom:16px;">
+                <div class="recorrencia-box">
                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
                         <i class="bi bi-arrow-repeat" style="color:#0369a1; font-size:1rem;"></i>
                         <h4 style="margin:0; color:#0369a1; font-size:0.8125rem; font-weight:700;">Agendamento Recorrente</h4>
@@ -1206,28 +1282,14 @@ $calculos = $stmtCalcs->fetchAll();
                                 <i class="bi bi-calendar-week"></i>
                                 Dias da semana
                             </label>
-                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                                <label style="display:flex; align-items:center; gap:6px; background:#f1f5f9; padding:8px 12px; border-radius:8px; cursor:pointer;">
-                                    <input type="checkbox" name="dias_semana[]" value="0"> Dom
-                                </label>
-                                <label style="display:flex; align-items:center; gap:6px; background:#f1f5f9; padding:8px 12px; border-radius:8px; cursor:pointer;">
-                                    <input type="checkbox" name="dias_semana[]" value="1"> Seg
-                                </label>
-                                <label style="display:flex; align-items:center; gap:6px; background:#f1f5f9; padding:8px 12px; border-radius:8px; cursor:pointer;">
-                                    <input type="checkbox" name="dias_semana[]" value="2"> Ter
-                                </label>
-                                <label style="display:flex; align-items:center; gap:6px; background:#f1f5f9; padding:8px 12px; border-radius:8px; cursor:pointer;">
-                                    <input type="checkbox" name="dias_semana[]" value="3"> Qua
-                                </label>
-                                <label style="display:flex; align-items:center; gap:6px; background:#f1f5f9; padding:8px 12px; border-radius:8px; cursor:pointer;">
-                                    <input type="checkbox" name="dias_semana[]" value="4"> Qui
-                                </label>
-                                <label style="display:flex; align-items:center; gap:6px; background:#f1f5f9; padding:8px 12px; border-radius:8px; cursor:pointer;">
-                                    <input type="checkbox" name="dias_semana[]" value="5"> Sex
-                                </label>
-                                <label style="display:flex; align-items:center; gap:6px; background:#f1f5f9; padding:8px 12px; border-radius:8px; cursor:pointer;">
-                                    <input type="checkbox" name="dias_semana[]" value="6"> Sáb
-                                </label>
+                            <div class="weekday-options">
+                                <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="0"><span>Dom</span></label>
+                                <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="1"><span>Seg</span></label>
+                                <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="2"><span>Ter</span></label>
+                                <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="3"><span>Qua</span></label>
+                                <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="4"><span>Qui</span></label>
+                                <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="5"><span>Sex</span></label>
+                                <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="6"><span>Sáb</span></label>
                             </div>
                         </div>
 

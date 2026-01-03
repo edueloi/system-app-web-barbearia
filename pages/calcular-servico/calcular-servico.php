@@ -394,9 +394,9 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
 
 <style>
     :root {
-        --primary-color: #4f46e5;
-        --primary-dark: #4338ca;
-        --accent: #ec4899;
+        --primary-color: #0f2f66;
+        --primary-dark: #1e3a8a;
+        --accent: #2563eb;
         --bg-card: #ffffff;
         --text-main: #0f172a;
         --text-muted: #64748b;
@@ -439,6 +439,45 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
         transform: translateY(-1px);
     }
 
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: var(--text-main);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin: 0 0 10px 0;
+    }
+
+    .section-title span {
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #dbeafe;
+        color: #1e3a8a;
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+
+    .section-subtitle {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        margin: -4px 0 12px 0;
+    }
+
+    .form-group {
+        background: #ffffff;
+        border: 1px solid rgba(148,163,184,0.2);
+        border-radius: 14px;
+        padding: 10px 12px;
+        margin-bottom: 12px;
+    }
+
     .page-header {
         background: var(--bg-card);
         border-radius: 16px;
@@ -475,7 +514,7 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
         font-size: 0.7rem;
         padding: 4px 10px;
         border-radius: 999px;
-        background: rgba(79,70,229,0.08);
+        background: rgba(15,47,102,0.08);
         color: var(--primary-color);
         font-weight: 700;
     }
@@ -492,8 +531,8 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
     .form-control {
         width: 100%;
         padding: 9px 12px;
-        background: #f1f5f9;
-        border: 1px solid rgba(148,163,184,0.3);
+        background: #f8fafc;
+        border: 1px solid rgba(148,163,184,0.25);
         border-radius: 10px;
         font-size: 0.85rem;
         color: var(--text-main);
@@ -504,7 +543,7 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
     .form-control:focus {
         outline: none;
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(79,70,229,0.18);
+        box-shadow: 0 0 0 3px rgba(15,47,102,0.12);
         background: #ffffff;
     }
 
@@ -527,7 +566,7 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
 
     .material-item:hover {
         background: #ffffff;
-        border-color: rgba(79,70,229,0.35);
+        border-color: rgba(15,47,102,0.2);
         box-shadow: 0 3px 10px rgba(15,23,42,0.06);
     }
 
@@ -550,7 +589,7 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
     }
 
     .btn-add {
-        background: #f9fafb;
+        background: #f8fafc;
         color: var(--primary-color);
         border: 1px dashed rgba(148,163,184,0.8);
         padding: 10px 12px;
@@ -602,7 +641,7 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
         font-size: 0.9rem;
         cursor: pointer;
         width: 100%;
-        box-shadow: 0 4px 10px rgba(79,70,229,0.25);
+        box-shadow: 0 4px 10px rgba(15,47,102,0.25);
         transition: all 0.25s ease;
         display: flex;
         align-items: center;
@@ -612,7 +651,7 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
 
     .btn-primary:hover {
         transform: translateY(-1px);
-        box-shadow: 0 7px 16px rgba(79,70,229,0.35);
+        box-shadow: 0 7px 16px rgba(15,47,102,0.35);
     }
 
     .btn-primary:active {
@@ -620,12 +659,13 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
     }
 
     .result-box {
-        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-        color: white;
+        background: linear-gradient(135deg, #eff6ff, #e0f2fe);
+        color: var(--text-main);
         padding: 14px 16px 16px;
         border-radius: 14px;
         margin-top: 14px;
-        box-shadow: 0 8px 20px rgba(79,70,229,0.35);
+        box-shadow: 0 8px 20px rgba(15,47,102,0.18);
+        border: 1px solid rgba(147,197,253,0.6);
     }
 
     .result-row {
@@ -640,7 +680,7 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
     .result-final {
         margin-top: 12px;
         padding-top: 12px;
-        border-top: 1px solid rgba(255,255,255,0.25);
+        border-top: 1px solid rgba(15,47,102,0.15);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -650,6 +690,7 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
     .lucro-valor {
         font-size: 1.3rem;
         font-weight: 800;
+        color: #1e3a8a;
     }
 
     .alert {
@@ -690,14 +731,65 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
 
     .cs-history-actions a {
         text-decoration: none;
-        font-size: 1rem;
-        margin-left: 10px;
+        font-size: 0.85rem;
+        margin-left: 8px;
         transition: transform 0.2s;
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        border: 1px solid rgba(148,163,184,0.25);
+        background: #f8fafc;
     }
 
     .cs-history-actions a:hover {
         transform: scale(1.15);
+    }
+
+    .history-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        background: #dcfce7;
+        color: #16a34a;
+        white-space: nowrap;
+    }
+
+    .history-date {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 0.68rem;
+        font-weight: 600;
+        background: #eef2ff;
+        color: #1e3a8a;
+    }
+
+    .history-table td {
+        vertical-align: middle;
+    }
+
+    .history-title {
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: var(--text-main);
+        margin-bottom: 2px;
+    }
+
+    .history-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 4px;
     }
 
     .cs-product-actions {
@@ -723,13 +815,13 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
     }
 
     .cs-chip-primary {
-        background: rgba(79,70,229,0.08);
-        border-color: rgba(79,70,229,0.3);
+        background: rgba(15,47,102,0.08);
+        border-color: rgba(15,47,102,0.3);
         color: var(--primary-color);
     }
 
     .cs-chip-primary:hover {
-        background: rgba(79,70,229,0.15);
+        background: rgba(15,47,102,0.15);
         border-color: var(--primary-color);
         transform: translateY(-1px);
     }
@@ -744,12 +836,12 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
     .cs-sheet-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(15,23,42,0.6);
+        background: rgba(15,23,42,0.45);
         display: none;
         align-items: flex-end;
         justify-content: center;
         z-index: 9999;
-        backdrop-filter: blur(3px);
+        backdrop-filter: blur(6px);
     }
 
     .cs-sheet-overlay.active {
@@ -757,12 +849,13 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
     }
 
     .cs-sheet {
-        background: #ffffff;
+        background: #f8fafc;
         width: 100%;
         max-width: 520px;
         border-radius: 18px 18px 0 0;
         padding: 16px 16px 20px;
-        box-shadow: 0 -8px 24px rgba(15,23,42,0.4);
+        box-shadow: 0 -8px 24px rgba(15,23,42,0.3);
+        border: 1px solid rgba(148,163,184,0.25);
     }
 
     .cs-sheet-header {
@@ -782,7 +875,7 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
 
     .cs-sheet-close {
         border: none;
-        background: rgba(148,163,184,0.1);
+        background: rgba(148,163,184,0.15);
         width: 32px;
         height: 32px;
         border-radius: 8px;
@@ -811,7 +904,7 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
         text-align: left;
         border-radius: 12px;
         border: 1px solid rgba(148,163,184,0.25);
-        background: #f9fafb;
+        background: #f8fafc;
         padding: 10px 12px;
         margin-bottom: 8px;
         cursor: pointer;
@@ -924,6 +1017,27 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
             font-size: 0.75rem;
             padding: 7px 12px;
         }
+
+        .section-title {
+            font-size: 0.78rem;
+        }
+
+        .section-title span {
+            width: 26px;
+            height: 26px;
+            font-size: 0.8rem;
+        }
+
+        .history-meta {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+        }
+
+        .cs-history-actions a {
+            width: 30px;
+            height: 30px;
+        }
     }
 
     @media (max-width: 600px) {
@@ -980,6 +1094,8 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
             <!-- COLUNA ESQUERDA -->
             <div>
                 <div class="clean-card">
+                    <div class="section-title"><span>1</span> Dados do serviço</div>
+                    <div class="section-subtitle">Defina o nome e escolha materiais do cálculo.</div>
                     <div class="form-group" style="margin-bottom: 12px;">
                         <label class="form-label">Nome do Serviço</label>
                         <input type="text"
@@ -1009,7 +1125,8 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
                         <?php endif; ?>
                     </div>
 
-                    <label class="form-label" style="margin-top:10px;">Materiais Utilizados</label>
+                    <div class="section-title" style="margin-top:12px;"><span>2</span> Materiais utilizados</div>
+                    <div class="section-subtitle">Adicione itens do estoque ou informe manualmente.</div>
                     <div id="lista-materiais"></div>
                     <button type="button" class="btn-add" onclick="addMaterial()">+ Adicionar Material</button>
 
@@ -1033,7 +1150,8 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
                     <?php endif; ?>
 
                     <div style="margin-top: 20px;">
-                        <label class="form-label">Custos Extras (Taxas por atendimento)</label>
+                        <div class="section-title"><span>3</span> Taxas e extras</div>
+                        <div class="section-subtitle">Taxas de energia, comissões, descartáveis etc.</div>
                         <div id="lista-taxas"></div>
 
                         <?php if ($editData && !empty($editData['taxas'])): ?>
@@ -1063,6 +1181,8 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
             <!-- COLUNA DIREITA -->
             <div>
                 <div class="clean-card">
+                    <div class="section-title"><span>4</span> Preço e resultado</div>
+                    <div class="section-subtitle">Informe o preço e veja o lucro líquido.</div>
                     <label class="form-label" style="font-size:0.95rem;">Preço de Venda</label>
                     <p class="helper-text" style="margin-bottom: 6px;">Quanto você cobra do cliente nesse serviço?</p>
 
@@ -1117,20 +1237,23 @@ include_once __DIR__ . '/../../includes/ui-confirm.php';
 
                 <?php if ($historico && count($historico) > 0): ?>
                     <div class="clean-card">
-                        <label class="form-label">Últimos cálculos</label>
+                        <div class="section-title"><span>5</span> Últimos cálculos</div>
+                        <div class="section-subtitle">Acesse e edite seus cálculos recentes.</div>
                         <table class="history-table">
                             <tbody>
                             <?php foreach ($historico as $h): ?>
                                 <tr>
                                     <td>
-                                        <strong><?php echo htmlspecialchars($h['nome_servico']); ?></strong><br>
-                                        <small style="color:#9ca3af;"><?php echo date('d/m H:i', strtotime($h['created_at'])); ?></small>
+                                        <div class="history-title"><?php echo htmlspecialchars($h['nome_servico']); ?></div>
+                                        <div class="history-meta">
+                                            <span class="history-date"><?php echo date('d/m H:i', strtotime($h['created_at'])); ?></span>
+                                        </div>
                                     </td>
-                                    <td style="text-align:right;color:#10b981;font-weight:600;">
-                                        R$ <?php echo number_format($h['lucro'], 2, ',', '.'); ?>
+                                    <td style="text-align:right;">
+                                        <span class="history-badge">R$ <?php echo number_format($h['lucro'], 2, ',', '.'); ?></span>
                                     </td>
                                     <td class="cs-history-actions" style="text-align:right;white-space:nowrap;">
-                                        <a href="?edit=<?php echo $h['id']; ?>" title="Editar" style="color:#4f46e5;">✏️</a>
+                                        <a href="?edit=<?php echo $h['id']; ?>" title="Editar" style="color:#1e3a8a;">✏️</a>
                                         <a href="#"
                                            class="cs-delete-link"
                                            data-id="<?php echo (int)$h['id']; ?>"
