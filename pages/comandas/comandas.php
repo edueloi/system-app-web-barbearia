@@ -12,6 +12,68 @@ if (!isset($_SESSION['user_id'])) {
 }
 $uid = (int)$_SESSION['user_id'];
 
+function normalizeWeekdays($days) {
+    $days = array_values(array_unique(array_map('intval', (array)$days)));
+    sort($days);
+    return $days;
+}
+
+function nextDateByWeekdays(DateTime $date, array $days, $inclusive = false) {
+    if (empty($days)) return $date;
+    $days = normalizeWeekdays($days);
+    $dow = (int)$date->format('w');
+    $target = null;
+    foreach ($days as $d) {
+        if ($inclusive ? $d >= $dow : $d > $dow) {
+            $target = $d;
+            break;
+        }
+    }
+    if ($target === null) $target = $days[0];
+    $diff = $target - $dow;
+    if ($inclusive) {
+        if ($diff < 0) $diff += 7;
+    } else {
+        if ($diff <= 0) $diff += 7;
+    }
+    $date->modify("+{$diff} days");
+    return $date;
+}
+
+function addMonthSameDay(DateTime $date, $day) {
+    $date->modify('first day of next month');
+    $daysInMonth = (int)$date->format('t');
+    $day = min((int)$day, $daysInMonth);
+    $date->setDate((int)$date->format('Y'), (int)$date->format('m'), $day);
+    return $date;
+}
+
+function getNthWeekdayInMonth($year, $month, $weekday, $nth) {
+    $first = new DateTime();
+    $first->setDate((int)$year, (int)$month, 1);
+    $first->setTime(0, 0, 0);
+
+    $firstDow = (int)$first->format('w');
+    $offset = $weekday - $firstDow;
+    if ($offset < 0) $offset += 7;
+
+    $day = 1 + $offset + 7 * ((int)$nth - 1);
+    $daysInMonth = (int)$first->format('t');
+
+    if ($day > $daysInMonth) {
+        $last = new DateTime();
+        $last->setDate((int)$year, (int)$month, $daysInMonth);
+        $last->setTime(0, 0, 0);
+        $lastDow = (int)$last->format('w');
+        $diff = $lastDow - $weekday;
+        if ($diff < 0) $diff += 7;
+        $day = $daysInMonth - $diff;
+    }
+
+    $first->setDate((int)$year, (int)$month, (int)$day);
+    return $first;
+}
+
 // =========================================================
 // LÓGICA PHP
 // =========================================================
@@ -41,9 +103,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $valor_tot  = (float)$_POST['valor_final'];
             $dt_inicio  = $_POST['data_inicio'];
-            $frequencia = $_POST['frequencia'];
+            $frequencia = $_POST['frequencia'] ?? 'diaria';
+            $diasSemana = isset($_POST['dias_semana']) ? $_POST['dias_semana'] : [];
+            $intervaloPersonalizado = isset($_POST['intervalo_personalizado'])
+                ? max(1, (int)$_POST['intervalo_personalizado'])
+                : 1;
 
             $agendamentos = [];
+            $diasSemana = normalizeWeekdays($diasSemana);
 
             if ($usarAgenda) {
                 // Busca agendamentos futuros (mesmo critério da API)
@@ -93,8 +160,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
             } else {
-                // COMPORTAMENTO ANTIGO: gera por recorrência simples
-                $data_atual = new DateTime($dt_inicio);
+                // Gera itens por recorrencia simples quando nao usa a agenda
+                $data_inicio = new DateTime($dt_inicio);
+                $data_inicio->setTime(0, 0, 0);
+                $data_atual = clone $data_inicio;
+
+                $diaMesBase = (int)$data_inicio->format('d');
+                $weekdayBase = (int)$data_inicio->format('w');
+                $weekIndexBase = (int)floor(($diaMesBase - 1) / 7) + 1;
+                $weekdayRef = !empty($diasSemana) ? (int)$diasSemana[0] : $weekdayBase;
+
+                if (($frequencia === 'semanal' || $frequencia === 'mensal_semana') && !empty($diasSemana)) {
+                    $dow = (int)$data_atual->format('w');
+                    if (!in_array($dow, $diasSemana, true)) {
+                        $data_atual = nextDateByWeekdays($data_atual, $diasSemana, true);
+                    }
+                }
 
                 $stmtItem = $pdo->prepare("
                     INSERT INTO comanda_itens (comanda_id, numero, data_prevista, valor_sessao, status)
@@ -105,9 +186,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $dt_sql = $data_atual->format('Y-m-d');
                     $stmtItem->execute([$comanda_id, $i, $dt_sql, $valor_sessao]);
 
-                    if ($frequencia !== 'unico') {
-                        $dias = ($frequencia === 'semanal') ? 7 : (($frequencia === 'quinzenal') ? 15 : 1);
-                        $data_atual->modify("+{$dias} days");
+                    if ($frequencia === 'unico') {
+                        continue;
+                    }
+
+                    if ($frequencia === 'diaria') {
+                        $data_atual->modify('+1 day');
+                    } elseif ($frequencia === 'semanal') {
+                        if (!empty($diasSemana)) {
+                            $data_atual = nextDateByWeekdays($data_atual, $diasSemana, false);
+                        } else {
+                            $data_atual->modify('+7 days');
+                        }
+                    } elseif ($frequencia === 'quinzenal') {
+                        $data_atual->modify('+15 days');
+                    } elseif ($frequencia === 'mensal_dia') {
+                        $data_atual = addMonthSameDay($data_atual, $diaMesBase);
+                    } elseif ($frequencia === 'mensal_semana') {
+                        $data_atual->modify('first day of next month');
+                        $y = (int)$data_atual->format('Y');
+                        $m = (int)$data_atual->format('m');
+                        $data_atual = getNthWeekdayInMonth($y, $m, $weekdayRef, $weekIndexBase);
+                    } elseif ($frequencia === 'personalizada') {
+                        $data_atual->modify("+{$intervaloPersonalizado} days");
+                    } else {
+                        $data_atual->modify('+1 day');
                     }
                 }
             }
@@ -233,28 +336,28 @@ include '../../includes/menu.php';
 
 <style>
     :root {
-        --primary: #6366f1;
-        --primary-dark: #4f46e5;
-        --primary-light: #e0e7ff;
+        --primary: #0f2f66;
+        --primary-dark: #1e3a8a;
+        --primary-light: #dbeafe;
         --bg-body: #f8fafc;
         --bg-card: #ffffff;
         --text-main: #0f172a;
         --text-muted: #64748b;
         --border: #e2e8f0;
-        --success: #10b981;
+        --success: #16a34a;
         --success-bg: #dcfce7;
         --danger: #ef4444;
         --danger-bg: #fee2e2;
 
         --radius-card: 20px;
         --radius-btn: 999px;
-        --shadow-sm: 0 4px 6px -1px rgba(15,23,42,0.05);
+        --shadow-sm: 0 4px 10px rgba(15,23,42,0.06);
         --shadow-lg: 0 18px 45px -12px rgba(15,23,42,0.18);
     }
 
     body {
         font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: radial-gradient(circle at top left, #e0f2fe 0, #f8fafc 38%, #eef2ff 100%);
+        background: var(--bg-body);
         color: var(--text-main);
         font-size: 0.8rem;
         margin: 0;
@@ -296,7 +399,7 @@ include '../../includes/menu.php';
     /* TABS */
     .tabs-pill {
         display: inline-flex;
-        background: rgba(255,255,255,0.9);
+        background: #ffffff;
         padding: 3px;
         border-radius: var(--radius-btn);
         box-shadow: var(--shadow-sm);
@@ -319,7 +422,7 @@ include '../../includes/menu.php';
     .tab-link.active {
         background: linear-gradient(135deg, var(--primary), var(--primary-dark));
         color: #fff;
-        box-shadow: 0 4px 12px rgba(79,70,229,0.35);
+        box-shadow: 0 4px 12px rgba(15,47,102,0.28);
     }
 
     /* CONTROLS */
@@ -352,13 +455,13 @@ include '../../includes/menu.php';
         font-size: 0.8rem;
         outline: none;
         transition: 0.2s;
-        background: rgba(255,255,255,0.9);
+        background: #ffffff;
         box-sizing: border-box;
     }
 
     .search-input:focus {
         border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(129,140,248,0.35);
+        box-shadow: 0 0 0 3px rgba(15,47,102,0.18);
         background: #fff;
     }
 
@@ -375,7 +478,7 @@ include '../../includes/menu.php';
         gap: 6px;
         font-size: 0.78rem;
         height: 36px;
-        box-shadow: 0 8px 20px rgba(79,70,229,0.35);
+        box-shadow: 0 8px 20px rgba(15,47,102,0.28);
         transition: transform 0.15s, box-shadow 0.15s;
         white-space: nowrap;
     }
@@ -386,18 +489,18 @@ include '../../includes/menu.php';
 
     .btn-gradient:hover {
         transform: translateY(-1px);
-        box-shadow: 0 10px 24px rgba(79,70,229,0.4);
+        box-shadow: 0 10px 24px rgba(15,47,102,0.35);
     }
 
     .btn-gradient:active {
         transform: translateY(0);
-        box-shadow: 0 5px 14px rgba(79,70,229,0.28);
+        box-shadow: 0 5px 14px rgba(15,47,102,0.22);
     }
 
     /* LIST / TABLE WRAPPERS */
     .desktop-table {
         display: none;
-        background: rgba(255,255,255,0.96);
+        background: #ffffff;
         border-radius: 18px;
         border: 1px solid rgba(226,232,240,0.9);
         overflow: hidden;
@@ -416,7 +519,7 @@ include '../../includes/menu.php';
         text-transform: uppercase;
         color: var(--text-muted);
         font-weight: 700;
-        background: #f9fafb;
+        background: #f8fafc;
         border-bottom: 1px solid var(--border);
         letter-spacing: 0.06em;
     }
@@ -428,6 +531,10 @@ include '../../includes/menu.php';
         color: var(--text-main);
         font-weight: 500;
         font-size: 0.78rem;
+    }
+
+    tbody tr:hover td {
+        background: #f8fafc;
     }
 
     tr:last-child td {
@@ -445,7 +552,7 @@ include '../../includes/menu.php';
 
     .badge-blue {
         background: #e0f2fe;
-        color: #0369a1;
+        color: #1e3a8a;
     }
 
     .badge-orange {
@@ -461,20 +568,26 @@ include '../../includes/menu.php';
     }
 
     .card {
-        background: rgba(255,255,255,0.98);
+        background: #ffffff;
         border-radius: 18px;
         padding: 14px;
         box-shadow: var(--shadow-sm);
         border: 1px solid rgba(226,232,240,0.9);
         position: relative;
         overflow: hidden;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(15,23,42,0.12);
     }
 
     .card::before {
         content: "";
         position: absolute;
         inset: 0;
-        background: radial-gradient(circle at top right, rgba(129,140,248,0.15), transparent 55%);
+        background: radial-gradient(circle at top right, rgba(37,99,235,0.12), transparent 55%);
         pointer-events: none;
     }
 
@@ -508,7 +621,7 @@ include '../../includes/menu.php';
 
     .prog-fill {
         height: 100%;
-        background: linear-gradient(90deg, var(--primary), #818cf8);
+        background: linear-gradient(90deg, var(--primary), #2563eb);
         border-radius: 999px;
         width: 0%;
         transition: width 0.8s ease;
@@ -522,7 +635,7 @@ include '../../includes/menu.php';
     .btn-icon {
         width: 30px;
         height: 30px;
-        border-radius: 50%;
+        border-radius: 10px;
         border: 1px solid rgba(226,232,240,0.9);
         background: #fff;
         color: var(--text-muted);
@@ -551,7 +664,7 @@ include '../../includes/menu.php';
     .modal-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(15, 23, 42, 0.65);
+        background: rgba(15, 23, 42, 0.5);
         backdrop-filter: blur(6px);
         z-index: 1000;
         opacity: 0;
@@ -568,7 +681,7 @@ include '../../includes/menu.php';
     }
 
     .modal-box {
-        background: #fff;
+        background: #f8fafc;
         width: 100%;
         max-width: 430px;
         border-radius: 22px 22px 0 0;
@@ -577,12 +690,34 @@ include '../../includes/menu.php';
         transition: transform 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.08);
         max-height: 92vh;
         overflow-y: auto;
-        box-shadow: 0 -12px 40px rgba(15,23,42,0.45);
+        box-shadow: 0 -12px 40px rgba(15,23,42,0.35);
         box-sizing: border-box;
+        border: 1px solid rgba(148,163,184,0.25);
+        position: relative;
     }
 
     .modal-overlay.open .modal-box {
         transform: translateY(0);
+    }
+
+    .modal-box::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 64px;
+        border-radius: 22px 22px 0 0;
+        background: linear-gradient(135deg, rgba(15,47,102,0.14), rgba(37,99,235,0.08));
+        pointer-events: none;
+    }
+
+    .modal-box > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .modal-box h3 {
+        color: var(--text-main);
+        font-weight: 700;
     }
 
     @media (min-width: 768px) {
@@ -639,7 +774,7 @@ include '../../includes/menu.php';
     .form-input:focus {
         border-color: var(--primary);
         background: #fff;
-        box-shadow: 0 0 0 3px rgba(191,219,254,0.7);
+        box-shadow: 0 0 0 3px rgba(15,47,102,0.18);
     }
 
     .switch-wrap {
@@ -679,19 +814,19 @@ include '../../includes/menu.php';
         font-size: 0.9rem;
         cursor: pointer;
         margin-top: 6px;
-        box-shadow: 0 10px 26px rgba(79,70,229,0.4);
+        box-shadow: 0 10px 26px rgba(15,47,102,0.35);
         transition: 0.18s;
     }
 
     .btn-submit:active {
         transform: translateY(1px);
-        box-shadow: 0 6px 16px rgba(79,70,229,0.32);
+        box-shadow: 0 6px 16px rgba(15,47,102,0.28);
     }
 
     .btn-cancel-modal {
         width: 100%;
         padding: 10px;
-        background: #f1f5f9;
+        background: #e2e8f0;
         color: var(--text-main);
         border: none;
         border-radius: 999px;
@@ -702,7 +837,7 @@ include '../../includes/menu.php';
     }
 
     .btn-cancel-modal:hover {
-        background: #e2e8f0;
+        background: #dbeafe;
     }
 
     /* TOAST */
