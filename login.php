@@ -87,9 +87,9 @@ if (isset($_SESSION['login_erro'])) {
 
     <style>
         :root {
-            --primary: #6366f1;
-            --secondary: #ec4899;
-            --accent: #8b5cf6;
+            --primary: #0f2f66;
+            --secondary: #2563eb;
+            --accent: #1e3a8a;
             --dark: #0f172a;
         }
 
@@ -104,7 +104,7 @@ if (isset($_SESSION['login_erro'])) {
         /* --- BACKGROUND ANIMADO (LIQUID GRADIENT) --- */
         .animated-bg {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -2;
-            background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #4c1d95);
+            background: linear-gradient(-45deg, #0b1220, #0f2f66, #1e3a8a, #0b1220);
             background-size: 400% 400%;
             animation: gradientBG 15s ease infinite;
         }
@@ -125,9 +125,9 @@ if (isset($_SESSION['login_erro'])) {
             z-index: -1;
             animation: float 20s infinite ease-in-out alternate;
         }
-        .b1 { top: -10%; left: -10%; background: var(--primary); animation-delay: 0s; }
-        .b2 { bottom: -10%; right: -10%; background: var(--secondary); animation-delay: -5s; }
-        .b3 { bottom: 20%; left: 30%; width: 20vw; height: 20vw; background: var(--accent); animation-delay: -10s; }
+        .b1 { top: -10%; left: -10%; background: #1e3a8a; animation-delay: 0s; }
+        .b2 { bottom: -10%; right: -10%; background: #0f2f66; animation-delay: -5s; }
+        .b3 { bottom: 20%; left: 30%; width: 20vw; height: 20vw; background: #2563eb; animation-delay: -10s; }
 
         @keyframes float {
             0% { transform: translate(0, 0) scale(1); }
@@ -144,7 +144,7 @@ if (isset($_SESSION['login_erro'])) {
 
         /* --- LADO ESQUERDO (LOGIN) --- */
         .login-panel {
-            background: rgba(255, 255, 255, 0.92);
+            background: linear-gradient(180deg, rgba(248,250,252,0.98), rgba(241,245,249,0.95));
             backdrop-filter: blur(20px);
             padding: 40px;
             display: flex;
@@ -154,39 +154,61 @@ if (isset($_SESSION['login_erro'])) {
             position: relative;
             box-shadow: 10px 0 30px rgba(0,0,0,0.1);
             z-index: 10;
+            border-right: 1px solid rgba(148,163,184,0.2);
         }
 
         .login-content { width: 100%; max-width: 360px; }
 
-        .logo-img { height: 70px; margin-bottom: 25px; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.1)); }
+        .login-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .login-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: #e0f2fe;
+            color: #1e3a8a;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .logo-img { height: 64px; margin-bottom: 22px; filter: drop-shadow(0 6px 14px rgba(15,23,42,0.12)); }
 
         h1 {
             font-family: 'Outfit', sans-serif;
             font-weight: 800;
             color: var(--dark);
             margin-bottom: 5px;
-            font-size: 1.8rem;
+            font-size: 1.7rem;
         }
 
-        .subtitle { color: #64748b; margin-bottom: 30px; font-size: 0.95rem; }
+        .subtitle { color: #64748b; margin-bottom: 22px; font-size: 0.95rem; }
 
         /* Inputs Estilizados */
-        .input-group-custom { position: relative; margin-bottom: 18px; }
+        .input-group-custom { position: relative; margin-bottom: 16px; }
 
         .input-custom {
             width: 100%;
-            padding: 16px 16px 16px 45px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
+            padding: 15px 16px 15px 45px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 14px;
             font-size: 0.95rem;
             background: #f8fafc;
             transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(15,23,42,0.06);
         }
 
         .input-custom:focus {
             background: white;
             border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+            box-shadow: 0 0 0 4px rgba(15,47,102,0.15);
         }
 
         .input-icon {
@@ -206,16 +228,17 @@ if (isset($_SESSION['login_erro'])) {
             font-weight: 700;
             font-size: 1rem;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+            box-shadow: 0 4px 15px rgba(15,47,102,0.35);
             transition: all 0.3s;
             margin-top: 10px;
             position: relative;
             overflow: hidden;
+            letter-spacing: 0.02em;
         }
 
         .btn-glow:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(236, 72, 153, 0.4);
+            box-shadow: 0 8px 25px rgba(15,47,102,0.4);
         }
 
         .btn-glow::after {
@@ -226,8 +249,8 @@ if (isset($_SESSION['login_erro'])) {
         .btn-glow:hover::after { left: 100%; }
 
         .brand-footer {
-            margin-top: 40px;
-            padding-top: 20px;
+            margin-top: 32px;
+            padding-top: 18px;
             border-top: 1px solid #e2e8f0;
             display: flex; align-items: center; justify-content: center; gap: 8px;
             color: #94a3b8; font-size: 0.75rem; width: 100%;
@@ -245,41 +268,188 @@ if (isset($_SESSION['login_erro'])) {
             overflow: hidden;
         }
 
-        /* Efeito de Vidro Flutuante com Conteúdo */
-        .glass-dashboard {
-            width: 420px;
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 30px;
-            padding: 40px;
-            color: white;
-            transform: rotateY(-10deg) rotateX(5deg);
-            box-shadow: 20px 20px 60px rgba(0,0,0,0.3);
-            animation: hover3D 6s ease-in-out infinite;
+        .visual-shell {
+            width: 520px;
+            max-width: 90vw;
+            padding: 36px;
+            border-radius: 32px;
+            background: rgba(15, 47, 102, 0.12);
+            border: 1px solid rgba(255,255,255,0.15);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            box-shadow: 0 30px 80px rgba(2, 6, 23, 0.45);
+            position: relative;
+            overflow: hidden;
+            transform: rotateY(-6deg) rotateX(4deg);
+            animation: hover3D 8s ease-in-out infinite;
+        }
+
+        .visual-shell::before {
+            content: "";
+            position: absolute;
+            inset: -30% -10% auto -10%;
+            height: 60%;
+            background: radial-gradient(circle at 30% 20%, rgba(37,99,235,0.35), transparent 60%);
+            opacity: 0.7;
+        }
+
+        .visual-shell::after {
+            content: "";
+            position: absolute;
+            right: -40%;
+            bottom: -50%;
+            width: 80%;
+            height: 80%;
+            background: radial-gradient(circle at 30% 20%, rgba(30,58,138,0.6), transparent 60%);
+            opacity: 0.5;
+        }
+
+        .visual-grid {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(to right, rgba(255,255,255,0.08) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px);
+            background-size: 36px 36px;
+            opacity: 0.35;
+            pointer-events: none;
         }
 
         @keyframes hover3D {
-            0%, 100% { transform: rotateY(-10deg) rotateX(5deg) translateY(0); }
-            50% { transform: rotateY(-10deg) rotateX(5deg) translateY(-20px); }
+            0%, 100% { transform: rotateY(-6deg) rotateX(4deg) translateY(0); }
+            50% { transform: rotateY(-6deg) rotateX(4deg) translateY(-18px); }
         }
 
-        .floating-card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 16px;
-            padding: 15px;
-            margin-bottom: 12px;
+        .visual-header {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .visual-title {
+            font-family: 'Outfit';
+            font-weight: 800;
+            font-size: 2.2rem;
+            line-height: 1.1;
+            color: #ffffff;
+            margin: 0;
+            text-shadow: 0 12px 30px rgba(2, 6, 23, 0.45);
+        }
+
+        .visual-sub {
+            font-size: 1.02rem;
+            color: rgba(255,255,255,0.78);
+            margin: 0;
+        }
+
+        .visual-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.16);
+            color: rgba(255,255,255,0.95);
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            width: fit-content;
+        }
+
+        .visual-metrics {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .metric-card {
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.94);
             color: var(--dark);
-            display: flex; align-items: center; gap: 15px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            animation: slideUpFade 0.8s backwards;
+            box-shadow: 0 12px 24px rgba(2, 6, 23, 0.18);
+            border: 1px solid rgba(226,232,240,0.8);
         }
 
-        .fc-icon {
-            width: 40px; height: 40px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            color: white; font-size: 1.2rem;
+        .metric-title {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #64748b;
+            font-weight: 700;
+        }
+
+        .metric-value {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin-top: 6px;
+        }
+
+        .metric-badge {
+            margin-top: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #dbeafe;
+            color: #1e3a8a;
+        }
+
+        .visual-stack {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            gap: 10px;
+        }
+
+        .stack-card {
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.96);
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 12px 26px rgba(2, 6, 23, 0.16);
+            animation: slideUpFade 0.8s backwards;
+            border: 1px solid rgba(226,232,240,0.8);
+        }
+
+        .stack-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 1.15rem;
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+        }
+
+        .stack-meta {
+            color: #64748b;
+            font-size: 0.78rem;
+        }
+
+        .stack-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34,197,94,0.15);
+            margin-left: auto;
         }
 
         @keyframes slideUpFade {
@@ -287,18 +457,31 @@ if (isset($_SESSION['login_erro'])) {
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        .text-overlay {
-            margin-top: 30px;
-            text-align: left;
+        #toggleSenha {
+            border-radius: 999px;
+            transition: 0.2s;
         }
-        .overlay-title { font-family: 'Outfit'; font-weight: 800; font-size: 2.5rem; line-height: 1.1; margin-bottom: 10px; }
-        .overlay-sub { font-size: 1.1rem; opacity: 0.8; font-weight: 300; }
+        #toggleSenha:hover {
+            color: var(--primary);
+            background: rgba(15,47,102,0.08);
+        }
 
         /* Responsivo */
         @media (max-width: 991px) {
             .split-container { grid-template-columns: 1fr; }
             .visual-panel { display: none; }
-            .login-panel { width: 100%; max-width: 100%; height: 100vh; background: rgba(255,255,255,0.95); }
+            .login-panel { width: 100%; max-width: 100%; height: 100vh; background: rgba(248,250,252,0.98); }
+        }
+
+        @media (max-width: 1200px) {
+            .visual-shell {
+                width: 460px;
+                padding: 28px;
+            }
+
+            .visual-metrics {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -314,12 +497,12 @@ if (isset($_SESSION['login_erro'])) {
         <div class="login-panel animate__animated animate__fadeInLeft">
             <div class="login-content">
                 
-                <div class="text-center">
+                <div class="login-header">
+                    <div class="login-tag"><i class="fa-solid fa-shield-halved"></i> acesso seguro</div>
                     <img src="img/logo.png" alt="Agenda Logo" class="logo-img">
+                    <h1>Painel de Controle</h1>
+                    <p class="subtitle">Acesse sua agenda e gerencie seu negócio.</p>
                 </div>
-
-                <h1>Painel de Controle</h1>
-                <p class="subtitle">Acesse sua agenda e gerencie seu negócio.</p>
 
                 <?php if ($mensagem): ?>
                     <div class="alert alert-danger d-flex align-items-center gap-2 border-0 shadow-sm rounded-3 py-3" role="alert">
@@ -366,39 +549,52 @@ if (isset($_SESSION['login_erro'])) {
         </div>
 
         <div class="visual-panel animate__animated animate__fadeIn">
-            
-            <div class="glass-dashboard">
-                <div class="floating-card" style="animation-delay: 0.2s;">
-                    <div class="fc-icon bg-primary"><i class="fa-regular fa-calendar-check"></i></div>
-                    <div>
-                        <div class="fw-bold small text-uppercase text-muted">Próximo Cliente</div>
-                        <div class="fw-bold">Maria Silva - 14:00</div>
-                    </div>
-                    <div class="ms-auto text-success"><i class="fa-brands fa-whatsapp"></i></div>
+            <div class="visual-shell">
+                <div class="visual-grid"></div>
+                <div class="visual-header">
+                    <h2 class="visual-title">Agenda inteligente<br>para rotina cheia.</h2>
+                    <p class="visual-sub">Tudo em um painel: horarios, estoque e faturamento no mesmo fluxo.</p>
+                    <div class="visual-chip"><i class="fa-solid fa-bolt"></i> painel ao vivo</div>
                 </div>
 
-                <div class="floating-card" style="animation-delay: 0.4s;">
-                    <div class="fc-icon bg-secondary"><i class="fa-solid fa-pump-soap"></i></div>
-                    <div>
-                        <div class="fw-bold small text-uppercase text-muted">Controle de Uso</div>
-                        <div class="fw-bold">-30g Máscara (Estoque OK)</div>
+                <div class="visual-metrics">
+                    <div class="metric-card">
+                        <div class="metric-title">Agenda do dia</div>
+                        <div class="metric-value">12 atendimentos</div>
+                        <div class="metric-badge"><i class="fa-solid fa-circle-check"></i> 8 confirmados</div>
                     </div>
-                </div>
-
-                <div class="floating-card" style="animation-delay: 0.6s;">
-                    <div class="fc-icon" style="background: var(--accent);"><i class="fa-solid fa-sack-dollar"></i></div>
-                    <div>
-                        <div class="fw-bold small text-uppercase text-muted">Saldo do Dia</div>
-                        <div class="fw-bold">R$ 480,00 (Previsão)</div>
+                    <div class="metric-card">
+                        <div class="metric-title">Faturamento</div>
+                        <div class="metric-value">R$ 1.240,00</div>
+                        <div class="metric-badge"><i class="fa-solid fa-arrow-trend-up"></i> +18%</div>
                     </div>
                 </div>
 
-                <div class="text-overlay mt-4">
-                    <h2 class="overlay-title">Controle<br>Absoluto.</h2>
-                    <p class="overlay-sub">Deixe a inteligência do sistema cuidar dos detalhes enquanto você foca no seu talento.</p>
+                <div class="visual-stack">
+                    <div class="stack-card" style="animation-delay: 0.2s;">
+                        <div class="stack-icon"><i class="fa-regular fa-calendar-check"></i></div>
+                        <div>
+                            <div class="fw-bold">Proximo cliente</div>
+                            <div class="stack-meta">Maria Silva · 14:00</div>
+                        </div>
+                        <span class="stack-dot"></span>
+                    </div>
+                    <div class="stack-card" style="animation-delay: 0.4s;">
+                        <div class="stack-icon"><i class="fa-solid fa-pump-soap"></i></div>
+                        <div>
+                            <div class="fw-bold">Controle de estoque</div>
+                            <div class="stack-meta">Mascara 30g · nivel ok</div>
+                        </div>
+                    </div>
+                    <div class="stack-card" style="animation-delay: 0.6s;">
+                        <div class="stack-icon"><i class="fa-solid fa-message"></i></div>
+                        <div>
+                            <div class="fw-bold">Confirmação</div>
+                            <div class="stack-meta">Lembretes enviados hoje</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-
         </div>
 
     </div>

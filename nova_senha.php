@@ -192,7 +192,7 @@ if ($isProd) {
 
         .input-custom {
             width: 100%;
-            padding: 14px 14px 14px 45px;
+            padding: 14px 44px 14px 45px;
             border: 2px solid #e2e8f0;
             border-radius: 99px;
             font-size: 0.9rem;
@@ -215,6 +215,26 @@ if ($isProd) {
         }
         .input-custom:focus + .input-icon {
             color: var(--primary);
+        }
+
+        .toggle-pass {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 999px;
+            transition: 0.2s;
+        }
+
+        .toggle-pass:hover {
+            color: var(--primary);
+            background: rgba(99,102,241,0.08);
         }
 
         .btn-primary-full {
@@ -358,12 +378,18 @@ if ($isProd) {
                 <?php if ($tokenValido && $tipo_msg !== 'sucesso'): ?>
                     <form method="POST">
                         <div class="input-group-custom">
-                            <input type="password" name="senha" class="input-custom" placeholder="Nova senha" required>
+                            <input type="password" name="senha" id="senha" class="input-custom" placeholder="Nova senha" required>
                             <i class="fa-solid fa-lock input-icon"></i>
+                            <button type="button" class="toggle-pass" data-target="senha" aria-label="Mostrar senha">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
                         </div>
                         <div class="input-group-custom">
-                            <input type="password" name="senha_confirm" class="input-custom" placeholder="Confirmar nova senha" required>
+                            <input type="password" name="senha_confirm" id="senha_confirm" class="input-custom" placeholder="Confirmar nova senha" required>
                             <i class="fa-solid fa-lock-keyhole input-icon"></i>
+                            <button type="button" class="toggle-pass" data-target="senha_confirm" aria-label="Mostrar senha">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
                         </div>
 
                         <button type="submit" class="btn-primary-full">
@@ -403,5 +429,21 @@ if ($isProd) {
         </div>
     </div>
 
+<script>
+    document.querySelectorAll('.toggle-pass').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.getAttribute('data-target');
+            const input = document.getElementById(targetId);
+            if (!input) return;
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.className = isPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+            }
+            btn.setAttribute('aria-label', isPassword ? 'Ocultar senha' : 'Mostrar senha');
+        });
+    });
+</script>
 </body>
 </html>
