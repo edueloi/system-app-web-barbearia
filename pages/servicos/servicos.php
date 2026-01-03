@@ -408,6 +408,12 @@ $calculos = $stmtCalcs->fetchAll();
         min-height: 13.75rem;
         cursor: pointer;
     }
+    
+    /* Cards de pacotes precisam de mais espaço para mostrar os itens */
+    .service-card[data-tipo="pacote"] {
+        min-height: auto;
+    }
+    
     .service-card:hover {
         transform: translateY(-2px);
         box-shadow: var(--shadow-hover);
@@ -1043,7 +1049,7 @@ $calculos = $stmtCalcs->fetchAll();
     <div id="tab-pacotes" class="tab-content" style="display: none;">
         <div class="services-grid">
             <?php foreach ($listaPacotes as $p): ?>
-                <div class="service-card" data-nome="<?php echo strtolower($p['nome']); ?>">
+                <div class="service-card" data-nome="<?php echo strtolower($p['nome']); ?>" data-tipo="pacote">
                     <span class="service-chip">
                         <i class="bi bi-stars"></i> Pacote
                     </span>
@@ -1071,6 +1077,34 @@ $calculos = $stmtCalcs->fetchAll();
                                 <small style="color:#0369a1; font-weight:600; font-size:0.75rem;">
                                     <i class="bi bi-repeat"></i> <?php echo $p['qtd_sessoes']; ?>x sessões
                                 </small>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <!-- ITENS DO PACOTE -->
+                        <?php if (!empty($p['itens_pacote'])): ?>
+                            <div style="background:#f8fafc; padding:8px 10px; border-radius:10px; margin:8px 0; border:1px solid #e2e8f0;">
+                                <div style="font-size:0.65rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:6px; display:flex; align-items:center; gap:4px;">
+                                    <i class="bi bi-check2-circle"></i> Inclui:
+                                </div>
+                                <div style="display:flex; flex-direction:column; gap:4px;">
+                                    <?php
+                                    $itensIds = explode(',', $p['itens_pacote']);
+                                    foreach ($itensIds as $itemId) {
+                                        if (empty($itemId)) continue;
+                                        $stmtItem = $pdo->prepare("SELECT nome FROM servicos WHERE id = ? AND user_id = ?");
+                                        $stmtItem->execute([$itemId, $userId]);
+                                        $item = $stmtItem->fetch();
+                                        if ($item):
+                                    ?>
+                                        <div style="font-size:0.7rem; color:#475569; display:flex; align-items:center; gap:6px;">
+                                            <i class="bi bi-dot" style="color:#10b981; font-size:1.2rem;"></i>
+                                            <?php echo htmlspecialchars($item['nome']); ?>
+                                        </div>
+                                    <?php 
+                                        endif;
+                                    } 
+                                    ?>
+                                </div>
                             </div>
                         <?php endif; ?>
                         
