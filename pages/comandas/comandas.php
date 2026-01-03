@@ -555,6 +555,13 @@ include '../../includes/menu.php';
         color: #1e3a8a;
     }
 
+    .badge-next {
+        background: #eef2ff;
+        color: #1e3a8a;
+        border: 1px solid #dbeafe;
+        font-weight: 700;
+    }
+
     .badge-orange {
         background: #fff7ed;
         color: #c2410c;
@@ -608,6 +615,24 @@ include '../../includes/menu.php';
     .card-top .card-sub {
         font-size: 0.75rem;
         color: var(--text-muted);
+    }
+
+    .card-top .top-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+    }
+
+    .next-pill {
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.64rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        background: #eef2ff;
+        color: #1e3a8a;
+        border: 1px solid #dbeafe;
     }
 
     /* PROGRESSO */
@@ -803,6 +828,45 @@ include '../../includes/menu.php';
         box-shadow: 0 3px 10px rgba(15,23,42,0.08);
     }
 
+    .weekday-options {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .weekday-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+    }
+
+    .weekday-chip input {
+        display: none;
+    }
+
+    .weekday-chip span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        transition: all 0.15s ease;
+    }
+
+    .weekday-chip input:checked + span {
+        background: #dbeafe;
+        color: #1e3a8a;
+        border-color: #bfdbfe;
+        box-shadow: 0 6px 14px rgba(15,47,102,0.15);
+    }
+
     .btn-submit {
         width: 100%;
         padding: 11px;
@@ -954,7 +1018,12 @@ include '../../includes/menu.php';
                 <tr>
                     <td>
                         <div style="font-weight:600; color:var(--text-main); font-size:0.8rem;"><?= htmlspecialchars($c['titulo']) ?></div>
-                        <span class="badge-pill badge-<?= $c['tipo']=='pacote'?'orange':'blue' ?>"><?= ucfirst($c['tipo']) ?></span>
+                        <div style="display:flex; gap:6px; align-items:center; margin-top:4px; flex-wrap:wrap;">
+                            <span class="badge-pill badge-<?= $c['tipo']=='pacote'?'orange':'blue' ?>"><?= ucfirst($c['tipo']) ?></span>
+                            <span class="badge-pill badge-next">
+                                Próxima: <?= $c['proxima'] ? date('d/m', strtotime($c['proxima'])) : '--' ?>
+                            </span>
+                        </div>
                     </td>
                     <td><?= htmlspecialchars($c['c_nome']) ?></td>
                     <td style="width:180px;">
@@ -1008,7 +1077,12 @@ include '../../includes/menu.php';
                     <div class="card-title"><?= htmlspecialchars($c['titulo']) ?></div>
                     <div class="card-sub"><?= htmlspecialchars($c['c_nome']) ?></div>
                 </div>
-                <span class="badge-pill badge-<?= $c['tipo']=='pacote'?'orange':'blue' ?>"><?= ucfirst($c['tipo']) ?></span>
+                <div class="top-right">
+                    <span class="badge-pill badge-<?= $c['tipo']=='pacote'?'orange':'blue' ?>"><?= ucfirst($c['tipo']) ?></span>
+                    <span class="next-pill">
+                        Próxima: <?= $c['proxima'] ? date('d/m', strtotime($c['proxima'])) : '--' ?>
+                    </span>
+                </div>
             </div>
 
             <div style="margin-bottom:8px;">
@@ -1109,6 +1183,9 @@ include '../../includes/menu.php';
                         <input type="checkbox" name="usar_agenda" id="usarAgenda" value="1" checked onchange="onToggleUsarAgenda()">
                         <span>Montar com base nas datas da agenda</span>
                     </label>
+                    <div id="agendaAviso" style="margin-top:6px; font-size:0.72rem; color:#64748b;">
+                        Quando usar a agenda, a quantidade e datas seguem os agendamentos.
+                    </div>
                 </div>
             </div>
 
@@ -1174,14 +1251,14 @@ include '../../includes/menu.php';
                     </select>
                     <div id="diasSemanaBox" style="display:none; margin-top:6px;">
                         <label class="form-label">Dia(s) da semana</label>
-                        <div style="display:flex; gap:6px; flex-wrap:wrap; font-size:0.72rem;">
-                            <label><input type="checkbox" name="dias_semana[]" value="1"> Seg</label>
-                            <label><input type="checkbox" name="dias_semana[]" value="2"> Ter</label>
-                            <label><input type="checkbox" name="dias_semana[]" value="3"> Qua</label>
-                            <label><input type="checkbox" name="dias_semana[]" value="4"> Qui</label>
-                            <label><input type="checkbox" name="dias_semana[]" value="5"> Sex</label>
-                            <label><input type="checkbox" name="dias_semana[]" value="6"> Sáb</label>
-                            <label><input type="checkbox" name="dias_semana[]" value="0"> Dom</label>
+                        <div class="weekday-options">
+                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="1"><span>Seg</span></label>
+                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="2"><span>Ter</span></label>
+                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="3"><span>Qua</span></label>
+                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="4"><span>Qui</span></label>
+                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="5"><span>Sex</span></label>
+                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="6"><span>Sáb</span></label>
+                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="0"><span>Dom</span></label>
                         </div>
                     </div>
                     <div id="intervaloBox" style="display:none; margin-top:6px;">
@@ -1477,15 +1554,19 @@ include '../../includes/menu.php';
         const usarAgenda = document.getElementById('usarAgenda');
         const qtdInput   = document.getElementById('qtd');
         const freqSelect = document.getElementById('frequenciaSelect');
+        const aviso      = document.getElementById('agendaAviso');
 
-        if (!usarAgenda || !qtdInput || !freqSelect) return;
+        if (!usarAgenda || !qtdInput) return;
 
         const disabled = usarAgenda.checked;
 
         qtdInput.readOnly       = disabled;
-        freqSelect.disabled     = disabled;
         qtdInput.style.backgroundColor = disabled ? '#e5e7eb' : '#f9fafb';
-        freqSelect.style.backgroundColor = disabled ? '#e5e7eb' : '#f9fafb';
+        if (freqSelect) {
+            freqSelect.disabled = false;
+            freqSelect.style.backgroundColor = '#f9fafb';
+        }
+        if (aviso) aviso.style.display = disabled ? 'block' : 'none';
     }
 
     document.addEventListener('DOMContentLoaded', function () {
