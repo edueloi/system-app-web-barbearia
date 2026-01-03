@@ -237,9 +237,11 @@ include '../../includes/menu.php';
     */
 
     :root {
-        --primary-color: #4f46e5;
-        --primary-dark: #4338ca;
-        --accent: #ec4899;
+        --primary-color: #0f2f66;
+        --primary-dark: #1e3a8a;
+        --accent: #2563eb;
+        --primary: #0f2f66;
+        --success: #16a34a;
         --bg-page: #f8fafc;
         --bg-card: #ffffff;
         --text-main: #0f172a;
@@ -263,7 +265,7 @@ include '../../includes/menu.php';
     }
 
     .main-content {
-        max-width: 900px;
+        max-width: 980px;
         margin: 0 auto;
         padding: 20px 12px 100px 12px;
     }
@@ -326,7 +328,7 @@ include '../../includes/menu.php';
         align-items: center;
         gap: 6px;
         transition: all 0.25s ease;
-        box-shadow: 0 4px 10px rgba(79,70,229,0.25);
+        box-shadow: 0 4px 10px rgba(15,47,102,0.25);
         white-space: nowrap;
     }
 
@@ -336,7 +338,7 @@ include '../../includes/menu.php';
 
     .btn-chip:hover {
         transform: translateY(-1px);
-        box-shadow: 0 7px 16px rgba(79,70,229,0.35);
+        box-shadow: 0 7px 16px rgba(15,47,102,0.35);
     }
 
     .btn-chip:active {
@@ -378,7 +380,7 @@ include '../../includes/menu.php';
 
     .search-input:focus {
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(79,70,229,0.15);
+        box-shadow: 0 0 0 3px rgba(15,47,102,0.12);
     }
 
     .search-icon {
@@ -400,9 +402,9 @@ include '../../includes/menu.php';
     .client-card {
         background: var(--bg-card);
         border-radius: 18px;
-        padding: 12px 14px;
+        padding: 12px 16px;
         display: grid;
-        grid-template-columns: auto 1fr auto;
+        grid-template-columns: auto minmax(0, 1fr) auto;
         align-items: center;
         gap: 12px;
         border: 1px solid rgba(148,163,184,0.20);
@@ -414,7 +416,7 @@ include '../../includes/menu.php';
     .client-card:hover {
         transform: translateY(-1px);
         box-shadow: var(--shadow-hover);
-        border-color: rgba(79,70,229,0.25);
+        border-color: rgba(15,47,102,0.2);
     }
 
     .avatar {
@@ -444,14 +446,14 @@ include '../../includes/menu.php';
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        font-size: 0.88rem;
+        font-size: 0.9rem;
     }
 
     .meta {
-        font-size: 0.75rem;
+        font-size: 0.76rem;
         color: var(--text-muted);
         display: flex;
-        gap: 6px;
+        gap: 8px;
         align-items: center;
     }
 
@@ -459,6 +461,7 @@ include '../../includes/menu.php';
         display: flex;
         gap: 6px;
         z-index: 2;
+        justify-content: flex-end;
     }
 
     .btn-icon {
@@ -489,8 +492,13 @@ include '../../includes/menu.php';
     }
 
     .btn-edit {
-        background: rgba(79,70,229,0.08);
+        background: rgba(15,47,102,0.08);
         color: var(--primary-color);
+    }
+
+    .btn-agendar {
+        background: rgba(15,47,102,0.1);
+        color: #1e3a8a;
     }
 
     .btn-del {
@@ -510,7 +518,7 @@ include '../../includes/menu.php';
         border-radius: 18px;
         border: none;
         font-size: 1.8rem;
-        box-shadow: 0 12px 28px rgba(79,70,229,0.45);
+        box-shadow: 0 12px 28px rgba(15,47,102,0.45);
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -521,7 +529,7 @@ include '../../includes/menu.php';
 
     .fab-add:hover {
         transform: translateY(-2px);
-        box-shadow: 0 16px 36px rgba(79,70,229,0.55);
+        box-shadow: 0 16px 36px rgba(15,47,102,0.55);
     }
 
     .fab-add:active {
@@ -560,10 +568,17 @@ include '../../includes/menu.php';
         display: flex;
         flex-direction: column;
         box-shadow: 0 -12px 30px rgba(15,23,42,0.25);
+        border: 1px solid rgba(148,163,184,0.25);
     }
 
     .modal-overlay.active .sheet-box {
         transform: translateY(0);
+    }
+
+    .sheet-box h3 {
+        color: var(--text-main);
+        font-weight: 800;
+        letter-spacing: -0.02em;
     }
 
     .drag-handle {
@@ -579,6 +594,10 @@ include '../../includes/menu.php';
     .view-header {
         text-align: center;
         margin-bottom: 18px;
+        padding: 16px 12px;
+        border-radius: 18px;
+        background: #f8fbff;
+        border: 1px solid var(--border-color);
     }
 
     .view-avatar {
@@ -615,11 +634,12 @@ include '../../includes/menu.php';
 
     .stat-card {
         flex: 1;
-        background: #f9fafb;
+        background: #f8fbff;
         padding: 12px;
         border-radius: 14px;
         text-align: center;
         border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-soft);
     }
 
     .stat-val {
@@ -670,8 +690,25 @@ include '../../includes/menu.php';
         justify-content: space-between;
         padding: 10px 12px;
         border-radius: 12px;
-        background: #f9fafb;
+        background: #f8fbff;
         border: 1px solid var(--border-color);
+        gap: 10px;
+    }
+
+    .history-item > div:first-child {
+        min-width: 0;
+    }
+
+    .h-date {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .h-serv {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .h-date {
@@ -687,8 +724,8 @@ include '../../includes/menu.php';
     }
 
     .h-badge {
-        font-size: 0.7rem;
-        padding: 3px 8px;
+        font-size: 0.68rem;
+        padding: 4px 10px;
         border-radius: 999px;
         font-weight: 700;
         display: inline-block;
@@ -697,17 +734,17 @@ include '../../includes/menu.php';
     }
 
     .status-Confirmado {
-        background: #dcfce7;
-        color: #16a34a;
+        background: rgba(16,185,129,0.12);
+        color: #15803d;
     }
 
     .status-Pendente {
-        background: #fef3c7;
+        background: rgba(245,158,11,0.15);
         color: #b45309;
     }
 
     .status-Cancelado {
-        background: #fee2e2;
+        background: rgba(239,68,68,0.12);
         color: #dc2626;
     }
 
@@ -742,12 +779,90 @@ include '../../includes/menu.php';
     .input:focus {
         border-color: var(--primary-color);
         background: #ffffff;
-        box-shadow: 0 0 0 3px rgba(79,70,229,0.15);
+        box-shadow: 0 0 0 3px rgba(15,47,102,0.12);
     }
 
     textarea.input {
         resize: vertical;
         min-height: 65px;
+    }
+
+    .sheet-box form {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    #modalAgendar .sheet-box,
+    #modalForm .sheet-box {
+        background: #f8fafc;
+    }
+
+    #modalAgendar .sheet-box::before,
+    #modalForm .sheet-box::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 64px;
+        border-radius: 22px 22px 0 0;
+        background: linear-gradient(135deg, rgba(15,47,102,0.12), rgba(37,99,235,0.08));
+        pointer-events: none;
+    }
+
+    #modalAgendar .sheet-box,
+    #modalForm .sheet-box {
+        position: relative;
+        overflow: hidden;
+    }
+
+    #modalAgendar .sheet-box > *,
+    #modalForm .sheet-box > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    #modalAgendar .drag-handle,
+    #modalForm .drag-handle {
+        background: rgba(15,47,102,0.2);
+        margin-top: 6px;
+    }
+
+    #modalAgendar h3,
+    #modalForm h3 {
+        margin-top: 6px;
+    }
+
+    #modalAgendar .form-group,
+    #modalForm .form-group {
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        padding: 10px 12px;
+    }
+
+    #modalAgendar .label,
+    #modalForm .label {
+        margin-bottom: 6px;
+        font-size: 0.72rem;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: #475569;
+    }
+
+    #modalAgendar .input,
+    #modalForm .input {
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+    }
+
+    #modalAgendar .input:focus,
+    #modalForm .input:focus {
+        background: #ffffff;
+    }
+
+    #modalAgendar .btn-block,
+    #modalForm .btn-block {
+        margin-top: 4px;
     }
 
     .btn-block {
@@ -769,7 +884,7 @@ include '../../includes/menu.php';
     .btn-primary {
         background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
         color: white;
-        box-shadow: 0 6px 16px rgba(79,70,229,0.35);
+        box-shadow: 0 6px 16px rgba(15,47,102,0.35);
     }
 
     .btn-danger {
@@ -779,8 +894,17 @@ include '../../includes/menu.php';
     }
 
     .btn-secondary {
-        background: #f3f4f6;
+        background: #e2e8f0;
         color: var(--text-main);
+    }
+
+    .btn-primary:focus-visible,
+    .btn-secondary:focus-visible,
+    .btn-danger:focus-visible,
+    .btn-chip:focus-visible,
+    .btn-icon:focus-visible {
+        outline: 2px solid rgba(15,47,102,0.35);
+        outline-offset: 2px;
     }
 
     /* Modal delete */
@@ -793,6 +917,114 @@ include '../../includes/menu.php';
         text-align: center;
         margin: auto;
         box-shadow: 0 20px 40px rgba(15,23,42,0.3);
+        border: 1px solid rgba(148,163,184,0.25);
+    }
+
+    @media (min-width: 900px) {
+        .main-content {
+            max-width: 1120px;
+            padding: 26px 24px 110px 24px;
+        }
+
+        .page-header {
+            padding: 18px 20px;
+        }
+
+        .page-title {
+            font-size: 1.35rem;
+        }
+
+        .page-subtitle {
+            font-size: 0.82rem;
+        }
+
+        .client-list {
+            gap: 12px;
+        }
+
+        .client-card {
+            padding: 14px 18px;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            font-size: 0.95rem;
+            border-radius: 16px;
+        }
+
+        .name {
+            font-size: 0.96rem;
+        }
+
+        .meta {
+            font-size: 0.78rem;
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+        }
+
+        .actions {
+            min-width: 160px;
+        }
+
+        .modal-overlay {
+            align-items: center;
+        }
+
+        .sheet-box {
+            max-width: 560px;
+            border-radius: 22px;
+            padding: 22px 22px 24px 22px;
+            box-shadow: 0 18px 40px rgba(15,23,42,0.18);
+            transform: translateY(20px);
+        }
+
+        .modal-overlay.active .sheet-box {
+            transform: translateY(0);
+        }
+
+        .view-header {
+            margin-bottom: 20px;
+        }
+
+        .view-avatar {
+            width: 72px;
+            height: 72px;
+            font-size: 1.6rem;
+        }
+
+        .stats-row {
+            gap: 12px;
+        }
+
+        .history-item {
+            padding: 12px 14px;
+        }
+    }
+
+    @media (min-width: 768px) and (max-width: 899px) {
+        .main-content {
+            max-width: 980px;
+            padding: 22px 18px 110px 18px;
+        }
+
+        .client-card {
+            padding: 13px 16px;
+        }
+
+        .avatar {
+            width: 46px;
+            height: 46px;
+        }
+
+        .sheet-box {
+            max-width: 520px;
+            border-radius: 20px;
+        }
     }
 
     /* Responsivo Mobile */
