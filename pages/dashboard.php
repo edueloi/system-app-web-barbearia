@@ -313,9 +313,9 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
     /* Fundo neutro, cards brancos, 100% responsivo */
     
     :root {
-        --primary-color: #4f46e5;
-        --primary-dark: #4338ca;
-        --primary-light: #eef2ff;
+        --primary-color: #0f2f66;
+        --primary-dark: #0b2555;
+        --primary-light: #e0e7ff;
         
         --bg-page: #f8fafc;
         --bg-card: #ffffff;
@@ -329,9 +329,9 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         --success: #10b981;
         --warning: #f59e0b;
         
-        --radius-sm: 8px;
-        --radius-md: 12px;
-        --radius-lg: 16px;
+        --radius-sm: 10px;
+        --radius-md: 14px;
+        --radius-lg: 18px;
         
         --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
         --shadow-card: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
@@ -609,7 +609,7 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         margin-bottom: 0.5rem;
     }
 
-    .bg-indigo  { background: #e0e7ff; color: #4338ca; }
+    .bg-indigo  { background: #e0e7ff; color: #1e3a8a; }
     .bg-orange  { background: #ffedd5; color: #c2410c; }
     .bg-blue    { background: #dbeafe; color: #1e40af; }
     .bg-emerald { background: #dcfce7; color: #15803d; }
@@ -759,7 +759,7 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         padding: 0.375rem 0.75rem;
         background: var(--bg-page);
         color: var(--text-main);
-        border-radius: 999px;
+        border-radius: var(--radius-md);
         text-decoration: none;
         font-size: 0.6875rem;
         font-weight: 600;
@@ -888,7 +888,7 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
     }
 
     .filters-card {
-        background: var(--primary-color);
+        background: linear-gradient(135deg, #0f2f66 0%, #1e3a8a 100%);
         border-radius: var(--radius-md);
         padding: 1.5rem;
         margin-bottom: 1.5rem;
@@ -935,7 +935,7 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
 
     .filter-input {
         padding: 0.625rem 0.875rem;
-        border-radius: var(--radius-sm);
+        border-radius: var(--radius-md);
         border: 1px solid rgba(255,255,255,0.3);
         background: rgba(255,255,255,0.15);
         color: white;
@@ -962,9 +962,9 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
 
     .btn-filter {
         padding: 0.625rem 1.25rem;
-        border-radius: var(--radius-sm);
+        border-radius: var(--radius-md);
         border: none;
-        background: white;
+        background: #ffffff;
         color: var(--primary-color);
         font-weight: 700;
         font-size: 0.75rem;
@@ -1150,9 +1150,9 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
     .btn-copy-message {
         flex: 1;
         padding: 14px 24px;
-        border-radius: var(--dash-radius-sm);
+        border-radius: var(--radius-md);
         border: none;
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        background: linear-gradient(135deg, #0f2f66 0%, #1e3a8a 100%);
         color: white;
         font-weight: 600;
         font-size: 0.875rem;
@@ -1162,13 +1162,13 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         align-items: center;
         justify-content: center;
         gap: 8px;
-        box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+        box-shadow: 0 4px 12px rgba(30,58,138,0.3);
         letter-spacing: -0.01em;
     }
 
     .btn-copy-message:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(16,185,129,0.4);
+        box-shadow: 0 8px 20px rgba(30,58,138,0.35);
     }
 
     .btn-copy-message:active {
@@ -1182,7 +1182,7 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
     .btn-whatsapp {
         flex: 1;
         padding: 14px 24px;
-        border-radius: var(--dash-radius-sm);
+        border-radius: var(--radius-md);
         border: none;
         background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
         color: white;
@@ -1217,7 +1217,7 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         padding: 6px 14px;
         background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
         color: white;
-        border-radius: 999px;
+        border-radius: var(--radius-md);
         border: none;
         font-size: 0.75rem;
         font-weight: 600;
@@ -1377,7 +1377,7 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         background: var(--warning);
         color: white;
         border: none;
-        border-radius: 999px;
+        border-radius: var(--radius-md);
         padding: 0.875rem 1.25rem;
         font-size: 0.8125rem;
         font-weight: 700;
@@ -1438,8 +1438,8 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         display: none;
         position: fixed;
         inset: 0;
-        background: rgba(15,23,42,0.6);
-        backdrop-filter: blur(4px);
+        background: rgba(15,23,42,0.45);
+        backdrop-filter: blur(6px);
         z-index: 9999;
         align-items: center;
         justify-content: center;
@@ -1456,23 +1456,24 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         max-width: 42rem;
         width: 100%;
         max-height: 85vh;
-        overflow-y: auto;
+        overflow: hidden;
         box-shadow: var(--shadow-strong);
+        border: 1px solid var(--border);
     }
 
     .pendentes-modal-header {
-        padding: 1.5rem;
+        padding: 1.25rem 1.5rem;
         border-bottom: 1px solid var(--border);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        background: linear-gradient(135deg, #0f2f66 0%, #1e3a8a 100%);
     }
 
     .pendentes-modal-title {
         font-size: 1rem;
         font-weight: 700;
-        color: #92400e;
+        color: #ffffff;
         margin: 0;
         display: flex;
         align-items: center;
@@ -1484,27 +1485,29 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
     }
 
     .pendentes-modal-count {
-        background: var(--warning);
-        color: white;
-        border-radius: 50%;
-        width: 1.75rem;
-        height: 1.75rem;
-        display: flex;
+        background: rgba(255,255,255,0.2);
+        color: #ffffff;
+        border-radius: 999px;
+        padding: 0 0.5rem;
+        min-width: 1.75rem;
+        height: 1.5rem;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
         font-size: 0.75rem;
         font-weight: 700;
         margin-left: 0.5rem;
+        border: 1px solid rgba(255,255,255,0.35);
     }
 
     .pendentes-modal-close {
-        background: rgba(255,255,255,0.9);
-        border: none;
+        background: rgba(255,255,255,0.16);
+        border: 1px solid rgba(255,255,255,0.3);
         width: 2rem;
         height: 2rem;
-        border-radius: 50%;
+        border-radius: 999px;
         cursor: pointer;
-        color: var(--text-muted);
+        color: #ffffff;
         font-size: 1.25rem;
         display: flex;
         align-items: center;
@@ -1513,26 +1516,29 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
     }
 
     .pendentes-modal-close:hover {
-        background: white;
-        color: var(--text-main);
+        background: rgba(255,255,255,0.3);
         transform: rotate(90deg);
     }
 
     .pendentes-modal-body {
-        padding: 1.5rem;
+        padding: 1.25rem 1.5rem 1.5rem;
+        max-height: calc(85vh - 72px);
+        overflow-y: auto;
     }
 
     .pendente-item {
-        background: #fef3c7;
+        background: #ffffff;
         padding: 1rem;
         border-radius: var(--radius-md);
         margin-bottom: 0.75rem;
-        border: 1px solid #fde68a;
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--warning);
         transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
     }
 
     .pendente-item:hover {
-        border-color: var(--warning);
+        border-color: #fcd34d;
         box-shadow: var(--shadow-card);
     }
 
@@ -1543,7 +1549,7 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
     .pendente-cliente {
         font-weight: 700;
         font-size: 0.8125rem;
-        color: #92400e;
+        color: var(--text-main);
         margin-bottom: 0.5rem;
         display: flex;
         align-items: center;
@@ -1556,7 +1562,7 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
 
     .pendente-detalhes {
         font-size: 0.75rem;
-        color: #78350f;
+        color: var(--text-muted);
         margin-bottom: 0.75rem;
         line-height: 1.5;
     }
@@ -1578,7 +1584,7 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         background: var(--success);
         color: white;
         border: none;
-        border-radius: 999px;
+        border-radius: var(--radius-md);
         font-size: 0.75rem;
         font-weight: 600;
         cursor: pointer;
@@ -1605,7 +1611,7 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         background: #25D366;
         color: white;
         border: none;
-        border-radius: 999px;
+        border-radius: var(--radius-md);
         font-size: 0.75rem;
         font-weight: 600;
         cursor: pointer;
@@ -1927,7 +1933,8 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
         </div>
     </div>
 
-    <!-- Card de Licença -->
+    <?php if (!$isVitalicio): ?>
+<!-- Card de Licença -->
 <!-- Card de Licença -->
 <div class="license-card" style="background: linear-gradient(135deg, <?php echo $corLicenca; ?>15 0%, <?php echo $corLicenca; ?>08 100%); border: 2px solid <?php echo $corLicenca; ?>40; border-radius: 16px; padding: 20px; margin-bottom: 24px; position: relative; overflow: hidden;">
     <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: <?php echo $corLicenca; ?>10; border-radius: 50%;"></div>
@@ -1948,13 +1955,7 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
                     </div>
                 </div>
 
-                <?php if ($isVitalicio): ?>
-                    <!-- VITALÍCIO: sem dias restantes -->
-                    <p style="margin: 0; font-size: 0.875rem; color: var(--dash-text-light); font-weight: 500;">
-                        Acesso vitalício liberado, sem data de expiração. 🎉
-                    </p>
-
-                <?php elseif ($statusLicenca === 'expirado'): ?>
+                <?php if ($statusLicenca === 'expirado'): ?>
                     <!-- EXPIRADO -->
                     <div style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #fee2e2; border-radius: 10px; border-left: 4px solid #ef4444;">
                         <i class="bi bi-exclamation-triangle-fill" style="color: #dc2626; font-size: 20px;"></i>
@@ -1990,14 +1991,19 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
                     </div>
 
                     <?php if (!empty($dataExpiracao)): ?>
+                        <?php $expiraColor = ($diasRestantes !== null && $diasRestantes <= 5) ? '#ef4444' : 'var(--dash-text)'; ?>
                         <p style="margin: 0; font-size: 0.8125rem; color: var(--dash-text-light);">
                             Expira em:
-                            <strong style="color: var(--dash-text);">
+                            <strong style="color: <?php echo $expiraColor; ?>;">
                                 <?php echo date('d/m/Y', strtotime($dataExpiracao)); ?>
                             </strong>
                         </p>
                     <?php endif; ?>
 
+                <?php else: ?>
+                    <p style="margin: 0; font-size: 0.875rem; color: var(--dash-text-light); font-weight: 500;">
+                        Validade não configurada.
+                    </p>
                 <?php endif; ?>
             </div>
 
@@ -2023,6 +2029,7 @@ $agendamentosPendentes = $stmtPendentes->fetchAll();
     </div>
 </div>
 <!-- Fim Card de Licença -->
+<?php endif; ?>
 
 <!-- Filtros de Período -->
     <div class="filters-card">

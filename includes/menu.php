@@ -84,6 +84,7 @@ function isActive($pageName)
         --primary-dark: #4f46e5;
         --sidebar-bg: #0f172a;
         --sidebar-width: 280px;
+        --sidebar-collapsed-width: 86px;
         --text-sidebar: #cbd5e1;
         --bg-body: #f3f4f6;
     }
@@ -194,6 +195,10 @@ function isActive($pageName)
 
     .app-sidebar.open {
         left: 0;
+    }
+
+    .app-sidebar.collapsed {
+        width: var(--sidebar-collapsed-width);
     }
 
     #closeMenuBtn {
@@ -333,6 +338,67 @@ function isActive($pageName)
 
     .sidebar-link.active i {
         color: #ffffff;
+    }
+
+    .menu-text {
+        display: inline-block;
+    }
+
+    @media (min-width: 992px) {
+        body {
+            padding-left: var(--sidebar-width);
+        }
+
+        body.sidebar-collapsed {
+            padding-left: var(--sidebar-collapsed-width);
+        }
+
+        .app-navbar {
+            left: var(--sidebar-width);
+            width: calc(100% - var(--sidebar-width));
+        }
+
+        body.sidebar-collapsed .app-navbar {
+            left: var(--sidebar-collapsed-width);
+            width: calc(100% - var(--sidebar-collapsed-width));
+        }
+
+        .app-sidebar {
+            left: 0;
+        }
+
+        .backdrop {
+            display: none;
+        }
+
+        .app-sidebar.collapsed .menu-label,
+        .app-sidebar.collapsed .user-info {
+            display: none;
+        }
+
+        .app-sidebar.collapsed .sidebar-header {
+            justify-content: center;
+            padding: 24px 10px;
+        }
+
+        .app-sidebar.collapsed .avatar-circle {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+        }
+
+        .app-sidebar.collapsed .sidebar-link {
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .app-sidebar.collapsed .sidebar-link i {
+            margin: 0;
+        }
+
+        .app-sidebar.collapsed .menu-text {
+            display: none;
+        }
     }
 
     .sidebar-footer {
@@ -883,53 +949,53 @@ function isActive($pageName)
         <li>
             <a href="<?php echo $isProd ? '/dashboard' : '/karen_site/controle-salao/pages/dashboard.php'; ?>"
                class="sidebar-link <?php echo isActive('dashboard.php'); ?>">
-                <i class="bi bi-grid-fill"></i> Dashboard
-            </a>
+                <i class="bi bi-grid-fill"></i> <span class="menu-text">Dashboard
+            </span></a>
         </li>
         <li>
             <a href="<?php echo $isProd ? '/agenda' : '/karen_site/controle-salao/pages/agenda/agenda.php'; ?>"
                class="sidebar-link <?php echo isActive('agenda.php'); ?>">
-                <i class="bi bi-calendar2-week-fill"></i> Agendamentos
-            </a>
+                <i class="bi bi-calendar2-week-fill"></i> <span class="menu-text">Agendamentos
+            </span></a>
         </li>
         <li>
             <a href="<?php echo $isProd ? '/horarios' : '/karen_site/controle-salao/pages/horarios/horarios.php'; ?>"
                class="sidebar-link <?php echo isActive('horarios.php'); ?>">
-                <i class="bi bi-clock-fill"></i> Expediente
-            </a>
+                <i class="bi bi-clock-fill"></i> <span class="menu-text">Expediente
+            </span></a>
         </li>
 
         <li>
             <a href="<?php echo $isProd ? '/clientes' : '/karen_site/controle-salao/pages/clientes/clientes.php'; ?>"
                class="sidebar-link <?php echo isActive('clientes.php'); ?>">
-                <i class="bi bi-people-fill"></i> Clientes
-            </a>
+                <i class="bi bi-people-fill"></i> <span class="menu-text">Clientes
+            </span></a>
         </li>
         <li>
             <a href="<?php echo $isProd ? '/comandas' : '/karen_site/controle-salao/pages/comandas/comandas.php'; ?>"
                class="sidebar-link <?php echo isActive('comandas.php'); ?>">
-                <i class="bi bi-clipboard"></i> Comandas
-            </a>
+                <i class="bi bi-clipboard"></i> <span class="menu-text">Comandas
+            </span></a>
         </li>
 
         <div class="menu-label">Gestão</div>
         <li>
             <a href="<?php echo $isProd ? '/servicos' : '/karen_site/controle-salao/pages/servicos/servicos.php'; ?>"
                class="sidebar-link <?php echo isActive('servicos.php'); ?>">
-                <i class="bi bi-scissors"></i> Serviços
-            </a>
+                <i class="bi bi-scissors"></i> <span class="menu-text">Serviços
+            </span></a>
         </li>
         <li>
             <a href="<?php echo $isProd ? '/produtos-estoque' : '/karen_site/controle-salao/pages/produtos-estoque/produtos-estoque.php'; ?>"
                class="sidebar-link <?php echo isActive('produtos-estoque.php'); ?>">
-                <i class="bi bi-box-seam-fill"></i> Produtos
-            </a>
+                <i class="bi bi-box-seam-fill"></i> <span class="menu-text">Produtos
+            </span></a>
         </li>
         <li>
             <a href="<?php echo $isProd ? '/calcular-servico' : '/karen_site/controle-salao/pages/calcular-servico/calcular-servico.php'; ?>"
                class="sidebar-link <?php echo isActive('calcular-servico.php'); ?>">
-                <i class="bi bi-calculator"></i> Calcular Serviço
-            </a>
+                <i class="bi bi-calculator"></i> <span class="menu-text">Calcular Serviço
+            </span></a>
         </li>
     </ul>
 
@@ -1053,14 +1119,54 @@ function isActive($pageName)
     const openBtn   = document.getElementById('openMenuBtn');
     const closeBtn  = document.getElementById('closeMenuBtn');
 
+    const SIDEBAR_STORAGE_KEY = 'salao_sidebar_collapsed';
+    const isDesktop = () => window.matchMedia('(min-width: 992px)').matches;
+
+    function setCollapsed(collapsed) {
+        if (!sidebar) return;
+        sidebar.classList.toggle('collapsed', collapsed);
+        document.body.classList.toggle('sidebar-collapsed', collapsed);
+        try {
+            localStorage.setItem(SIDEBAR_STORAGE_KEY, collapsed ? '1' : '0');
+        } catch (e) {}
+    }
+
+    function getCollapsedPref() {
+        try {
+            return localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1';
+        } catch (e) {
+            return false;
+        }
+    }
+
     function toggleSidebar() {
-        sidebar.classList.toggle('open');
-        backdrop.classList.toggle('active');
+        if (!sidebar) return;
+        if (isDesktop()) {
+            setCollapsed(!sidebar.classList.contains('collapsed'));
+        } else {
+            sidebar.classList.toggle('open');
+            if (backdrop) backdrop.classList.toggle('active');
+        }
+    }
+
+    function handleResize() {
+        if (!sidebar) return;
+        if (isDesktop()) {
+            sidebar.classList.remove('open');
+            if (backdrop) backdrop.classList.remove('active');
+            setCollapsed(getCollapsedPref());
+        } else {
+            sidebar.classList.remove('collapsed');
+            document.body.classList.remove('sidebar-collapsed');
+        }
     }
 
     if (openBtn)  openBtn.onclick  = toggleSidebar;
     if (closeBtn) closeBtn.onclick = toggleSidebar;
     if (backdrop) backdrop.onclick = toggleSidebar;
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
 
     // ==========================
     // DROPDOWN USUÁRIO

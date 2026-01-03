@@ -135,10 +135,10 @@ include '../../includes/menu.php';
 
 <style>
     :root {
-        --primary-color: #4f46e5;
-        --primary-dark: #4338ca;
-        --primary-soft: #eef2ff;
-        --accent: #ec4899;
+        --primary-color: #0f2f66;
+        --primary-dark: #1e3a8a;
+        --primary-soft: #e0e7ff;
+        --accent: #0ea5e9;
         --bg-page: #f8fafc;
         --bg-card: #ffffff;
         --text-main: #0f172a;
@@ -164,17 +164,17 @@ include '../../includes/menu.php';
     }
 
     .main-wrapper {
-        max-width: 640px;
+        max-width: 980px;
         margin: 0 auto;
-        padding: 20px 12px 110px 12px;
+        padding: 24px 16px 120px;
     }
 
     /* Cabeçalho da Página */
     .page-header {
         background: var(--bg-card);
-        border-radius: 16px;
-        padding: 16px 18px;
-        margin-bottom: 16px;
+        border-radius: 18px;
+        padding: 18px 20px;
+        margin-bottom: 18px;
         box-shadow: var(--shadow-soft);
         border: 1px solid rgba(148,163,184,0.18);
     }
@@ -195,7 +195,7 @@ include '../../includes/menu.php';
     .page-header h2 {
         font-size: 1.35rem;
         font-weight: 800;
-        background: linear-gradient(135deg, var(--primary-color), var(--accent));
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -216,7 +216,7 @@ include '../../includes/menu.php';
         color: white;
         border: none;
         padding: 9px 14px;
-        border-radius: 999px;
+        border-radius: 12px;
         font-weight: 600;
         font-size: 0.8rem;
         cursor: pointer;
@@ -224,7 +224,7 @@ include '../../includes/menu.php';
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        box-shadow: 0 4px 10px rgba(79,70,229,0.25);
+        box-shadow: 0 4px 10px rgba(15,47,102,0.25);
         white-space: nowrap;
     }
     
@@ -241,12 +241,23 @@ include '../../includes/menu.php';
         transform: translateY(0);
     }
 
+    .days-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    @media (min-width: 1024px) {
+        .days-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
     /* Cards dos Dias */
     .day-card {
         background: var(--bg-card);
         border-radius: 18px;
         padding: 16px 16px 14px;
-        margin-bottom: 12px;
         box-shadow: var(--shadow-soft);
         border: 1px solid rgba(148,163,184,0.20);
         transition: all 0.25s ease;
@@ -255,7 +266,7 @@ include '../../includes/menu.php';
     .day-card:hover {
         box-shadow: var(--shadow-hover);
         transform: translateY(-1px);
-        border-color: rgba(79,70,229,0.25);
+        border-color: rgba(15,47,102,0.25);
     }
 
     /* Estado Fechado */
@@ -295,7 +306,7 @@ include '../../includes/menu.php';
         width: 40px;
         height: 40px;
         border-radius: 14px;
-        background: linear-gradient(135deg, var(--primary-color), var(--accent));
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
         display: flex;
         align-items: center;
         justify-content: center;
@@ -417,14 +428,14 @@ include '../../includes/menu.php';
     
     .time-capsule:hover {
         background: #ffffff;
-        border-color: rgba(79,70,229,0.35);
+        border-color: rgba(15,47,102,0.35);
         box-shadow: 0 3px 10px rgba(15,23,42,0.06);
     }
     
     .time-capsule:focus-within {
         background: #ffffff;
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(79,70,229,0.18);
+        box-shadow: 0 0 0 3px rgba(15,47,102,0.18);
     }
 
     .time-input {
@@ -455,7 +466,7 @@ include '../../includes/menu.php';
     }
 
     .interval-select {
-        background: rgba(79,70,229,0.06);
+        background: rgba(15,47,102,0.06);
         border: none;
         font-family: inherit;
         font-size: 0.8rem;
@@ -469,7 +480,7 @@ include '../../includes/menu.php';
     }
     
     .interval-select:hover {
-        background: rgba(79,70,229,0.12);
+        background: rgba(15,47,102,0.12);
     }
 
     .btn-remove {
@@ -528,12 +539,13 @@ include '../../includes/menu.php';
         left: 50%;
         transform: translateX(-50%);
         width: calc(100% - 24px);
-        max-width: 560px;
-        background: #020617;
-        color: white;
+        max-width: 640px;
+        background: #ffffff;
+        color: var(--text-main);
         padding: 10px 14px;
         border-radius: 14px;
-        box-shadow: 0 16px 40px rgba(15,23,42,0.6);
+        box-shadow: 0 16px 40px rgba(15,23,42,0.18);
+        border: 1px solid var(--border-color);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -545,7 +557,7 @@ include '../../includes/menu.php';
     .save-text {
         font-size: 0.82rem;
         font-weight: 600;
-        opacity: 0.95;
+        color: var(--text-main);
         display: flex;
         align-items: center;
         gap: 6px;
@@ -557,22 +569,22 @@ include '../../includes/menu.php';
     }
     
     .btn-save-action {
-        background: linear-gradient(135deg, #10b981, #059669);
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
         color: white;
         border: none;
         padding: 8px 18px;
-        border-radius: 999px;
+        border-radius: 12px;
         font-weight: 700;
         font-size: 0.9rem;
         cursor: pointer;
         transition: all 0.2s ease;
         white-space: nowrap;
-        box-shadow: 0 4px 12px rgba(16,185,129,0.4);
+        box-shadow: 0 4px 12px rgba(15,47,102,0.35);
     }
     
     .btn-save-action:hover {
         transform: translateY(-1px);
-        box-shadow: 0 6px 18px rgba(16,185,129,0.55);
+        box-shadow: 0 6px 18px rgba(15,47,102,0.45);
     }
     
     .btn-save-action:active {
@@ -595,7 +607,7 @@ include '../../includes/menu.php';
         background: var(--bg-card);
         border-radius: 16px;
         padding: 14px 16px 16px;
-        border: 1px solid #fed7aa;
+        border: 1px solid #dbeafe;
         box-shadow: var(--shadow-soft);
     }
 
@@ -609,7 +621,7 @@ include '../../includes/menu.php';
     .special-days-header h3 {
         font-size: 0.95rem;
         font-weight: 800;
-        color: #9a3412;
+        color: #0f2f66;
         margin: 0;
         display: flex;
         align-items: center;
@@ -621,18 +633,18 @@ include '../../includes/menu.php';
     }
 
     .special-days-description {
-        color: #b45309;
+        color: #1e3a8a;
         font-size: 0.75rem;
         margin-bottom: 10px;
         opacity: 0.9;
     }
 
     .add-special-day-form {
-        background: #fff7ed;
+        background: #eff6ff;
         border-radius: 12px;
         padding: 10px 10px 12px;
         margin-bottom: 10px;
-        border: 1px dashed #fdba74;
+        border: 1px dashed #93c5fd;
     }
 
     .form-row {
@@ -656,9 +668,9 @@ include '../../includes/menu.php';
 
     .form-input:focus {
         outline: none;
-        border-color: #fb923c;
+        border-color: #1e3a8a;
         background: #ffffff;
-        box-shadow: 0 0 0 2px rgba(251,146,60,0.18);
+        box-shadow: 0 0 0 2px rgba(30,58,138,0.18);
     }
 
     .form-select {
@@ -674,7 +686,7 @@ include '../../includes/menu.php';
 
     .form-select:focus {
         outline: none;
-        border-color: #fb923c;
+        border-color: #1e3a8a;
         background: #ffffff;
     }
 
@@ -692,12 +704,12 @@ include '../../includes/menu.php';
         width: 16px;
         height: 16px;
         cursor: pointer;
-        accent-color: #fb923c;
+        accent-color: #1e3a8a;
     }
 
     .btn-add-special {
         width: 100%;
-        background: linear-gradient(135deg, #fb923c, #f97316);
+        background: linear-gradient(135deg, #0f2f66, #1e3a8a);
         color: white;
         border: none;
         padding: 8px 10px;
@@ -714,7 +726,7 @@ include '../../includes/menu.php';
 
     .btn-add-special:hover {
         transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(251,146,60,0.35);
+        box-shadow: 0 6px 16px rgba(30,58,138,0.3);
     }
 
     .special-days-list {
@@ -731,13 +743,13 @@ include '../../includes/menu.php';
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border: 1px solid #fee2be;
+        border: 1px solid #dbeafe;
         transition: 0.2s ease;
     }
 
     .special-day-item:hover {
-        border-color: #fb923c;
-        box-shadow: 0 3px 10px rgba(251,146,60,0.18);
+        border-color: #93c5fd;
+        box-shadow: 0 3px 10px rgba(30,58,138,0.15);
     }
 
     .special-day-info {
@@ -746,13 +758,13 @@ include '../../includes/menu.php';
 
     .special-day-name {
         font-weight: 700;
-        color: #9a3412;
+        color: #0f2f66;
         font-size: 0.85rem;
         margin-bottom: 2px;
     }
 
     .special-day-date {
-        color: #fb923c;
+        color: #1e3a8a;
         font-size: 0.72rem;
         font-weight: 600;
         display: flex;
@@ -771,13 +783,13 @@ include '../../includes/menu.php';
     }
 
     .badge-recorrente {
-        background: #dcfce7;
-        color: #16a34a;
+        background: #dbeafe;
+        color: #1e3a8a;
     }
 
     .badge-unico {
-        background: #dbeafe;
-        color: #2563eb;
+        background: #e0f2fe;
+        color: #0ea5e9;
     }
 
     .btn-remove-special {
@@ -804,7 +816,7 @@ include '../../includes/menu.php';
     .empty-state {
         text-align: center;
         padding: 18px 10px;
-        color: #9a3412;
+        color: #1e3a8a;
         opacity: 0.65;
         font-size: 0.8rem;
     }
