@@ -264,10 +264,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($acao === 'editar') {
-            $id     = (int)$_POST['id'];
-            $titulo = trim($_POST['edit_titulo']);
-            $pdo->prepare("UPDATE comandas SET titulo = ? WHERE id = ? AND user_id = ?")
-                ->execute([$titulo, $id, $uid]);
+            $pdo->beginTransaction();
+            
+            $id          = (int)$_POST['id'];
+            $titulo      = trim($_POST['edit_titulo']);
+            $qtd_total   = max(1, (int)$_POST['edit_qtd_total']);
+            $valor_total = (float)$_POST['edit_valor_total'];
+            $data_inicio = $_POST['edit_data_inicio'];
+            $frequencia  = $_POST['edit_frequencia'];
+            
+            // Atualizar comanda
+            $pdo->prepare("UPDATE comandas SET titulo = ?, qtd_total = ?, valor_total = ?, data_inicio = ?, frequencia = ? WHERE id = ? AND user_id = ?")
+                ->execute([$titulo, $qtd_total, $valor_total, $data_inicio, $frequencia, $id, $uid]);
+            
+            // Verificar se mudou a quantidade de sessões
+            $stmtCount = $pdo->prepare("SELECT COUNT(*) as total FROM comanda_itens WHERE comanda_id = ?");
+            $stmtCount->execute([$id]);
+            $countResult = $stmtCount->fetch(PDO::FETCH_ASSOC);
+            $qtdAtual = $countResult['total'];
+            
+            if ($qtd_total != $qtdAtual) {
+                // Deletar itens existentes
+                $pdo->prepare("DELETE FROM comanda_itens WHERE comanda_id = ?")->execute([$id]);
+                
+                // Recriar itens com nova quantidade
+                $valor_sessao = $qtd_total > 0 ? $valor_total / $qtd_total : 0;
+                $data_atual = new DateTime($data_inicio);
+                
+                for ($i = 1; $i <= $qtd_total; $i++) {
+                    $pdo->prepare("
+                        INSERT INTO comanda_itens (comanda_id, numero, data_prevista, valor, status)
+                        VALUES (?, ?, ?, ?, 'pendente')
+                    ")->execute([$id, $i, $data_atual->format('Y-m-d'), $valor_sessao]);
+                    
+                    // Avançar data conforme frequência
+                    if ($i < $qtd_total) {
+                        if ($frequencia === 'semanal') {
+                            $data_atual->modify('+7 days');
+                        } elseif ($frequencia === 'quinzenal') {
+                            $data_atual->modify('+15 days');
+                        } elseif ($frequencia === 'mensal_dia') {
+                            $data_atual->modify('+1 month');
+                        } else {
+                            $data_atual->modify('+1 day');
+                        }
+                    }
+                }
+            }
+            
+            $pdo->commit();
             header("Location: ?msg=editado");
             exit;
         }
@@ -1301,23 +1346,65 @@ include '../../includes/menu.php';
     </div>
 </div>
 
-<!-- MODAL EDITAR TÍTULO -->
+<!-- MODAL EDITAR COMANDA -->
 <div id="modalEditar" class="modal-overlay">
     <div class="modal-box">
         <div style="width:40px; height:4px; background:#e2e8f0; border-radius:999px; margin:0 auto 14px;"></div>
-        <h3 style="font-size:1rem; font-weight:700; margin:0 0 14px; text-align:center;">Editar comanda</h3>
+        <h3 style="font-size:1rem; font-weight:700; margin:0 0 14px; text-align:center;">
+            <i class="bi bi-pencil-square"></i> Editar comanda
+        </h3>
         <form method="POST">
             <input type="hidden" name="acao" value="editar">
             <input type="hidden" name="id" id="editId">
 
             <div class="form-group">
-                <label class="form-label">Título</label>
-                <input type="text" name="edit_titulo" id="editTitulo" class="form-input">
+                <label class="form-label">
+                    <i class="bi bi-tag-fill"></i> Título
+                </label>
+                <input type="text" name="edit_titulo" id="editTitulo" class="form-input" required>
             </div>
 
-            <div style="background:#f8fafc; padding:12px; border-radius:14px; color:var(--text-muted); font-size:0.74rem; line-height:1.4; margin-bottom:8px;">
-                <i class="bi bi-info-circle-fill" style="color:var(--primary);"></i>
-                Para alterar valores ou número de sessões, o ideal é excluir e criar novamente para manter o histórico organizado.
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="bi bi-list-ol"></i> Sessões
+                    </label>
+                    <input type="number" name="edit_qtd_total" id="editQtdTotal" class="form-input" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="bi bi-currency-dollar"></i> Valor Total (R$)
+                    </label>
+                    <input type="number" step="0.01" name="edit_valor_total" id="editValorTotal" class="form-input" style="color:var(--primary); font-weight:700;" required>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="bi bi-calendar-event"></i> Data Início
+                    </label>
+                    <input type="date" name="edit_data_inicio" id="editDataInicio" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="bi bi-arrow-repeat"></i> Frequência
+                    </label>
+                    <select name="edit_frequencia" id="editFrequencia" class="form-input" required>
+                        <option value="diaria">Diária</option>
+                        <option value="semanal">Semanal</option>
+                        <option value="quinzenal">Quinzenal</option>
+                        <option value="mensal_dia">Mensal (dia fixo)</option>
+                        <option value="mensal_semana">Mensal (semana)</option>
+                        <option value="unico">Único</option>
+                        <option value="personalizada">Personalizada</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="background:#fff7ed; padding:12px; border-radius:14px; color:#c2410c; font-size:0.74rem; line-height:1.4; margin-bottom:8px; border:1px solid #fed7aa;">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <strong>Atenção:</strong> Ao alterar a quantidade de sessões, todas as sessões atuais serão recriadas. Sessões já confirmadas serão perdidas.
             </div>
 
             <button type="submit" class="btn-submit">Salvar alterações</button>
@@ -1443,6 +1530,10 @@ include '../../includes/menu.php';
     function editarComanda(data) {
         document.getElementById('editId').value = data.id;
         document.getElementById('editTitulo').value = data.titulo;
+        document.getElementById('editQtdTotal').value = data.qtd_total;
+        document.getElementById('editValorTotal').value = data.valor_total;
+        document.getElementById('editDataInicio').value = data.data_inicio;
+        document.getElementById('editFrequencia').value = data.frequencia || 'semanal';
         abrirModal('modalEditar');
     }
 

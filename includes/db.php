@@ -166,6 +166,7 @@ try {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         cliente_id INTEGER NOT NULL,
+        servico_id INTEGER,
         titulo TEXT NOT NULL,
         tipo TEXT DEFAULT 'normal',           -- normal | pacote
         status TEXT DEFAULT 'aberta',         -- aberta | fechada
@@ -173,6 +174,7 @@ try {
         valor_pago REAL DEFAULT 0,
         qtd_total INTEGER DEFAULT 1,          -- quantidade total de sessões
         data_inicio DATE,
+        frequencia TEXT DEFAULT 'semanal',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 

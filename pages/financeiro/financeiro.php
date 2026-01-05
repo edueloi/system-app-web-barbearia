@@ -36,6 +36,31 @@ $categoriasSaida = [
     'Outros' => '💸 Outros'
 ];
 
+// Categorias personalizadas (salvas em movimentos anteriores)
+$stmtCatList = $pdo->prepare("
+    SELECT DISTINCT categoria, tipo
+    FROM financeiro_movimentos
+    WHERE user_id = ?
+      AND categoria IS NOT NULL
+      AND categoria <> ''
+");
+$stmtCatList->execute([$userId]);
+$categoriasPersonalizadas = $stmtCatList->fetchAll();
+
+foreach ($categoriasPersonalizadas as $catRow) {
+    $catName = trim((string)($catRow['categoria'] ?? ''));
+    $catTipo = $catRow['tipo'] ?? '';
+    if ($catName === '') {
+        continue;
+    }
+    if ($catTipo === 'entrada' && !isset($categoriasEntrada[$catName])) {
+        $categoriasEntrada[$catName] = $catName;
+    }
+    if ($catTipo === 'saida' && !isset($categoriasSaida[$catName])) {
+        $categoriasSaida[$catName] = $catName;
+    }
+}
+
 // Ações de CRUD
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $acao = $_POST['acao'] ?? '';
@@ -44,15 +69,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($acao === 'salvar_movimento') {
         $tipo = $_POST['tipo'] ?? 'entrada';
         $categoria = trim($_POST['categoria'] ?? '');
+        $categoriaCustom = trim($_POST['categoria_custom'] ?? '');
         $descricao = trim($_POST['descricao'] ?? '');
         $valor = (float)str_replace(',', '.', $_POST['valor'] ?? 0);
         $dataMov = $_POST['data_movimento'] ?? date('Y-m-d');
         $origem = $_POST['origem'] ?? 'manual';
         $referencia_id = !empty($_POST['referencia_id']) ? (int)$_POST['referencia_id'] : null;
+        $recorrente = isset($_POST['recorrente']);
+        $periodicidade = $_POST['periodicidade'] ?? 'mensal';
+        $repeticoes = (int)($_POST['repeticoes'] ?? 1);
 
         if (!in_array($tipo, ['entrada', 'saida'], true)) {
             $tipo = 'entrada';
         }
+
+        if ($categoriaCustom !== '') {
+            $categoria = $categoriaCustom;
+        }
+
+        $repeticoes = max(1, min($repeticoes, 36));
+        $periodicidade = $periodicidade === 'semanal' ? 'semanal' : 'mensal';
 
         if ($valor > 0) {
             $stmt = $pdo->prepare("
@@ -60,7 +96,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     (user_id, tipo, categoria, descricao, valor, data_movimento, origem, referencia_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$userId, $tipo, $categoria, $descricao, $valor, $dataMov, $origem, $referencia_id]);
+            $datas = [];
+            $datas[] = $dataMov;
+            if ($recorrente && $repeticoes > 1) {
+                $dt = new DateTime($dataMov);
+                for ($i = 1; $i < $repeticoes; $i++) {
+                    $dt->add(new DateInterval($periodicidade === 'semanal' ? 'P1W' : 'P1M'));
+                    $datas[] = $dt->format('Y-m-d');
+                }
+            }
+
+            foreach ($datas as $dataLoop) {
+                $stmt->execute([$userId, $tipo, $categoria, $descricao, $valor, $dataLoop, $origem, $referencia_id]);
+            }
             header("Location: {$financeiroUrl}?status=saved");
             exit;
         }
@@ -234,7 +282,7 @@ include '../../includes/ui-toast.php';
     }
 
     body {
-        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+        background: #f8fafc;
         font-family: -apple-system, BlinkMacSystemFont, "Outfit", "Inter", system-ui, sans-serif;
         font-size: 0.875rem;
         color: var(--text-main);
@@ -250,17 +298,28 @@ include '../../includes/ui-toast.php';
 
     /* === HEADER === */
     .page-header {
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        background: var(--bg-card);
         border-radius: 20px;
         padding: 24px 28px;
         margin-bottom: 24px;
         box-shadow: var(--shadow-soft);
-        color: white;
+        color: var(--text-main);
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 16px;
         flex-wrap: wrap;
+        border: 1px solid var(--border-color);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .page-header::before {
+        content: '';
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-color), var(--accent));
     }
 
     .page-title {
@@ -271,13 +330,18 @@ include '../../includes/ui-toast.php';
         display: flex;
         align-items: center;
         gap: 12px;
+        color: var(--text-main);
+        background: linear-gradient(135deg, var(--primary-color), var(--accent));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
     }
 
     .page-subtitle {
         margin: 8px 0 0;
-        opacity: 0.9;
+        color: var(--text-muted);
         font-size: 0.95rem;
-        font-weight: 400;
+        font-weight: 500;
     }
 
     .header-actions {
@@ -289,11 +353,21 @@ include '../../includes/ui-toast.php';
     /* === FILTROS === */
     .filters-section {
         background: var(--bg-card);
-        border-radius: 16px;
+        border-radius: 18px;
         padding: 20px;
         margin-bottom: 24px;
         box-shadow: var(--shadow-soft);
         border: 1px solid var(--border-color);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .filters-section::before {
+        content: '';
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 3px;
+        background: linear-gradient(90deg, rgba(15, 47, 102, 0.4), rgba(37, 99, 235, 0.4));
     }
 
     .filters-title {
@@ -330,12 +404,12 @@ include '../../includes/ui-toast.php';
     }
 
     .filter-input, .filter-select {
-        padding: 10px 14px;
-        border: 2px solid var(--border-color);
-        border-radius: 10px;
-        background: var(--bg-page);
+        padding: 11px 14px;
+        border: 1px solid #dce3ee;
+        border-radius: 12px;
+        background: #f8fafc;
         font-size: 0.875rem;
-        font-weight: 500;
+        font-weight: 600;
         color: var(--text-main);
         transition: all 0.2s;
     }
@@ -344,11 +418,12 @@ include '../../includes/ui-toast.php';
         outline: none;
         border-color: var(--accent);
         background: white;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 
     .btn-filter {
-        padding: 11px 20px;
-        border-radius: 10px;
+        padding: 12px 22px;
+        border-radius: 12px;
         border: none;
         background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
         color: white;
@@ -360,7 +435,7 @@ include '../../includes/ui-toast.php';
         justify-content: center;
         gap: 8px;
         transition: all 0.3s;
-        box-shadow: var(--shadow-sm);
+        box-shadow: 0 8px 18px rgba(15, 47, 102, 0.2);
     }
 
     .btn-filter:hover {
@@ -369,8 +444,16 @@ include '../../includes/ui-toast.php';
     }
 
     .btn-reset {
-        background: #6b7280;
-        padding: 11px 16px;
+        background: #e2e8f0;
+        color: #334155;
+        padding: 12px 18px;
+        border: 1px solid #d7dee9;
+        box-shadow: none;
+    }
+
+    .btn-reset:hover {
+        background: #e8eef6;
+        color: #1e293b;
     }
 
     /* === DASHBOARD CARDS === */
@@ -467,11 +550,21 @@ include '../../includes/ui-toast.php';
     /* === FORMULÁRIO === */
     .form-card {
         background: var(--bg-card);
-        border-radius: 16px;
+        border-radius: 18px;
         padding: 24px;
         box-shadow: var(--shadow-soft);
         border: 1px solid var(--border-color);
         margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .form-card::before {
+        content: '';
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 3px;
+        background: linear-gradient(90deg, rgba(16, 185, 129, 0.5), rgba(37, 99, 235, 0.5));
     }
 
     .form-title {
@@ -501,6 +594,28 @@ include '../../includes/ui-toast.php';
         grid-column: 1 / -1;
     }
 
+    .form-hint {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: -2px;
+    }
+
+    .toggle-line {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: #f8fafc;
+        border: 1px solid #dce3ee;
+        font-weight: 600;
+        color: var(--text-main);
+    }
+
+    .toggle-line input {
+        margin: 0;
+    }
+
     .form-label {
         font-size: 0.75rem;
         font-weight: 600;
@@ -511,11 +626,11 @@ include '../../includes/ui-toast.php';
 
     .form-input, .form-select, .form-textarea {
         padding: 12px 14px;
-        border: 2px solid var(--border-color);
-        border-radius: 10px;
-        background: var(--bg-page);
+        border: 1px solid #dce3ee;
+        border-radius: 12px;
+        background: #f8fafc;
         font-size: 0.875rem;
-        font-weight: 500;
+        font-weight: 600;
         color: var(--text-main);
         transition: all 0.2s;
     }
@@ -529,6 +644,7 @@ include '../../includes/ui-toast.php';
         outline: none;
         border-color: var(--accent);
         background: white;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 
     .btn-save {
@@ -536,7 +652,7 @@ include '../../includes/ui-toast.php';
         color: white;
         border: none;
         padding: 14px 28px;
-        border-radius: 10px;
+        border-radius: 12px;
         font-weight: 700;
         font-size: 0.875rem;
         cursor: pointer;
@@ -544,7 +660,7 @@ include '../../includes/ui-toast.php';
         align-items: center;
         gap: 8px;
         transition: all 0.3s;
-        box-shadow: var(--shadow-sm);
+        box-shadow: 0 10px 22px rgba(16, 185, 129, 0.25);
     }
 
     .btn-save:hover {
@@ -555,7 +671,7 @@ include '../../includes/ui-toast.php';
     /* === TABELA === */
     .table-card {
         background: var(--bg-card);
-        border-radius: 16px;
+        border-radius: 18px;
         border: 1px solid var(--border-color);
         box-shadow: var(--shadow-soft);
         overflow: hidden;
@@ -595,8 +711,8 @@ include '../../includes/ui-toast.php';
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        background: var(--bg-page);
-        border-bottom: 2px solid var(--border-color);
+        background: #f1f5f9;
+        border-bottom: 1px solid var(--border-color);
     }
 
     .custom-table td {
@@ -606,7 +722,7 @@ include '../../includes/ui-toast.php';
     }
 
     .custom-table tr:hover {
-        background: var(--bg-page);
+        background: #f8fafc;
     }
 
     .badge {
@@ -637,34 +753,37 @@ include '../../includes/ui-toast.php';
     }
 
     .btn-action {
-        padding: 6px 10px;
-        border: none;
-        border-radius: 6px;
+        padding: 7px 12px;
+        border: 1px solid transparent;
+        border-radius: 999px;
         cursor: pointer;
         font-size: 0.75rem;
-        font-weight: 600;
+        font-weight: 700;
         transition: all 0.2s;
         display: inline-flex;
         align-items: center;
-        gap: 4px;
+        gap: 6px;
+        background: white;
     }
 
     .btn-edit {
-        background: rgba(59, 130, 246, 0.1);
+        background: rgba(37, 99, 235, 0.08);
         color: #2563eb;
+        border-color: rgba(37, 99, 235, 0.2);
     }
 
     .btn-edit:hover {
-        background: rgba(59, 130, 246, 0.2);
+        background: rgba(37, 99, 235, 0.16);
     }
 
     .btn-delete {
-        background: rgba(239, 68, 68, 0.1);
+        background: rgba(239, 68, 68, 0.08);
         color: #dc2626;
+        border-color: rgba(239, 68, 68, 0.2);
     }
 
     .btn-delete:hover {
-        background: rgba(239, 68, 68, 0.2);
+        background: rgba(239, 68, 68, 0.16);
     }
 
     .empty-state {
@@ -782,8 +901,13 @@ include '../../includes/ui-toast.php';
             grid-template-columns: 1fr;
         }
 
+        .table-card {
+            overflow-x: auto;
+        }
+
         .custom-table {
             font-size: 0.75rem;
+            min-width: 720px;
         }
 
         .custom-table th,
@@ -1022,6 +1146,32 @@ include '../../includes/ui-toast.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
+
+                <div class="form-group">
+                    <label class="form-label"><i class="bi bi-tags"></i> Categoria personalizada</label>
+                    <input type="text" name="categoria_custom" id="categoriaCustomInput" class="form-input" placeholder="Ex: Gastos pessoais">
+                    <div class="form-hint">Opcional. Se preencher, substitui a categoria do select.</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="bi bi-repeat"></i> Recorrente?</label>
+                    <label class="toggle-line">
+                        <input type="checkbox" name="recorrente" id="recorrenteToggle">
+                        Repetir automaticamente
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="bi bi-calendar-event"></i> Periodicidade</label>
+                    <select name="periodicidade" id="periodicidadeSelect" class="form-select" disabled>
+                        <option value="mensal">Mensal</option>
+                        <option value="semanal">Semanal</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="bi bi-123"></i> Repeticoes</label>
+                    <input type="number" name="repeticoes" id="repeticoesInput" class="form-input" value="1" min="1" max="36" disabled>
+                    <div class="form-hint">Quantidade de vezes (ate 36).</div>
+                </div>
+
                 <div class="form-group full-width">
                     <label class="form-label"><i class="bi bi-card-text"></i> Descrição</label>
                     <textarea name="descricao" class="form-textarea" placeholder="Detalhe o movimento financeiro..."></textarea>
@@ -1158,9 +1308,33 @@ include '../../includes/ui-toast.php';
         alert('Funcionalidade de edição em desenvolvimento. ID: ' + id);
     }
 
+    const recorrenteToggle = document.getElementById('recorrenteToggle');
+    const periodicidadeSelect = document.getElementById('periodicidadeSelect');
+    const repeticoesInput = document.getElementById('repeticoesInput');
+
+    function atualizarRecorrencia() {
+        if (!recorrenteToggle) {
+            return;
+        }
+        const ativo = recorrenteToggle.checked;
+        if (periodicidadeSelect) {
+            periodicidadeSelect.disabled = !ativo;
+        }
+        if (repeticoesInput) {
+            repeticoesInput.disabled = !ativo;
+            if (!ativo) {
+                repeticoesInput.value = 1;
+            }
+        }
+    }
+
     // Inicializar
     document.addEventListener('DOMContentLoaded', function() {
         atualizarCategorias();
+        atualizarRecorrencia();
+        if (recorrenteToggle) {
+            recorrenteToggle.addEventListener('change', atualizarRecorrencia);
+        }
     });
 </script>
 
