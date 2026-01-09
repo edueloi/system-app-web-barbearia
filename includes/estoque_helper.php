@@ -227,6 +227,17 @@ $pdo->exec('PRAGMA journal_mode = WAL;');  // melhor para concorrência
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN data_validade DATE"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN observacoes TEXT"); } catch (Exception $e) {} 
  
+    $pdo->exec("CREATE TABLE IF NOT EXISTS produtos_comprometidos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        produto_id INTEGER NOT NULL,
+        agendamento_id INTEGER NOT NULL,
+        quantidade REAL NOT NULL,
+        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (produto_id) REFERENCES produtos(id) ON DELETE CASCADE,
+        FOREIGN KEY (agendamento_id) REFERENCES agendamentos(id) ON DELETE CASCADE
+    )");
+
     // ========================================================= 
     // SEED BÁSICO (Usuário padrão id=1) 
     // ========================================================= 
@@ -275,4 +286,47 @@ function consumirEstoquePorServico($pdo, $userId, $servicoId) {
         $stmt = $pdo->prepare("UPDATE produtos SET quantidade = quantidade - ? WHERE id = ? AND user_id = ?");
         $stmt->execute([$mat['quantidade_usada'], $mat['produto_id'], $userId]);
     }
+}
+
+// Função para comprometer (reservar) estoque para um agendamento futuro
+function comprometerEstoque($pdo, $userId, $agendamentoId, $servicoId) {
+    // 1. Limpa qualquer comprometimento antigo para este agendamento (caso de re-salvar)
+    $stmt = $pdo->prepare("DELETE FROM produtos_comprometidos WHERE agendamento_id = ? AND user_id = ?");
+    $stmt->execute([$agendamentoId, $userId]);
+
+    // 2. Busca o cálculo de serviço vinculado
+    $stmt = $pdo->prepare("SELECT calculo_servico_id FROM servicos WHERE id = ? AND user_id = ?");
+    $stmt->execute([$servicoId, $userId]);
+    $servico = $stmt->fetch();
+    if (!$servico || empty($servico['calculo_servico_id'])) {
+        return; // Sem cálculo, sem o que comprometer
+    }
+    $calculoId = $servico['calculo_servico_id'];
+
+    // 3. Busca os materiais do cálculo
+    $stmt = $pdo->prepare("SELECT produto_id, quantidade_usada FROM calculo_servico_materiais WHERE calculo_id = ?");
+    $stmt->execute([$calculoId]);
+    $materiais = $stmt->fetchAll();
+    if (!$materiais) return;
+
+    // 4. Insere os produtos na tabela de comprometidos
+    $stmt = $pdo->prepare("INSERT INTO produtos_comprometidos (user_id, produto_id, agendamento_id, quantidade) VALUES (?, ?, ?, ?)");
+    foreach ($materiais as $mat) {
+        if (empty($mat['produto_id']) || empty($mat['quantidade_usada'])) continue;
+        $stmt->execute([$userId, $mat['produto_id'], $agendamentoId, $mat['quantidade_usada']]);
+    }
+}
+
+// Função para liberar estoque que estava comprometido
+function liberarEstoqueComprometido($pdo, $userId, $agendamentoId) {
+    $stmt = $pdo->prepare("DELETE FROM produtos_comprometidos WHERE agendamento_id = ? AND user_id = ?");
+    $stmt->execute([$agendamentoId, $userId]);
+}
+
+// Função para obter a quantidade comprometida de um produto
+function getQuantidadeComprometida($pdo, $userId, $produtoId) {
+    $stmt = $pdo->prepare("SELECT SUM(quantidade) as total FROM produtos_comprometidos WHERE produto_id = ? AND user_id = ?");
+    $stmt->execute([$produtoId, $userId]);
+    $result = $stmt->fetch();
+    return $result['total'] ?? 0;
 }

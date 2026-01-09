@@ -460,4 +460,6 @@ try {
 } catch (PDOException $e) { 
     die("Erro na base de dados: " . $e->getMessage()); 
 }
-?>
+
+// Include helper functions for stock management
+require_once __DIR__ . '/estoque_helper.php';

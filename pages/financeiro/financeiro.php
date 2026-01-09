@@ -109,6 +109,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($datas as $dataLoop) {
                 $stmt->execute([$userId, $tipo, $categoria, $descricao, $valor, $dataLoop, $origem, $referencia_id]);
             }
+
+            // Se for uma saída para compra de produto, atualiza o estoque
+            if ($tipo === 'saida' && $categoria === 'Produtos/Estoque') {
+                // Tenta encontrar um produto com nome similar para atualizar, ou cria um novo
+                $stmtProd = $pdo->prepare("SELECT id, quantidade FROM produtos WHERE user_id = ? AND nome LIKE ?");
+                $stmtProd->execute([$userId, '%' . $descricao . '%']);
+                $produto = $stmtProd->fetch();
+
+                if ($produto) {
+                    // Produto encontrado, apenas adiciona a quantidade (assumindo 1 unidade por padrão)
+                    $novaQtd = $produto['quantidade'] + 1;
+                    $stmtUpd = $pdo->prepare("UPDATE produtos SET quantidade = ?, custo_unitario = ? WHERE id = ?");
+                    $stmtUpd->execute([$novaQtd, $valor, $produto['id']]);
+                } else {
+                    // Produto não encontrado, cria um novo
+                    $stmtIns = $pdo->prepare("
+                        INSERT INTO produtos (user_id, nome, quantidade, custo_unitario, data_compra)
+                        VALUES (?, ?, 1, ?, ?)
+                    ");
+                    $stmtIns->execute([$userId, $descricao, $valor, $dataMov]);
+                }
+            }
+
             header("Location: {$financeiroUrl}?status=saved");
             exit;
         }

@@ -94,6 +94,22 @@ if (isset($_GET['edit'])) {
     $produtoEdicao = $stmt->fetch();
 }
 
+// Buscar estoque comprometido
+$comprometidos = [];
+$stmtComp = $pdo->prepare("
+    SELECT p.id as produto_id, SUM(pc.quantidade) as total_comprometido
+    FROM produtos_comprometidos pc
+    JOIN produtos p ON pc.produto_id = p.id
+    WHERE pc.user_id = ?
+    GROUP BY p.id
+");
+$stmtComp->execute([$userId]);
+$comprometidosRaw = $stmtComp->fetchAll();
+foreach ($comprometidosRaw as $c) {
+    $comprometidos[$c['produto_id']] = $c['total_comprometido'];
+}
+
+
 include '../../includes/header.php';
 include '../../includes/menu.php';
 include '../../includes/ui-toast.php';
@@ -236,6 +252,247 @@ include '../../includes/ui-confirm.php';
         box-shadow: var(--shadow-hover);
         transform: translateY(-1px);
         border-color: rgba(15,47,102,0.2);
+    }
+
+    /* === FILTROS E BUSCA === */
+    .filters-section {
+        background: var(--bg-card);
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: var(--shadow-soft);
+        border: 1px solid rgba(148,163,184,0.18);
+    }
+
+    .filters-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .search-box {
+        flex: 1;
+        min-width: 250px;
+        position: relative;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 10px 12px 10px 38px;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        font-size: 0.85rem;
+        background: #f8fafc;
+        transition: all 0.2s ease;
+    }
+
+    .search-box input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(15,47,102,0.1);
+        background: white;
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        font-size: 1rem;
+    }
+
+    .filter-group {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .filter-btn {
+        padding: 8px 16px;
+        border: 1px solid var(--border-color);
+        background: white;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-main);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .filter-btn:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .filter-btn.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    /* === GRID DE PRODUTOS (CARDS) === */
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+    }
+
+    .product-card {
+        background: var(--bg-card);
+        border: 1px solid rgba(148,163,184,0.18);
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: var(--shadow-soft);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .product-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-hover);
+        border-color: rgba(15,47,102,0.3);
+    }
+
+    .product-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        gap: 10px;
+    }
+
+    .product-name {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-main);
+        line-height: 1.3;
+        flex: 1;
+    }
+
+    .product-brand {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+
+    .product-alert {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        margin-top: 4px;
+    }
+
+    .alert-low { background: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.5); }
+    .alert-ok { background: #22c55e; }
+    .alert-warning { background: #f59e0b; }
+
+    .product-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin: 12px 0;
+        padding: 12px;
+        background: #f8fafc;
+        border-radius: 12px;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-main);
+        display: block;
+    }
+
+    .stat-label {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 2px;
+        display: block;
+    }
+
+    .product-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .product-price {
+        font-family: ui-monospace, monospace;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+
+    .product-actions {
+        display: flex;
+        gap: 6px;
+    }
+
+    .action-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f1f5f9;
+        color: var(--text-muted);
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.9rem;
+    }
+
+    .action-icon:hover {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .action-icon.delete:hover {
+        background: #ef4444;
+    }
+
+    .product-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .badge-hot {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+    }
+
+    .badge-low {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+    }
+
+    .badge-expired {
+        background: linear-gradient(135deg, #6b7280, #4b5563);
+        color: white;
     }
 
     .stat-icon {
@@ -805,6 +1062,34 @@ include '../../includes/ui-confirm.php';
             font-size: 0.72rem;
         }
 
+        /* Cards responsivos */
+        .filters-row {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .search-box {
+            min-width: 100%;
+        }
+
+        .filter-group {
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            font-size: 0.75rem;
+            padding: 7px 12px;
+        }
+
+        .products-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .product-card {
+            padding: 14px;
+        }
+
         .table-container {
             border-radius: 14px;
         }
@@ -889,78 +1174,128 @@ include '../../includes/ui-confirm.php';
         </div>
     </div>
 
-    <div class="table-container">
-        <?php if (count($produtos) > 0): ?>
-            <div class="table-scroller">
-                <table class="custom-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 38%;">Produto</th>
-                            <th>Tamanho Un.</th>
-                            <th>Qtd Estoque</th>
-                            <th>Custo Pago</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($produtos as $p): 
-                            $validade = $p['data_validade'] ? strtotime($p['data_validade']) : null;
-                            $hoje = strtotime(date('Y-m-d'));
-                            
-                            $statusBadge = '<span class="badge bg-green">OK</span>';
-                            if ($p['quantidade'] <= 2) $statusBadge = '<span class="badge bg-red">Baixo</span>';
-                            if ($validade && $validade < $hoje) $statusBadge = '<span class="badge bg-red">Vencido</span>';
-                        ?>
-                        <tr
-                            class="product-row"
-                            onclick="openProductSheet(this)"
-                            data-id="<?php echo $p['id']; ?>"
-                            data-nome="<?php echo htmlspecialchars($p['nome'], ENT_QUOTES); ?>"
-                            data-marca="<?php echo htmlspecialchars($p['marca'], ENT_QUOTES); ?>"
-                            data-qtd="<?php echo $p['quantidade']; ?>"
-                            data-tamanho="<?php echo number_format($p['tamanho_embalagem'], 0, ',', '.'); ?>"
-                            data-unidade="<?php echo htmlspecialchars($p['unidade']); ?>"
-                            data-custo="<?php echo number_format($p['custo_unitario'], 2, ',', '.'); ?>"
-                            data-validade="<?php echo $validade ? date('d/m/Y', $validade) : ''; ?>"
-                            data-obs="<?php echo htmlspecialchars($p['observacoes'] ?? '', ENT_QUOTES); ?>"
-                            data-status="<?php echo strip_tags($statusBadge); ?>"
-                        >
-                            <td>
-                                <div class="prod-name"><?php echo htmlspecialchars($p['nome']); ?></div>
-                                <?php if (!empty($p['marca'])): ?>
-                                    <div class="prod-brand"><?php echo htmlspecialchars($p['marca']); ?></div>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <div class="prod-volume">
-                                    <?php echo number_format($p['tamanho_embalagem'], 0, ',', '.'); ?>
-                                    <span><?php echo htmlspecialchars($p['unidade']); ?></span>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="badge bg-gray"><?php echo $p['quantidade']; ?> un</span>
-                            </td>
-                            <td class="price-mono">
-                                R$ <?php echo number_format($p['custo_unitario'], 2, ',', '.'); ?>
-                            </td>
-                            <td>
-                                <?php echo $statusBadge; ?>
-                                <div class="status-date">
-                                    <?php echo $validade ? date('d/m/Y', $validade) : '-'; ?>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+    <!-- Filtros de Busca -->
+    <div class="filters-section">
+        <div class="filters-row">
+            <div class="search-box">
+                <i class="bi bi-search"></i>
+                <input type="text" id="searchInput" placeholder="Buscar produtos por nome ou marca..." onkeyup="filterProducts()">
             </div>
-        <?php else: ?>
-            <div class="empty-state">
-                <i class="bi bi-inbox"></i>
-                <p>Nenhum produto cadastrado ainda. Comece adicionando seu primeiro item de estoque.</p>
+            <div class="filter-group">
+                <button class="filter-btn active" onclick="setFilter('todos')" data-filter="todos">
+                    Todos (<?= count($produtos) ?>)
+                </button>
+                <button class="filter-btn" onclick="setFilter('baixo')" data-filter="baixo">
+                    <i class="bi bi-exclamation-circle"></i> Acabando
+                </button>
+                <button class="filter-btn" onclick="setFilter('vencendo')" data-filter="vencendo">
+                    <i class="bi bi-clock-history"></i> Vencendo
+                </button>
             </div>
-        <?php endif; ?>
+        </div>
     </div>
+
+    <!-- Grid de Produtos -->
+    <?php if (count($produtos) > 0): ?>
+        <div class="products-grid" id="productsGrid">
+            <?php foreach ($produtos as $p):
+                $qtd = (float)$p['quantidade'];
+                $comprometido = (float)($comprometidos[$p['id']] ?? 0);
+                $disponivel = $qtd - $comprometido;
+
+                // Status do produto
+                $statusClass = 'ok';
+                $alertBadge = '';
+                if ($disponivel <= 0) {
+                    $statusClass = 'zerado';
+                    $alertClass = 'alert-low';
+                    $alertBadge = '<span class="product-badge badge-low">Esgotado</span>';
+                } elseif ($disponivel <= 5) {
+                    $statusClass = 'baixo';
+                    $alertClass = 'alert-warning';
+                    $alertBadge = '<span class="product-badge badge-low">Acabando</span>';
+                } else {
+                    $alertClass = 'alert-ok';
+                }
+
+                // Verifica validade
+                $validade = $p['data_validade'];
+                $validadeText = 'Sem validade';
+                $isVencendo = false;
+                if ($validade) {
+                    $dataVal = new DateTime($validade);
+                    $hoje = new DateTime();
+                    $diff = $hoje->diff($dataVal)->days;
+                    $isVencido = $hoje > $dataVal;
+
+                    if ($isVencido) {
+                        $validadeText = 'Vencido';
+                        $alertBadge = '<span class="product-badge badge-expired">Vencido</span>';
+                        $isVencendo = true;
+                    } elseif ($diff <= 30) {
+                        $validadeText = 'Vence em ' . $diff . ' dias';
+                        $isVencendo = true;
+                        if (!$alertBadge) {
+                            $alertBadge = '<span class="product-badge badge-low">Vencendo</span>';
+                        }
+                    } else {
+                        $validadeText = date('d/m/Y', strtotime($validade));
+                    }
+                }
+            ?>
+                <div class="product-card" 
+                     data-name="<?= strtolower(htmlspecialchars($p['nome'])) ?>"
+                     data-brand="<?= strtolower(htmlspecialchars($p['marca'] ?? '')) ?>"
+                     data-status="<?= $statusClass ?>"
+                     data-vencendo="<?= $isVencendo ? '1' : '0' ?>"
+                     onclick="window.location.href='<?= $produtosEstoqueUrl ?>?edit=<?= $p['id'] ?>'">
+                    
+                    <?= $alertBadge ?>
+                    
+                    <div class="product-card-header">
+                        <div style="flex: 1;">
+                            <div class="product-name"><?= htmlspecialchars($p['nome']) ?></div>
+                            <div class="product-brand"><?= htmlspecialchars($p['marca'] ?? 'Sem marca') ?></div>
+                        </div>
+                        <div class="product-alert <?= $alertClass ?>"></div>
+                    </div>
+
+                    <div class="product-stats">
+                        <div class="stat-item">
+                            <span class="stat-value" style="color: #2563eb;"><?= $qtd ?></span>
+                            <span class="stat-label">Estoque</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" style="color: <?= $disponivel > 0 ? '#22c55e' : '#ef4444' ?>;"><?= $disponivel ?></span>
+                            <span class="stat-label">Disponível</span>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin: 8px 0;">
+                        <i class="bi bi-clock"></i> <?= $validadeText ?>
+                    </div>
+
+                    <div class="product-footer">
+                        <div class="product-price">R$ <?= number_format($p['custo_unitario'], 2, ',', '.') ?></div>
+                        <div class="product-actions">
+                            <button class="action-icon" onclick="event.stopPropagation(); window.location.href='<?= $produtosEstoqueUrl ?>?edit=<?= $p['id'] ?>'">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="action-icon delete" onclick="event.stopPropagation(); confirmDelete(<?= $p['id'] ?>, '<?= htmlspecialchars(addslashes($p['nome'])) ?>');">
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php else: ?>
+        <div class="empty-state" style="background: white; border-radius: 16px; padding: 60px 20px; border: 1px dashed var(--border-color);">
+            <i class="bi bi-inbox" style="font-size: 4rem; opacity: 0.2;"></i>
+            <p style="font-size: 1rem; margin-top: 16px;">Nenhum produto cadastrado ainda</p>
+            <p style="font-size: 0.85rem; margin-top: 8px;">Comece adicionando seu primeiro item de estoque</p>
+        </div>
+    <?php endif; ?>
 </div>
 
 <!-- Bottom sheet de detalhes do produto -->
@@ -1097,28 +1432,116 @@ include '../../includes/ui-confirm.php';
 <?php include '../../includes/footer.php'; ?>
 
 <script>
+    // ---- Filtros e Busca ----
+    let currentFilter = 'todos';
+
+    function filterProducts() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const cards = document.querySelectorAll('.product-card');
+        
+        cards.forEach(card => {
+            const name = card.dataset.name || '';
+            const brand = card.dataset.brand || '';
+            const status = card.dataset.status || '';
+            const vencendo = card.dataset.vencendo || '0';
+            
+            // Filtro de busca por texto
+            const matchesSearch = name.includes(searchTerm) || brand.includes(searchTerm);
+            
+            // Filtro por categoria
+            let matchesFilter = true;
+            if (currentFilter === 'baixo') {
+                matchesFilter = status === 'baixo' || status === 'zerado';
+            } else if (currentFilter === 'vencendo') {
+                matchesFilter = vencendo === '1';
+            }
+            
+            // Mostra ou esconde o card
+            if (matchesSearch && matchesFilter) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    function setFilter(filter) {
+        currentFilter = filter;
+        
+        // Atualiza botões ativos
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            if (btn.dataset.filter === filter) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        
+        filterProducts();
+    }
+
+    function confirmDelete(id, nome, event) {
+        if (event) event.stopPropagation();
+        
+        if (window.AppConfirm) {
+            AppConfirm.open({
+                title: 'Remover produto',
+                message: 'Tem certeza que deseja remover <strong>' + nome + '</strong> do estoque?',
+                confirmText: 'Remover',
+                cancelText: 'Cancelar',
+                type: 'danger',
+                onConfirm: function() {
+                    window.location.href = '<?= $produtosEstoqueUrl ?>?delete=' + id;
+                }
+            });
+        } else {
+            if (confirm('Excluir ' + nome + ' do estoque?')) {
+                window.location.href = '<?= $produtosEstoqueUrl ?>?delete=' + id;
+            }
+        }
+    }
+
     // ---- Modal de cadastro/edição ----
     function openModal(id, title) {
-        document.getElementById('modalTitle').innerText = title;
-        document.getElementById('produtoId').value = id;
-        document.getElementById('productModal').classList.add('active');
+        const form = document.querySelector('#productModal form');
+        const modal = document.getElementById('productModal');
         
-        // Se clicou em editar mas ainda não veio do PHP com o produto carregado,
-        // recarrega a página com o ?edit=ID para preencher os campos
-        if (id > 0 && !<?php echo json_encode((bool)$produtoEdicao); ?>) {
-            window.location.href = 'produtos-estoque.php?edit=' + id;
+        // CORREÇÃO: Limpa o formulário quando abre para novo produto
+        if (id === 0) {
+            if (form) form.reset();
+            document.getElementById('produtoId').value = 0;
+            document.getElementById('modalTitle').innerText = title;
+            
+            // Remove o parâmetro edit da URL se existir
+            if (window.location.search.includes('edit=')) {
+                const url = new URL(window.location);
+                url.searchParams.delete('edit');
+                window.history.pushState({}, '', url);
+            }
+        } else {
+            // Para edição, recarrega a página com o produto
+            window.location.href = '<?= $produtosEstoqueUrl ?>?edit=' + id;
             return;
         }
+        
+        modal.classList.add('active');
         atualizarDica();
     }
 
     function closeModal() {
         document.getElementById('productModal').classList.remove('active');
+        
+        // Remove o parâmetro edit da URL e limpa o form
         if (window.location.search.includes('edit=')) {
             const url = new URL(window.location);
             url.searchParams.delete('edit');
-            window.history.pushState({}, '', url);
+            window.history.replaceState({}, '', url);
         }
+        
+        // Limpa o formulário ao fechar
+        const form = document.querySelector('#productModal form');
+        if (form) form.reset();
+        document.getElementById('produtoId').value = 0;
     }
 
     function atualizarDica() {

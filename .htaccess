@@ -61,3 +61,7 @@ RewriteRule ^configuracoes$ pages/configuracoes/configuracoes.php [L]
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME}.php -f
 RewriteRule ^([a-z0-9-_]+)$ $1.php [NC,L]
+
+# ====== PÁGINA 404 PERSONALIZADA ======
+# Redireciona qualquer rota não encontrada para a página 404
+ErrorDocument 404 /karen_site/controle-salao/404.php

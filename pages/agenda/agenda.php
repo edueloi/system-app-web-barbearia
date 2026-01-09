@@ -106,6 +106,21 @@ try {
             notificarBotAgendamentoConfirmado($pdo, $agendamentoId);
         }
 
+        // Se o status mudou para 'Concluído', consome o estoque
+        if (mb_strtolower(trim($novoStatus)) === 'concluído') {
+            // Busca o ID do serviço principal do agendamento
+            $stmtServico = $pdo->prepare("SELECT servico_id FROM agendamentos WHERE id = ?");
+            $stmtServico->execute([$agendamentoId]);
+            $agendamento = $stmtServico->fetch();
+
+            if ($agendamento && !empty($agendamento['servico_id'])) {
+                // Chama a função para consumir o estoque
+                consumirEstoquePorServico($pdo, $userId, $agendamento['servico_id']);
+                // Libera o estoque que estava apenas comprometido
+                liberarEstoqueComprometido($pdo, $userId, $agendamentoId);
+            }
+        }
+
         redirect($dataExibida, $viewType);
     }
 
@@ -199,82 +214,58 @@ try {
                 'servico_id'    => $servicoId,
                 'servico_nome'  => $servicoNome,
                 'valor'         => $valor,
-                'horario'       => $horario,
-                'data_inicio'   => $dataAg,
                 'observacoes'   => $obs,
-                'recorrencia_ativa'     => $recorrenciaAtiva,
-                'recorrencia_intervalo' => $recorrenciaIntervalo,
-                'recorrencia_qtd'       => $recorrenciaQtd,
-                'recorrencia_dias_semana' => $recorrenciaDiasSemanaJson
+                'servicos_json' => json_encode($servicosIds),
             ];
 
-            // Tenta usar helper de recorrência
-            if (function_exists('criarAgendamentosRecorrentes')) {
-                $resultado = criarAgendamentosRecorrentes($pdo, $userId, $dadosAgendamento);
-
-                if (!empty($resultado['sucesso'])) {
-                    if (!empty($resultado['serie_id'])) {
-                        $_SESSION['mensagem_sucesso'] =
-                            "Série criada com {$resultado['qtd_criados']} agendamentos!";
-                    } else {
-                        $_SESSION['mensagem_sucesso'] = 'Agendamento criado com sucesso!';
-                    }
-
-                    // 🔔 Notifica o BOT sobre os novos agendamentos
-                    if (function_exists('notificarBotNovoAgendamento')) {
-                        // Se o helper já devolver IDs criados, usamos
-                        if (!empty($resultado['ids_criados']) && is_array($resultado['ids_criados'])) {
-                            foreach ($resultado['ids_criados'] as $novoId) {
-                                notificarBotNovoAgendamento($pdo, (int)$novoId);
-                            }
-                        }
-                        // Senão, se tiver serie_id, buscamos todos da série
-                        elseif (!empty($resultado['serie_id'])) {
-                            $stmtIds = $pdo->prepare("
-                                SELECT id 
-                                FROM agendamentos 
-                                WHERE user_id = ? AND serie_id = ?
-                            ");
-                            $stmtIds->execute([$userId, $resultado['serie_id']]);
-                            while ($idAg = $stmtIds->fetchColumn()) {
-                                notificarBotNovoAgendamento($pdo, (int)$idAg);
-                            }
-                        }
-                    }
-                } else {
-                    // Se helper falhar, faz fallback em 1 agendamento simples
-                    $_SESSION['mensagem_erro'] = $resultado['erro'] ?? 'Erro ao criar agendamento recorrente. Salvando apenas este horário.';
-
-                    $stmt = $pdo->prepare("
-                        INSERT INTO agendamentos 
-                            (user_id, cliente_id, cliente_nome, servico, valor, data_agendamento, horario, status, observacoes) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendente', ?)
-                    ");
-                    $stmt->execute([$userId, $clienteId, $cliente, $servicoNome, $valor, $dataAg, $horario, $obs]);
-
-                    // 🔔 Notifica o BOT mesmo no fallback
-                    if (function_exists('notificarBotNovoAgendamento')) {
-                        $novoId = (int)$pdo->lastInsertId();
-                        if ($novoId > 0) {
-                            notificarBotNovoAgendamento($pdo, $novoId);
-                        }
+            if ($recorrenciaAtiva && $recorrenciaQtd > 1) {
+                // Lógica para criar agendamentos recorrentes
+                $agendamentosCriados = criarAgendamentosRecorrentes(
+                    $pdo, $userId, $dadosAgendamento, $dataAg, $horario,
+                    $recorrenciaIntervalo, $recorrenciaQtd, $recorrenciaDiasSemana
+                );
+                 // Compromete o estoque para todos agendamentos criados
+                 foreach ($agendamentosCriados as $agendamentoId) {
+                    if ($servicoId) {
+                        comprometerEstoque($pdo, $userId, $agendamentoId, $servicoId);
                     }
                 }
             } else {
-                // Se helper não existir, insere um único agendamento
-                $_SESSION['mensagem_erro'] = 'Função de recorrência não encontrada. Salvando agendamento simples.';
+                // Agendamento único
                 $stmt = $pdo->prepare("
-                    INSERT INTO agendamentos 
-                        (user_id, cliente_id, cliente_nome, servico, valor, data_agendamento, horario, status, observacoes) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendente', ?)
+                    INSERT INTO agendamentos (user_id, cliente_id, cliente_nome, servico_id, servico, valor, data_agendamento, horario, observacoes, servicos_json)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
-                $stmt->execute([$userId, $clienteId, $cliente, $servicoNome, $valor, $dataAg, $horario, $obs]);
+                $stmt->execute([
+                    $userId, $dadosAgendamento['cliente_id'], $dadosAgendamento['cliente_nome'], $dadosAgendamento['servico_id'],
+                    $dadosAgendamento['servico_nome'], $dadosAgendamento['valor'], $dataAg, $horario,
+                    $dadosAgendamento['observacoes'], $dadosAgendamento['servicos_json']
+                ]);
+                $lastId = $pdo->lastInsertId();
+                // Compromete o estoque para o agendamento único
+                if ($servicoId) {
+                    comprometerEstoque($pdo, $userId, $lastId, $servicoId);
+                }
+            }
 
-                // 🔔 Notifica o BOT no modo simples
-                if (function_exists('notificarBotNovoAgendamento')) {
-                    $novoId = (int)$pdo->lastInsertId();
-                    if ($novoId > 0) {
-                        notificarBotNovoAgendamento($pdo, $novoId);
+            // Notifica o bot sobre o novo agendamento (se a função existir)
+            if (function_exists('notificarBotNovoAgendamento')) {
+                // Se o helper já devolver IDs criados, usamos
+                if (!empty($resultado['ids_criados']) && is_array($resultado['ids_criados'])) {
+                    foreach ($resultado['ids_criados'] as $novoId) {
+                        notificarBotNovoAgendamento($pdo, (int)$novoId);
+                    }
+                }
+                // Senão, se tiver serie_id, buscamos todos da série
+                elseif (!empty($resultado['serie_id'])) {
+                    $stmtIds = $pdo->prepare("
+                        SELECT id 
+                        FROM agendamentos 
+                        WHERE user_id = ? AND serie_id = ?
+                    ");
+                    $stmtIds->execute([$userId, $resultado['serie_id']]);
+                    while ($idAg = $stmtIds->fetchColumn()) {
+                        notificarBotNovoAgendamento($pdo, (int)$idAg);
                     }
                 }
             }
@@ -552,7 +543,7 @@ include '../../includes/menu.php';
         border:none; padding:.5rem .875rem;
         border-radius:var(--radius-sm); color:#fff; font-weight:600; font-size:.75rem;
         cursor:pointer; display:flex; align-items:center; gap:.375rem; transition:all .2s ease;
-        box-shadow:0 6px 14px rgba(30,58,138,.25);
+        box-shadow:0 6px 14px rgba(0,30,58,138,.25);
     }
     .btn-copy-link:hover,.btn-share-link:hover{transform:translateY(-1px);}
 

@@ -835,11 +835,6 @@ function isActive($pageName)
     </div>
 
     <div style="display:flex; align-items:center; gap:10px;">
-        <!-- Botão Tela Cheia -->
-        <button class="icon-btn" id="fullscreenBtn" type="button" aria-label="Tela cheia">
-            <i class="bi bi-arrows-fullscreen" id="fullscreenIcon"></i>
-        </button>
-
         <!-- Sino de Notificações -->
         <div style="position:relative;">
             <button class="icon-btn" id="notificBtn" type="button" aria-label="Notificações" style="position:relative;">
@@ -1193,103 +1188,4 @@ function isActive($pageName)
         });
     }
 
-    // ==========================
-    // FULLSCREEN (Tela Cheia) + persistência
-    // ==========================
-    const fullscreenBtn  = document.getElementById('fullscreenBtn');
-    const fullscreenIcon = document.getElementById('fullscreenIcon');
-    const FS_STORAGE_KEY = 'salao_fullscreen_pref';
-
-    function isFullscreen() {
-        return document.fullscreenElement ||
-               document.webkitFullscreenElement ||
-               document.mozFullScreenElement ||
-               document.msFullscreenElement;
-    }
-
-    function enterFullscreen() {
-        const el = document.documentElement;
-        if (el.requestFullscreen) {
-            el.requestFullscreen();
-        } else if (el.webkitRequestFullscreen) {
-            el.webkitRequestFullscreen();
-        } else if (el.mozRequestFullScreen) {
-            el.mozRequestFullScreen();
-        } else if (el.msRequestFullscreen) {
-            el.msRequestFullscreen();
-        }
-    }
-
-    function exitFullscreen() {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-        } else if (el.mozCancelFullScreen) {
-            document.mozCancelFullScreen();
-        } else if (document.msExitFullscreen) {
-            document.msExitFullscreen();
-        }
-    }
-
-    function setFsPref(on) {
-        try {
-            localStorage.setItem(FS_STORAGE_KEY, on ? '1' : '0');
-        } catch (e) {}
-    }
-
-    function getFsPref() {
-        try {
-            return localStorage.getItem(FS_STORAGE_KEY) === '1';
-        } catch (e) {
-            return false;
-        }
-    }
-
-    function updateFullscreenIcon() {
-        if (!fullscreenIcon) return;
-        if (isFullscreen()) {
-            fullscreenIcon.classList.remove('bi-arrows-fullscreen');
-            fullscreenIcon.classList.add('bi-fullscreen-exit');
-        } else {
-            fullscreenIcon.classList.remove('bi-fullscreen-exit');
-            fullscreenIcon.classList.add('bi-arrows-fullscreen');
-        }
-    }
-
-    function toggleFullscreen() {
-        if (isFullscreen()) {
-            exitFullscreen();
-            setFsPref(false);
-        } else {
-            enterFullscreen();
-            setFsPref(true);
-        }
-    }
-
-    function handleFsChange() {
-        updateFullscreenIcon();
-        if (!isFullscreen()) {
-            // saiu do fullscreen (ESC, gesto do sistema etc.)
-            setFsPref(false);
-        }
-    }
-
-    if (fullscreenBtn) {
-        fullscreenBtn.addEventListener('click', toggleFullscreen);
-    }
-
-    document.addEventListener('fullscreenchange', handleFsChange);
-    document.addEventListener('webkitfullscreenchange', handleFsChange);
-    document.addEventListener('mozfullscreenchange', handleFsChange);
-    document.addEventListener('MSFullscreenChange', handleFsChange);
-
-    // Reentra em fullscreen na nova página
-    // assim que o usuário fizer o primeiro clique
-    document.addEventListener('click', function rearmFullscreenOnce() {
-        if (getFsPref() && !isFullscreen()) {
-            enterFullscreen();
-        }
-        document.removeEventListener('click', rearmFullscreenOnce);
-    }, { once: true });
 </script>
