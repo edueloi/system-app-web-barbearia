@@ -10,6 +10,13 @@ if (session_status() === PHP_SESSION_NONE) {
 // Flag pra saber se está em produção (salao.develoi.com)
 $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
 
+// Vendedor nao acessa painel do profissional
+if (isset($_SESSION['vendedor_id'])) {
+    $vendasUrl = $isProd ? '/vendas' : '/karen_site/controle-salao/pages/vendas/vendas.php';
+    header('Location: ' . $vendasUrl);
+    exit;
+}
+
 // Redirecionamento de segurança (se não estiver logado)
 $pagsPublicas = ['login.php', 'cadastro.php', 'recuperar_senha.php'];
 if (!isset($_SESSION['user_id']) && !in_array(basename($_SERVER['PHP_SELF']), $pagsPublicas)) {

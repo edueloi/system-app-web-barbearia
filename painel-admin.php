@@ -338,6 +338,43 @@ if (!isset($_SESSION['admin_logged_in'])) {
 // =========================================================
 require_once __DIR__ . '/includes/db.php';
 
+// Helper: gera codigo unico para vendedor
+function gerarCodigoVendedor($pdo) {
+    $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    do {
+        $codigo = '';
+        for ($i = 0; $i < 6; $i++) {
+            $codigo .= $chars[random_int(0, strlen($chars) - 1)];
+        }
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM vendedores WHERE codigo = ?");
+        $stmt->execute([$codigo]);
+        $existe = $stmt->fetchColumn() > 0;
+    } while ($existe);
+
+    return $codigo;
+}
+
+// --- ACOES GET (Vendedores) ---
+if (isset($_GET['acao_vendedor'], $_GET['id'])) {
+    $idVend = (int)$_GET['id'];
+
+    if ($_GET['acao_vendedor'] === 'ativar') {
+        $pdo->prepare("UPDATE vendedores SET ativo = 1 WHERE id = ?")->execute([$idVend]);
+        header("Location: {$painelAdminUrl}?msg=vend_activated");
+        exit;
+    }
+    if ($_GET['acao_vendedor'] === 'inativar') {
+        $pdo->prepare("UPDATE vendedores SET ativo = 0 WHERE id = ?")->execute([$idVend]);
+        header("Location: {$painelAdminUrl}?msg=vend_deactivated");
+        exit;
+    }
+    if ($_GET['acao_vendedor'] === 'excluir') {
+        $pdo->prepare("DELETE FROM vendedores WHERE id = ?")->execute([$idVend]);
+        header("Location: {$painelAdminUrl}?msg=vend_deleted");
+        exit;
+    }
+}
+
 // --- BLOQUEIO AUTOMÁTICO POR EXPIRAÇÃO ---
 try {
     $hoje     = date('Y-m-d');
@@ -381,10 +418,11 @@ if (isset($_GET['acao'], $_GET['id'])) {
 }
 
 // --- AÇÕES POST (CRIAR, RENOVAR, EDITAR) ---
+
+$action = $_POST['action'] ?? '';
 $feedback = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
 
     // 1. CRIAR NOVO USUÁRIO
     if ($action === 'create') {
@@ -523,6 +561,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $feedback = 'Preencha todos os campos obrigatórios.';
         }
     }
+    // 4. CRIAR VENDEDOR
+    if ($action === 'create_vendedor') {
+        $nome     = trim($_POST['vend_nome'] ?? '');
+        $email    = trim($_POST['vend_email'] ?? '');
+        $telefone = trim($_POST['vend_telefone'] ?? '');
+        $cpf      = trim($_POST['vend_cpf'] ?? '');
+        $senha    = $_POST['vend_senha'] ?? '';
+        $ativo    = isset($_POST['vend_ativo']) ? 1 : 0;
+
+        if ($nome && $email && $senha) {
+            $check = $pdo->prepare("SELECT COUNT(*) FROM vendedores WHERE email = ?");
+            $check->execute([$email]);
+
+            if ($check->fetchColumn() > 0) {
+                $feedback = 'E-mail de vendedor ja cadastrado!';
+            } else {
+                $codigo = gerarCodigoVendedor($pdo);
+                $hash = password_hash($senha, PASSWORD_DEFAULT);
+
+                $sql = "INSERT INTO vendedores (nome, email, telefone, cpf, senha, codigo, ativo, criado_em)
+                        VALUES (?,?,?,?,?,?,?, CURRENT_TIMESTAMP)";
+                $pdo->prepare($sql)->execute([
+                    $nome,
+                    $email,
+                    $telefone ?: null,
+                    $cpf ?: null,
+                    $hash,
+                    $codigo,
+                    $ativo
+                ]);
+
+                header("Location: {$painelAdminUrl}?msg=vend_created");
+                exit;
+            }
+        } else {
+            $feedback = 'Preencha nome, e-mail e senha do vendedor.';
+        }
+    }
+
+    // 5. EDITAR VENDEDOR
+    if ($action === 'edit_vendedor') {
+        $edit_id   = (int)($_POST['edit_vend_id'] ?? 0);
+        $nome      = trim($_POST['edit_vend_nome'] ?? '');
+        $email     = trim($_POST['edit_vend_email'] ?? '');
+        $telefone  = trim($_POST['edit_vend_telefone'] ?? '');
+        $cpf       = trim($_POST['edit_vend_cpf'] ?? '');
+        $senha     = $_POST['edit_vend_senha'] ?? '';
+        $ativo     = isset($_POST['edit_vend_ativo']) ? 1 : 0;
+
+        if ($edit_id > 0 && $nome && $email) {
+            $sql = "UPDATE vendedores SET nome = ?, email = ?, telefone = ?, cpf = ?, ativo = ? WHERE id = ?";
+            $pdo->prepare($sql)->execute([
+                $nome,
+                $email,
+                $telefone ?: null,
+                $cpf ?: null,
+                $ativo,
+                $edit_id
+            ]);
+
+            if (!empty($senha)) {
+                $hash = password_hash($senha, PASSWORD_DEFAULT);
+                $pdo->prepare("UPDATE vendedores SET senha = ? WHERE id = ?")->execute([$hash, $edit_id]);
+            }
+
+            header("Location: {$painelAdminUrl}?msg=vend_edited");
+            exit;
+        } else {
+            $feedback = 'Preencha os campos obrigatorios do vendedor.';
+        }
+    }
+
 }
 // =========================================================
 // 3. BUSCA, ESTATÍSTICAS E CÁLCULO FINANCEIRO
@@ -572,6 +682,22 @@ $sql .= " ORDER BY id DESC";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Vendedores e vendas recentes
+$stmtVendedores = $pdo->query("SELECT * FROM vendedores ORDER BY id DESC");
+$vendedores = $stmtVendedores->fetchAll(PDO::FETCH_ASSOC);
+$mapVendedores = [];
+foreach ($vendedores as $v) {
+    $mapVendedores[$v['id']] = $v;
+}
+
+$stmtVendas = $pdo->query("SELECT va.*, v.nome AS vendedor_nome, v.codigo AS vendedor_codigo, u.nome AS cliente_nome, u.email AS cliente_email
+    FROM vendas_assinaturas va
+    JOIN vendedores v ON v.id = va.vendedor_id
+    JOIN usuarios u ON u.id = va.usuario_id
+    ORDER BY va.id DESC
+    LIMIT 50");
+$vendas = $stmtVendas->fetchAll(PDO::FETCH_ASSOC);
 
 
 $total    = count($usuarios);
@@ -1333,6 +1459,7 @@ $lucianaSaldoFinal   = $luciana10Total + $lucianaSoIndicacoes;
                             <th>Status Conta</th>
                             <th>Validade / Plano</th>
                             <th>Indicação</th>
+                            <th>Vendedor</th>
                             <th class="text-end">Ações</th>
                         </tr>
                     </thead>
@@ -1438,6 +1565,27 @@ $lucianaSaldoFinal   = $luciana10Total + $lucianaSoIndicacoes;
                                         <?php else: ?>
                                             <span class="pill bg-light text-muted">Sem indicação</span>
                                         <?php endif; ?>
+
+                                <?php if (!empty($u['vendedor_id']) && isset($mapVendedores[$u['vendedor_id']])): ?>
+                                    <?php $vend = $mapVendedores[$u['vendedor_id']]; ?>
+                                    <span class="pill bg-light border text-muted">
+                                        <i class="bi bi-person-badge"></i>
+                                        <?= htmlspecialchars($vend['nome']) ?> (<?= htmlspecialchars($vend['codigo']) ?>)
+                                    </span>
+                                <?php else: ?>
+                                    <span class="pill bg-light text-muted">Sem vendedor</span>
+                                <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($u['vendedor_id']) && isset($mapVendedores[$u['vendedor_id']])): ?>
+                                            <?php $vend = $mapVendedores[$u['vendedor_id']]; ?>
+                                            <span class="pill bg-light border text-muted">
+                                                <i class="bi bi-person-badge"></i>
+                                                <?= htmlspecialchars($vend['nome']) ?> (<?= htmlspecialchars($vend['codigo']) ?>)
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="pill bg-light text-muted">Sem vendedor</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="text-end">
                                         <?php if (!$isAdm): ?>
@@ -1478,7 +1626,7 @@ $lucianaSaldoFinal   = $luciana10Total + $lucianaSoIndicacoes;
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="5" class="text-center py-4 text-muted" style="font-size:0.8rem;">
+                                <td colspan="6" class="text-center py-4 text-muted" style="font-size:0.8rem;">
                                     Nenhum usuário cadastrado ainda.
                                 </td>
                             </tr>
@@ -1656,7 +1804,183 @@ $lucianaSaldoFinal   = $luciana10Total + $lucianaSoIndicacoes;
         <?php endif; ?>
     </div>
 
-    <!-- MODAL NOVO USUÁRIO -->
+    
+        <!-- VENDEDORES -->
+        <div class="content-card">
+            <div class="card-header-custom">
+                <div>
+                    <h5 class="mb-1" style="font-size:1.05rem;">
+                        <i class="bi bi-person-badge me-2" style="color: var(--primary);"></i>
+                        Vendedores
+                    </h5>
+                    <p class="text-muted mb-0" style="font-size:0.8rem;">Cadastro e controle de acesso dos vendedores</p>
+                </div>
+                <button class="btn btn-primary btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#modalNovoVendedor">
+                    <i class="bi bi-person-plus me-1"></i> Novo Vendedor
+                </button>
+            </div>
+
+            <div class="table-responsive d-none d-md-block">
+                <table class="table table-custom table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>E-mail</th>
+                            <th>C?digo</th>
+                            <th>Status</th>
+                            <th class="text-end">A??es</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($vendedores)): ?>
+                            <?php foreach ($vendedores as $v): ?>
+                                <tr>
+                                    <td class="fw-semibold"><?= htmlspecialchars($v['nome']) ?></td>
+                                    <td><?= htmlspecialchars($v['email']) ?></td>
+                                    <td><span class="pill bg-light border text-muted"><?= htmlspecialchars($v['codigo']) ?></span></td>
+                                    <td>
+                                        <?php if (!empty($v['ativo'])): ?>
+                                            <span class="badge-status status-active"><i class="bi bi-circle-fill" style="font-size:5px"></i> Ativo</span>
+                                        <?php else: ?>
+                                            <span class="badge-status status-inactive"><i class="bi bi-slash-circle"></i> Inativo</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn-action me-1" data-bs-toggle="modal" data-bs-target="#modalEditarVendedor"
+                                            onclick="prepararEdicaoVendedor(<?= (int)$v['id'] ?>, '<?= htmlspecialchars($v['nome'], ENT_QUOTES) ?>', '<?= htmlspecialchars($v['email'], ENT_QUOTES) ?>', '<?= htmlspecialchars($v['telefone'] ?? '', ENT_QUOTES) ?>', '<?= htmlspecialchars($v['cpf'] ?? '', ENT_QUOTES) ?>', <?= !empty($v['ativo']) ? 'true' : 'false' ?>)">
+                                            <i class="bi bi-pencil-fill"></i>
+                                        </button>
+                                        <?php if (!empty($v['ativo'])): ?>
+                                            <a href="?acao_vendedor=inativar&id=<?= (int)$v['id'] ?>" class="btn-action" style="background:#fff3cd; color:#b45309" title="Inativar">
+                                                <i class="bi bi-slash-circle"></i>
+                                            </a>
+                                        <?php else: ?>
+                                            <a href="?acao_vendedor=ativar&id=<?= (int)$v['id'] ?>" class="btn-action" style="background:#dcfce7; color:#15803d" title="Ativar">
+                                                <i class="bi bi-check-circle"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                        <a href="?acao_vendedor=excluir&id=<?= (int)$v['id'] ?>" class="btn-action btn-delete ms-1" onclick="return confirm('Excluir vendedor?')" title="Excluir">
+                                            <i class="bi bi-trash-fill"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted" style="font-size:0.8rem;">Nenhum vendedor cadastrado.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-block d-md-none px-3 px-md-0 pb-3">
+                <?php if (!empty($vendedores)): ?>
+                    <?php foreach ($vendedores as $v): ?>
+                        <div class="user-card">
+                            <div class="user-card-header">
+                                <div>
+                                    <div class="user-card-name"><?= htmlspecialchars($v['nome']) ?></div>
+                                    <div class="user-card-email"><?= htmlspecialchars($v['email']) ?></div>
+                                </div>
+                                <span class="pill bg-light border text-muted"><?= htmlspecialchars($v['codigo']) ?></span>
+                            </div>
+                            <div class="user-card-badges">
+                                <?php if (!empty($v['ativo'])): ?>
+                                    <span class="badge-status status-active">Ativo</span>
+                                <?php else: ?>
+                                    <span class="badge-status status-inactive">Inativo</span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="user-card-footer">
+                                <div class="user-card-actions">
+                                    <button type="button" class="btn-action me-1" data-bs-toggle="modal" data-bs-target="#modalEditarVendedor"
+                                        onclick="prepararEdicaoVendedor(<?= (int)$v['id'] ?>, '<?= htmlspecialchars($v['nome'], ENT_QUOTES) ?>', '<?= htmlspecialchars($v['email'], ENT_QUOTES) ?>', '<?= htmlspecialchars($v['telefone'] ?? '', ENT_QUOTES) ?>', '<?= htmlspecialchars($v['cpf'] ?? '', ENT_QUOTES) ?>', <?= !empty($v['ativo']) ? 'true' : 'false' ?>)">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+                                    <?php if (!empty($v['ativo'])): ?>
+                                        <a href="?acao_vendedor=inativar&id=<?= (int)$v['id'] ?>" class="btn-action" style="background:#fff3cd; color:#b45309">
+                                            <i class="bi bi-slash-circle"></i>
+                                        </a>
+                                    <?php else: ?>
+                                        <a href="?acao_vendedor=ativar&id=<?= (int)$v['id'] ?>" class="btn-action" style="background:#dcfce7; color:#15803d">
+                                            <i class="bi bi-check-circle"></i>
+                                        </a>
+                                    <?php endif; ?>
+                                    <a href="?acao_vendedor=excluir&id=<?= (int)$v['id'] ?>" class="btn-action btn-delete" onclick="return confirm('Excluir vendedor?')">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="p-3 text-center text-muted small">Nenhum vendedor cadastrado.</div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- VENDAS RECENTES -->
+        <div class="content-card">
+            <div class="card-header-custom">
+                <div>
+                    <h5 class="mb-1" style="font-size:1.05rem;">
+                        <i class="bi bi-cash-coin me-2" style="color: var(--success);"></i>
+                        Vendas recentes
+                    </h5>
+                    <p class="text-muted mb-0" style="font-size:0.8rem;">?ltimos cadastros feitos pelos vendedores</p>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-custom table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Vendedor</th>
+                            <th>Cliente</th>
+                            <th>Plano</th>
+                            <th>Total</th>
+                            <th>Desconto</th>
+                            <th class="text-end">Comiss?o</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($vendas)): ?>
+                            <?php foreach ($vendas as $venda): ?>
+                                <tr>
+                                    <td><?= date('d/m/Y', strtotime($venda['criado_em'])) ?></td>
+                                    <td>
+                                        <?= htmlspecialchars($venda['vendedor_nome']) ?>
+                                        <span class="pill bg-light border text-muted ms-1"><?= htmlspecialchars($venda['vendedor_codigo']) ?></span>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold"><?= htmlspecialchars($venda['cliente_nome']) ?></div>
+                                        <div class="small text-muted"><?= htmlspecialchars($venda['cliente_email']) ?></div>
+                                    </td>
+                                    <td><?= htmlspecialchars($venda['plano_tipo']) ?></td>
+                                    <td>R$ <?= number_format($venda['valor_total'], 2, ',', '.') ?></td>
+                                    <td>
+                                        <?php if (!empty($venda['desconto_percent'])): ?>
+                                            <?= number_format($venda['desconto_percent'], 0, ',', '.') ?>% (R$ <?= number_format($venda['desconto_valor'], 2, ',', '.') ?>)
+                                        <?php else: ?>
+                                            -
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-end">R$ <?= number_format($venda['comissao_total'], 2, ',', '.') ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted" style="font-size:0.8rem;">Nenhuma venda registrada.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+<!-- MODAL NOVO USUÁRIO -->
     <div class="modal fade" id="modalNovo" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 24px; overflow: hidden;">
@@ -1738,7 +2062,93 @@ $lucianaSaldoFinal   = $luciana10Total + $lucianaSoIndicacoes;
         </div>
     </div>
 
-    <!-- MODAL EDITAR USUÁRIO -->
+    
+    <!-- MODAL NOVO VENDEDOR -->
+    <div class="modal fade" id="modalNovoVendedor" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 20px;">
+                <div class="modal-header" style="border:none;">
+                    <h5 class="modal-title" style="font-family:'Outfit',sans-serif; font-weight:700;">Novo vendedor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="padding: 1.5rem 2rem;">
+                    <form method="post">
+                        <input type="hidden" name="action" value="create_vendedor">
+                        <div class="mb-3">
+                            <label class="form-label">Nome</label>
+                            <input type="text" name="vend_nome" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">E-mail</label>
+                            <input type="email" name="vend_email" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Telefone</label>
+                            <input type="text" name="vend_telefone" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">CPF</label>
+                            <input type="text" name="vend_cpf" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Senha</label>
+                            <input type="password" name="vend_senha" class="form-control" required>
+                        </div>
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" id="vend_ativo" name="vend_ativo" checked>
+                            <label class="form-check-label" for="vend_ativo">Ativo</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Cadastrar vendedor</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDITAR VENDEDOR -->
+    <div class="modal fade" id="modalEditarVendedor" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 20px;">
+                <div class="modal-header" style="border:none;">
+                    <h5 class="modal-title" style="font-family:'Outfit',sans-serif; font-weight:700;">Editar vendedor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="padding: 1.5rem 2rem;">
+                    <form method="post" id="formEditarVendedor">
+                        <input type="hidden" name="action" value="edit_vendedor">
+                        <input type="hidden" name="edit_vend_id" id="edit_vend_id">
+                        <div class="mb-3">
+                            <label class="form-label">Nome</label>
+                            <input type="text" name="edit_vend_nome" id="edit_vend_nome" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">E-mail</label>
+                            <input type="email" name="edit_vend_email" id="edit_vend_email" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Telefone</label>
+                            <input type="text" name="edit_vend_telefone" id="edit_vend_telefone" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">CPF</label>
+                            <input type="text" name="edit_vend_cpf" id="edit_vend_cpf" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nova senha (opcional)</label>
+                            <input type="password" name="edit_vend_senha" class="form-control">
+                        </div>
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" id="edit_vend_ativo" name="edit_vend_ativo">
+                            <label class="form-check-label" for="edit_vend_ativo">Ativo</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Salvar altera??es</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- MODAL EDITAR USUÁRIO -->
     <div class="modal fade" id="modalEditar" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 24px; overflow: hidden;">
@@ -1879,6 +2289,19 @@ $lucianaSaldoFinal   = $luciana10Total + $lucianaSoIndicacoes;
         }
 
         function prepararEdicaoUsuario(id, nome, email, isTeste) {
+            document.getElementById('edit_id').value = id;
+            document.getElementById('edit_nome').value = nome;
+            document.getElementById('edit_email').value = email;
+            document.getElementById('edit_is_teste').checked = isTeste;
+        }
+
+        function prepararEdicaoVendedor(id, nome, email, telefone, cpf, ativo) {
+            document.getElementById('edit_vend_id').value = id;
+            document.getElementById('edit_vend_nome').value = nome;
+            document.getElementById('edit_vend_email').value = email;
+            document.getElementById('edit_vend_telefone').value = telefone || '';
+            document.getElementById('edit_vend_cpf').value = cpf || '';
+            document.getElementById('edit_vend_ativo').checked = ativo;
             document.getElementById('edit_id').value = id;
             document.getElementById('edit_nome').value = nome;
             document.getElementById('edit_email').value = email;

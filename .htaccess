@@ -35,6 +35,7 @@ RewriteRule ^perfil/?$ pages/perfil/perfil.php [L]
 RewriteRule ^calcular-servico/?$ pages/calcular-servico/calcular-servico.php [L]
 RewriteRule ^horarios/?$ pages/horarios/horarios.php [L]
 RewriteRule ^configuracoes/?$ pages/configuracoes/configuracoes.php [L]
+RewriteRule ^vendas/?$ pages/vendas/vendas.php [L]
 
 # ✅ 5) Rota pública de agendamento: /barbearia-anivaldo-16
 RewriteRule ^([a-z0-9-]+)-([0-9]+)$ agendar.php?user=$2 [L,QSA]

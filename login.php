@@ -11,9 +11,15 @@ if (session_status() === PHP_SESSION_NONE) {
 // 🔹 Lógica de Ambiente
 $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
 $dashboardUrl = $isProd ? '/dashboard' : '/karen_site/controle-salao/pages/dashboard.php';
-$loginUrl = $isProd ? '/login' : '/karen_site/controle-salao/login.php';
+$vendasUrl    = $isProd ? '/vendas' : '/karen_site/controle-salao/pages/vendas/vendas.php';
+$loginUrl     = $isProd ? '/login' : '/karen_site/controle-salao/login.php';
 
 // Redirecionamento se já logado
+if (isset($_SESSION['vendedor_id'])) {
+    header("Location: {$vendasUrl}");
+    exit;
+}
+
 if (isset($_SESSION['user_id'])) {
     header("Location: {$dashboardUrl}");
     exit;
@@ -31,37 +37,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Limpa apenas dados de usuário comum se existirem
         unset($_SESSION['user_id']);
         unset($_SESSION['user_name']);
+
         // Define sessão de admin
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['ADMIN_LAST_ACTIVITY'] = time();
+
         $painelAdminUrl = $isProd ? '/painel-admin' : '/karen_site/controle-salao/painel-admin.php';
         header("Location: {$painelAdminUrl}");
         exit;
     }
 
-    $stmt = $pdo->prepare("SELECT id, nome, senha, ativo FROM usuarios WHERE email = ?");
+    // Login de vendedor (prioridade se o e-mail existir em vendedores)
+    $stmtVend = $pdo->prepare("SELECT id, nome, senha, ativo, codigo FROM vendedores WHERE email = ? LIMIT 1");
+    $stmtVend->execute([$email]);
+    $vendedor = $stmtVend->fetch(PDO::FETCH_ASSOC);
+
+    if ($vendedor && password_verify($senha, $vendedor['senha'])) {
+        if (isset($vendedor['ativo']) && (int)$vendedor['ativo'] === 0) {
+            $_SESSION['login_erro'] = 'Acesso de vendedor suspenso. Contate o suporte.';
+            header("Location: {$loginUrl}");
+            exit;
+        }
+
+        unset($_SESSION['admin_logged_in'], $_SESSION['ADMIN_LAST_ACTIVITY'], $_SESSION['user_id'], $_SESSION['user_name']);
+
+        $_SESSION['vendedor_id'] = $vendedor['id'];
+        $_SESSION['vendedor_nome'] = $vendedor['nome'];
+        $_SESSION['vendedor_codigo'] = $vendedor['codigo'];
+
+        header("Location: {$vendasUrl}");
+        exit;
+    }
+
+    // Login de usuário comum
+    $stmt = $pdo->prepare("SELECT id, nome, senha, ativo FROM usuarios WHERE email = ? LIMIT 1");
     $stmt->execute([$email]);
-    $user = $stmt->fetch();
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($user && password_verify($senha, $user['senha'])) {
-        if (isset($user['ativo']) && $user['ativo'] == 0) {
+        if (isset($user['ativo']) && (int)$user['ativo'] === 0) {
             $_SESSION['login_erro'] = 'Acesso suspenso. Contate o suporte.';
             header("Location: {$loginUrl}");
             exit;
         }
+
         // Limpa qualquer flag de admin antes de logar usuário comum
-        unset($_SESSION['admin_logged_in']);
-        unset($_SESSION['ADMIN_LAST_ACTIVITY']);
+        unset($_SESSION['admin_logged_in'], $_SESSION['ADMIN_LAST_ACTIVITY']);
+
         // Define sessão de usuário
         $_SESSION['user_id']   = $user['id'];
         $_SESSION['user_name'] = $user['nome'];
+
         header("Location: {$dashboardUrl}");
         exit;
-    } else {
-        $_SESSION['login_erro'] = 'Credenciais inválidas. Tente novamente.';
-        header("Location: {$loginUrl}");
-        exit;
     }
+
+    $_SESSION['login_erro'] = 'Credenciais inválidas. Tente novamente.';
+    header("Location: {$loginUrl}");
+    exit;
 }
 
 if (isset($_SESSION['login_erro'])) {
@@ -504,7 +537,7 @@ if (isset($_SESSION['login_erro'])) {
                     <p class="subtitle">Acesse sua agenda e gerencie seu negócio.</p>
                 </div>
 
-                <?php if ($mensagem): ?>
+                <?php if (!empty($mensagem)): ?>
                     <div class="alert alert-danger d-flex align-items-center gap-2 border-0 shadow-sm rounded-3 py-3" role="alert">
                         <i class="fa-solid fa-triangle-exclamation"></i>
                         <small class="fw-bold"><?php echo htmlspecialchars($mensagem); ?></small>
@@ -594,6 +627,7 @@ if (isset($_SESSION['login_erro'])) {
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
 

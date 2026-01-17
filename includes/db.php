@@ -121,6 +121,19 @@ try {
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
+    // 5.1 Vendedores
+    $pdo->exec("CREATE TABLE IF NOT EXISTS vendedores (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        telefone TEXT,
+        cpf TEXT,
+        senha TEXT NOT NULL,
+        codigo TEXT NOT NULL UNIQUE,
+        ativo INTEGER DEFAULT 1,
+        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
     // 6. Produtos / Estoque 
     $pdo->exec("CREATE TABLE IF NOT EXISTS produtos ( 
         id INTEGER PRIMARY KEY AUTOINCREMENT, 
@@ -150,6 +163,7 @@ try {
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN lembrete_email_copia INTEGER DEFAULT 0"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN agendamento_min_antecedencia INTEGER DEFAULT 4"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN agendamento_min_unidade TEXT DEFAULT 'horas'"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN vendedor_id INTEGER"); } catch (Exception $e) {}
 
     // 7. Notificações / Alertas 
     $pdo->exec("CREATE TABLE IF NOT EXISTS notifications ( 
@@ -237,6 +251,29 @@ try {
         origem TEXT,                     -- manual | agendamento
         referencia_id INTEGER,           -- id relacionado (ex: agendamento)
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    // 10.1 Vendas de assinaturas (vendedores)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS vendas_assinaturas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        vendedor_id INTEGER NOT NULL,
+        usuario_id INTEGER NOT NULL,
+        plano_tipo TEXT NOT NULL,             -- mensal | trimestral | anual | vitalicio | custom
+        meses INTEGER DEFAULT 0,
+        valor_plano REAL NOT NULL,
+        desconto_percent REAL DEFAULT 0,
+        desconto_valor REAL DEFAULT 0,
+        valor_total REAL NOT NULL,
+        entrada_valor REAL DEFAULT 0,
+        desconto_entrada REAL DEFAULT 0,
+        entrada_valor_final REAL DEFAULT 0,
+        metodo_pagamento TEXT,
+        comissao_mensal REAL DEFAULT 0,
+        comissao_total REAL DEFAULT 0,
+        observacoes TEXT,
+        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (vendedor_id) REFERENCES vendedores(id),
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
     )");
 
     // Orcamentos mensais de gastos
