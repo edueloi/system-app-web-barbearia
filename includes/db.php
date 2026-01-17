@@ -128,6 +128,7 @@ try {
         nome TEXT NOT NULL, 
         marca TEXT, 
         quantidade INTEGER DEFAULT 0,     
+        estoque_minimo INTEGER DEFAULT 5,
         tamanho_embalagem REAL DEFAULT 0, 
         unidade TEXT DEFAULT 'unidade',   
         custo_unitario REAL, 
@@ -238,6 +239,17 @@ try {
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
+    // Orcamentos mensais de gastos
+    $pdo->exec("CREATE TABLE IF NOT EXISTS financeiro_orcamentos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        categoria TEXT NOT NULL,
+        mes TEXT NOT NULL,
+        ano INTEGER NOT NULL,
+        valor REAL NOT NULL,
+        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
     // 9. Configurações gerais do sistema
     $pdo->exec("CREATE TABLE IF NOT EXISTS configuracoes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -330,6 +342,11 @@ try {
     try { $pdo->exec("ALTER TABLE financeiro_movimentos ADD COLUMN origem TEXT"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE financeiro_movimentos ADD COLUMN referencia_id INTEGER"); } catch (Exception $e) {}
 
+    // Indice unico para orcamentos mensais
+    try {
+        $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_orcamentos_user_cat_mes_ano ON financeiro_orcamentos(user_id, categoria, mes, ano)");
+    } catch (Exception $e) {}
+
     // ========================================================= 
     // ÍNDICES E TABELAS PARA API REST
     // ========================================================= 
@@ -352,6 +369,7 @@ try {
     // Produtos (migra extra, se veio de versões mais antigas)
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN marca TEXT"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN quantidade INTEGER DEFAULT 0"); } catch (Exception $e) {} 
+    try { $pdo->exec("ALTER TABLE produtos ADD COLUMN estoque_minimo INTEGER DEFAULT 5"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN unidade TEXT DEFAULT 'unidade'"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN custo_unitario REAL"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN preco_venda REAL"); } catch (Exception $e) {} 

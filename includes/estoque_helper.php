@@ -116,6 +116,7 @@ $pdo->exec('PRAGMA journal_mode = WAL;');  // melhor para concorrência
         nome TEXT NOT NULL, 
         marca TEXT, 
         quantidade INTEGER DEFAULT 0,     -- Qtd de frascos no estoque 
+        estoque_minimo INTEGER DEFAULT 5,
         tamanho_embalagem REAL DEFAULT 0, -- Conteúdo do frasco (ex: 1000 ou 1) 
         unidade TEXT DEFAULT 'unidade',   -- ml, l, kg, g, un 
         custo_unitario REAL, 
@@ -220,6 +221,7 @@ $pdo->exec('PRAGMA journal_mode = WAL;');  // melhor para concorrência
     // Produtos 
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN marca TEXT"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN quantidade INTEGER DEFAULT 0"); } catch (Exception $e) {} 
+    try { $pdo->exec("ALTER TABLE produtos ADD COLUMN estoque_minimo INTEGER DEFAULT 5"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN unidade TEXT DEFAULT 'unidade'"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN custo_unitario REAL"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE produtos ADD COLUMN preco_venda REAL"); } catch (Exception $e) {} 

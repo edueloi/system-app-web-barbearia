@@ -64,6 +64,52 @@ foreach ($categoriasPersonalizadas as $catRow) {
 // Ações de CRUD
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $acao = $_POST['acao'] ?? '';
+
+    // Salvar orcamento mensal
+    if ($acao === 'salvar_orcamento') {
+        $categoriaOrc = trim($_POST['categoria_orcamento'] ?? '');
+        $valorOrc = (float)str_replace(',', '.', $_POST['valor_orcamento'] ?? 0);
+        $mesOrc = $_POST['mes_orcamento'] ?? date('m');
+        $anoOrc = (int)($_POST['ano_orcamento'] ?? date('Y'));
+
+        $mesOrc = str_pad((string)(int)$mesOrc, 2, '0', STR_PAD_LEFT);
+        $anoOrc = max(2000, min($anoOrc, 2100));
+
+        if ($categoriaOrc !== '' && $valorOrc > 0) {
+            $stmtCheck = $pdo->prepare("
+                SELECT id FROM financeiro_orcamentos
+                WHERE user_id = ? AND categoria = ? AND mes = ? AND ano = ?
+            ");
+            $stmtCheck->execute([$userId, $categoriaOrc, $mesOrc, $anoOrc]);
+            $orc = $stmtCheck->fetch();
+
+            if ($orc) {
+                $stmtUpd = $pdo->prepare("
+                    UPDATE financeiro_orcamentos
+                    SET valor = ?
+                    WHERE id = ? AND user_id = ?
+                ");
+                $stmtUpd->execute([$valorOrc, $orc['id'], $userId]);
+            } else {
+                $stmtIns = $pdo->prepare("
+                    INSERT INTO financeiro_orcamentos (user_id, categoria, mes, ano, valor)
+                    VALUES (?, ?, ?, ?, ?)
+                ");
+                $stmtIns->execute([$userId, $categoriaOrc, $mesOrc, $anoOrc, $valorOrc]);
+            }
+            header("Location: {$financeiroUrl}?mes={$mesOrc}&ano={$anoOrc}&status=orcamento_saved");
+            exit;
+        }
+    }
+
+    // Excluir orcamento
+    if ($acao === 'excluir_orcamento' && !empty($_POST['id'])) {
+        $id = (int)$_POST['id'];
+        $stmt = $pdo->prepare("DELETE FROM financeiro_orcamentos WHERE id = ? AND user_id = ?");
+        $stmt->execute([$id, $userId]);
+        header("Location: {$financeiroUrl}?status=orcamento_deleted");
+        exit;
+    }
     
     // Salvar movimento
     if ($acao === 'salvar_movimento') {
@@ -280,6 +326,31 @@ $stmtMov = $pdo->prepare("
 ");
 $stmtMov->execute($params);
 $movimentos = $stmtMov->fetchAll();
+
+// === 6. ORCAMENTOS MENSAIS ===
+$stmtOrc = $pdo->prepare("
+    SELECT *
+    FROM financeiro_orcamentos
+    WHERE user_id = ? AND mes = ? AND ano = ?
+    ORDER BY categoria ASC
+");
+$stmtOrc->execute([$userId, $mes, $ano]);
+$orcamentos = $stmtOrc->fetchAll();
+
+$stmtGastosMes = $pdo->prepare("
+    SELECT categoria, SUM(valor) as total
+    FROM financeiro_movimentos
+    WHERE user_id = ?
+      AND tipo = 'saida'
+      AND data_movimento BETWEEN ? AND ?
+    GROUP BY categoria
+");
+$stmtGastosMes->execute([$userId, $inicioMes, $fimMes]);
+$gastosMesRaw = $stmtGastosMes->fetchAll();
+$gastosPorCategoria = [];
+foreach ($gastosMesRaw as $row) {
+    $gastosPorCategoria[$row['categoria'] ?? ''] = (float)$row['total'];
+}
 
 include '../../includes/header.php';
 include '../../includes/menu.php';
@@ -898,6 +969,100 @@ include '../../includes/ui-toast.php';
         color: var(--danger);
     }
 
+    /* === ORCAMENTOS === */
+    .budget-section {
+        background: var(--bg-card);
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: var(--shadow-soft);
+        border: 1px solid var(--border-color);
+        margin-bottom: 24px;
+    }
+
+    .budget-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+    }
+
+    .budget-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .budget-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .budget-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 12px;
+    }
+
+    .budget-card {
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1px solid var(--border-color);
+        background: #f8fafc;
+    }
+
+    .budget-card h4 {
+        margin: 0 0 6px 0;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--text-main);
+    }
+
+    .budget-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+    }
+
+    .budget-bar {
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+
+    .budget-bar span {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, #10b981, #059669);
+    }
+
+    .budget-bar.danger span {
+        background: linear-gradient(90deg, #ef4444, #dc2626);
+    }
+
+    .budget-actions {
+        margin-top: 10px;
+        text-align: right;
+    }
+
+    .btn-mini {
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        cursor: pointer;
+    }
+
     /* === RESPONSIVE === */
     @media (max-width: 768px) {
         .finance-wrapper {
@@ -905,37 +1070,72 @@ include '../../includes/ui-toast.php';
         }
 
         .page-title {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
         }
 
-        .dashboard-grid {
+        .page-subtitle {
+            font-size: 0.85rem;
+        }
+
+        .dashboard-grid,
+        .charts-grid,
+        .filters-grid,
+        .form-grid,
+        .budget-form {
             grid-template-columns: 1fr;
         }
 
-        .charts-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .filters-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .form-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .table-card {
-            overflow-x: auto;
-        }
-
-        .custom-table {
-            font-size: 0.75rem;
-            min-width: 720px;
-        }
-
+        .custom-table,
+        .custom-table thead,
+        .custom-table tbody,
         .custom-table th,
-        .custom-table td {
+        .custom-table td,
+        .custom-table tr {
+            display: block;
+            width: 100%;
+        }
+
+        .custom-table thead {
+            display: none;
+        }
+
+        .custom-table tbody tr {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
             padding: 10px 12px;
+            margin-bottom: 12px;
+        }
+
+        .custom-table td {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 8px 6px;
+            border-bottom: 1px dashed #e5e7eb;
+        }
+
+        .custom-table td:last-child {
+            border-bottom: none;
+        }
+
+        .custom-table td::before {
+            content: attr(data-label);
+            font-weight: 700;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .table-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .btn-action {
+            padding: 8px 10px;
+            font-size: 0.75rem;
         }
     }
 </style>
@@ -1075,7 +1275,100 @@ include '../../includes/ui-toast.php';
         </div>
     </div>
 
-    <!-- GRÁFICOS E ESTATÍSTICAS POR CATEGORIA -->
+    
+    <!-- CONTROLE DE GASTOS DO MES -->
+    <div class="budget-section">
+        <div class="budget-header">
+            <div class="budget-title">
+                <i class="bi bi-flag-fill"></i> Controle de Gastos do Mes
+            </div>
+            <div class="card-detail">
+                <i class="bi bi-calendar-check"></i>
+                <?php echo $meses[$mes] ?? ''; ?>/<?php echo $ano; ?>
+            </div>
+        </div>
+
+        <form method="POST" class="budget-form">
+            <input type="hidden" name="acao" value="salvar_orcamento">
+            <div class="form-group">
+                <label class="form-label">Categoria</label>
+                <select name="categoria_orcamento" class="form-select" required>
+                    <?php foreach (array_keys($categoriasSaida) as $cat): ?>
+                        <option value="<?php echo htmlspecialchars($cat); ?>">
+                            <?php echo htmlspecialchars($cat); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Valor limite</label>
+                <input type="number" step="0.01" name="valor_orcamento" class="form-input" placeholder="0,00" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Mes</label>
+                <select name="mes_orcamento" class="form-select">
+                    <?php foreach ($meses as $mv => $nome): ?>
+                        <option value="<?php echo $mv; ?>" <?php echo ($mv === $mes) ? 'selected' : ''; ?>>
+                            <?php echo $nome; ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Ano</label>
+                <input type="number" name="ano_orcamento" class="form-input" value="<?php echo $ano; ?>" min="2000" max="2100">
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn-save" style="margin-top: 22px;">
+                    <i class="bi bi-check2-circle"></i> Salvar limite
+                </button>
+            </div>
+        </form>
+
+        <?php if (!empty($orcamentos)): ?>
+            <div class="budget-grid">
+                <?php foreach ($orcamentos as $orc): 
+                    $cat = $orc['categoria'] ?? '-';
+                    $limite = (float)($orc['valor'] ?? 0);
+                    $gasto = (float)($gastosPorCategoria[$cat] ?? 0);
+                    $percent = $limite > 0 ? min(100, ($gasto / $limite) * 100) : 0;
+                    $restante = $limite - $gasto;
+                    $barClass = $gasto > $limite ? 'danger' : '';
+                ?>
+                    <div class="budget-card">
+                        <h4><?php echo htmlspecialchars($cat); ?></h4>
+                        <div class="budget-meta">
+                            <span>Gasto: R$ <?php echo number_format($gasto, 2, ',', '.'); ?></span>
+                            <span>Limite: R$ <?php echo number_format($limite, 2, ',', '.'); ?></span>
+                        </div>
+                        <div class="budget-bar <?php echo $barClass; ?>">
+                            <span style="width: <?php echo number_format($percent, 2, '.', ''); ?>%"></span>
+                        </div>
+                        <div class="budget-meta" style="margin-top: 8px;">
+                            <span><?php echo $restante >= 0 ? 'Restante' : 'Excedido'; ?></span>
+                            <span>R$ <?php echo number_format(abs($restante), 2, ',', '.'); ?></span>
+                        </div>
+                        <div class="budget-actions">
+                            <form method="POST" onsubmit="return confirm('Remover este limite?');">
+                                <input type="hidden" name="acao" value="excluir_orcamento">
+                                <input type="hidden" name="id" value="<?php echo $orc['id']; ?>">
+                                <button type="submit" class="btn-mini">
+                                    <i class="bi bi-trash3"></i> Remover
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div class="empty-state" style="padding: 18px 10px;">
+                <i class="bi bi-graph-down"></i>
+                <p>Nenhum limite definido para este mes.</p>
+            </div>
+        <?php endif; ?>
+    </div>
+
+<!-- GRÁFICOS E ESTATÍSTICAS POR CATEGORIA -->
     <?php if (!empty($estatisticasCategorias)): ?>
     <div class="charts-grid">
         <div class="chart-card">
@@ -1231,10 +1524,10 @@ include '../../includes/ui-toast.php';
                 <?php if (!empty($movimentos)): ?>
                     <?php foreach ($movimentos as $mov): ?>
                         <tr>
-                            <td style="font-weight: 600;">
+                            <td data-label="Data" style="font-weight: 600;">
                                 <?php echo date('d/m/Y', strtotime($mov['data_movimento'])); ?>
                             </td>
-                            <td>
+                            <td data-label="Tipo">
                                 <span class="badge badge-<?php echo $mov['tipo']; ?>">
                                     <?php if ($mov['tipo'] === 'entrada'): ?>
                                         <i class="bi bi-arrow-up"></i> Entrada
@@ -1243,7 +1536,7 @@ include '../../includes/ui-toast.php';
                                     <?php endif; ?>
                                 </span>
                             </td>
-                            <td>
+                            <td data-label="Categoria">
                                 <?php 
                                 $cat = htmlspecialchars($mov['categoria'] ?? '-');
                                 if ($mov['origem'] === 'agendamento') {
@@ -1253,13 +1546,13 @@ include '../../includes/ui-toast.php';
                                 }
                                 ?>
                             </td>
-                            <td style="max-width: 300px;">
+                            <td data-label="Descricao" style="max-width: 300px;">
                                 <?php echo htmlspecialchars($mov['descricao'] ?? '-'); ?>
                             </td>
-                            <td style="font-weight: 700; font-size: 1rem; color: <?php echo $mov['tipo'] === 'entrada' ? 'var(--success)' : 'var(--danger)'; ?>;">
+                            <td data-label="Valor" style="font-weight: 700; font-size: 1rem; color: <?php echo $mov['tipo'] === 'entrada' ? 'var(--success)' : 'var(--danger)'; ?>;">
                                 R$ <?php echo number_format((float)$mov['valor'], 2, ',', '.'); ?>
                             </td>
-                            <td>
+                            <td data-label="Acoes">
                                 <div style="display: flex; gap: 8px;">
                                     <?php if ($mov['origem'] !== 'agendamento'): ?>
                                         <button type="button" class="btn-action btn-edit" onclick="editarMovimento(<?php echo $mov['id']; ?>)">
@@ -1376,7 +1669,14 @@ include '../../includes/ui-toast.php';
                 message = 'Movimento atualizado com sucesso!';
                 break;
             case 'deleted':
-                message = 'Movimento excluído com sucesso!';
+                message = 'Movimento exclu?do com sucesso!';
+                type = 'info';
+                break;
+            case 'orcamento_saved':
+                message = 'Limite mensal salvo com sucesso!';
+                break;
+            case 'orcamento_deleted':
+                message = 'Limite mensal removido.';
                 type = 'info';
                 break;
         }

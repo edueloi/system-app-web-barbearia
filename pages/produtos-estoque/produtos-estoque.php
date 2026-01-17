@@ -36,6 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao']) && $_POST['ac
     $nome        = trim($_POST['nome']);
     $marca       = trim($_POST['marca']);
     $quantidade  = (int)$_POST['quantidade'];
+    $estoqueMin  = isset($_POST['estoque_minimo']) ? (int)$_POST['estoque_minimo'] : 5;
+    $estoqueMin  = max(0, $estoqueMin);
     $tamanho     = str_replace(',', '.', $_POST['tamanho_embalagem']);
     $unidade     = $_POST['unidade'];
     $custo       = str_replace(',', '.', $_POST['custo_unitario']);
@@ -50,23 +52,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao']) && $_POST['ac
 
     if ($id > 0) {
         $sql = "UPDATE produtos 
-                   SET nome=?, marca=?, quantidade=?, tamanho_embalagem=?, unidade=?, 
+                   SET nome=?, marca=?, quantidade=?, estoque_minimo=?, tamanho_embalagem=?, unidade=?, 
                        custo_unitario=?, preco_venda=?, data_compra=?, data_validade=?, observacoes=? 
                  WHERE id=? AND user_id=?";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
-            $nome, $marca, $quantidade, $tamanho, $unidade,
+            $nome, $marca, $quantidade, $estoqueMin, $tamanho, $unidade,
             $custo, $venda, $dataCompra, $dataValidade, $obs,
             $id, $userId
         ]);
         $status = 'updated';
     } else {
         $sql = "INSERT INTO produtos 
-                    (user_id, nome, marca, quantidade, tamanho_embalagem, unidade, custo_unitario, preco_venda, data_compra, data_validade, observacoes) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    (user_id, nome, marca, quantidade, estoque_minimo, tamanho_embalagem, unidade, custo_unitario, preco_venda, data_compra, data_validade, observacoes) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
-            $userId, $nome, $marca, $quantidade, $tamanho, $unidade,
+            $userId, $nome, $marca, $quantidade, $estoqueMin, $tamanho, $unidade,
             $custo, $venda, $dataCompra, $dataValidade, $obs
         ]);
         $status = 'saved';
@@ -423,6 +425,12 @@ include '../../includes/ui-confirm.php';
         display: block;
     }
 
+    .product-min {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+
     .product-footer {
         display: flex;
         justify-content: space-between;
@@ -469,15 +477,19 @@ include '../../includes/ui-confirm.php';
     }
 
     .product-badge {
-        position: absolute;
-        top: 12px;
-        right: 12px;
+        display: inline-flex;
+        align-items: center;
         padding: 4px 10px;
         border-radius: 999px;
         font-size: 0.7rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+    }
+
+    .product-badge-inline {
+        margin-top: 6px;
+        display: inline-flex;
     }
 
     .badge-hot {
@@ -1203,17 +1215,23 @@ include '../../includes/ui-confirm.php';
                 $comprometido = (float)($comprometidos[$p['id']] ?? 0);
                 $disponivel = $qtd - $comprometido;
 
+                $estoqueMinimo = isset($p['estoque_minimo']) ? (int)$p['estoque_minimo'] : 5;
+                $estoqueMinimo = max(0, $estoqueMinimo);
+
                 // Status do produto
                 $statusClass = 'ok';
+                $statusText = 'OK';
                 $alertBadge = '';
                 if ($disponivel <= 0) {
                     $statusClass = 'zerado';
+                    $statusText = 'Esgotado';
                     $alertClass = 'alert-low';
-                    $alertBadge = '<span class="product-badge badge-low">Esgotado</span>';
-                } elseif ($disponivel <= 5) {
+                    $alertBadge = '<span class="product-badge product-badge-inline badge-low">Esgotado</span>';
+                } elseif ($disponivel <= $estoqueMinimo) {
                     $statusClass = 'baixo';
+                    $statusText = 'Acabando';
                     $alertClass = 'alert-warning';
-                    $alertBadge = '<span class="product-badge badge-low">Acabando</span>';
+                    $alertBadge = '<span class="product-badge product-badge-inline badge-low">Acabando</span>';
                 } else {
                     $alertClass = 'alert-ok';
                 }
@@ -1230,13 +1248,15 @@ include '../../includes/ui-confirm.php';
 
                     if ($isVencido) {
                         $validadeText = 'Vencido';
-                        $alertBadge = '<span class="product-badge badge-expired">Vencido</span>';
+                        $statusText = 'Vencido';
+                        $alertBadge = '<span class="product-badge product-badge-inline badge-expired">Vencido</span>';
                         $isVencendo = true;
                     } elseif ($diff <= 30) {
                         $validadeText = 'Vence em ' . $diff . ' dias';
                         $isVencendo = true;
                         if (!$alertBadge) {
-                            $alertBadge = '<span class="product-badge badge-low">Vencendo</span>';
+                            $statusText = $statusText === 'OK' ? 'Vencendo' : $statusText;
+                            $alertBadge = '<span class="product-badge product-badge-inline badge-low">Vencendo</span>';
                         }
                     } else {
                         $validadeText = date('d/m/Y', strtotime($validade));
@@ -1247,15 +1267,16 @@ include '../../includes/ui-confirm.php';
                      data-name="<?= strtolower(htmlspecialchars($p['nome'])) ?>"
                      data-brand="<?= strtolower(htmlspecialchars($p['marca'] ?? '')) ?>"
                      data-status="<?= $statusClass ?>"
+                     data-status-text="<?= $statusText ?>"
                      data-vencendo="<?= $isVencendo ? '1' : '0' ?>"
+                     data-minimo="<?= $estoqueMinimo ?>"
                      onclick="window.location.href='<?= $produtosEstoqueUrl ?>?edit=<?= $p['id'] ?>'">
-                    
-                    <?= $alertBadge ?>
-                    
+
                     <div class="product-card-header">
                         <div style="flex: 1;">
                             <div class="product-name"><?= htmlspecialchars($p['nome']) ?></div>
                             <div class="product-brand"><?= htmlspecialchars($p['marca'] ?? 'Sem marca') ?></div>
+                            <?php if (!empty($alertBadge)) echo $alertBadge; ?>
                         </div>
                         <div class="product-alert <?= $alertClass ?>"></div>
                     </div>
@@ -1273,6 +1294,10 @@ include '../../includes/ui-confirm.php';
 
                     <div style="font-size: 0.75rem; color: var(--text-muted); margin: 8px 0;">
                         <i class="bi bi-clock"></i> <?= $validadeText ?>
+                    </div>
+
+                    <div class="product-min">
+                        Minimo: <?= $estoqueMinimo ?>
                     </div>
 
                     <div class="product-footer">
@@ -1328,6 +1353,10 @@ include '../../includes/ui-confirm.php';
             <div>
                 <div class="product-sheet-field-label">Status</div>
                 <div class="product-sheet-field-value" data-field="statusText">OK</div>
+            </div>
+            <div>
+                <div class="product-sheet-field-label">Estoque minimo</div>
+                <div class="product-sheet-field-value" data-field="minimo">-</div>
             </div>
             <div class="product-sheet-full">
                 <div class="product-sheet-field-label">Observações</div>
@@ -1412,9 +1441,14 @@ include '../../includes/ui-confirm.php';
                     <input type="number" name="quantidade" class="form-control" placeholder="Qtd contada" required value="<?php echo $produtoEdicao['quantidade'] ?? 1; ?>">
                 </div>
                 <div class="form-group">
-                    <label>Validade</label>
-                    <input type="date" name="data_validade" class="form-control" value="<?php echo $produtoEdicao['data_validade'] ?? ''; ?>">
+                    <label>Estoque minimo</label>
+                    <input type="number" name="estoque_minimo" class="form-control" min="0" placeholder="Ex: 5" value="<?php echo $produtoEdicao['estoque_minimo'] ?? 5; ?>">
                 </div>
+            </div>
+
+            <div class="form-group">
+                <label>Validade</label>
+                <input type="date" name="data_validade" class="form-control" value="<?php echo $produtoEdicao['data_validade'] ?? ''; ?>">
             </div>
 
             <div class="form-group">
@@ -1579,7 +1613,8 @@ include '../../includes/ui-confirm.php';
         const custo    = rowEl.dataset.custo || '0,00';
         const validade = rowEl.dataset.validade || '-';
         const obs      = rowEl.dataset.obs || '-';
-        const status   = rowEl.dataset.status || 'OK';
+        const minimo   = rowEl.dataset.minimo || '0';
+        const status   = rowEl.dataset.statusText || rowEl.dataset.status || 'OK';
 
         overlay.querySelector('[data-field="nome"]').innerText     = nome;
         overlay.querySelector('[data-field="marca"]').innerText    = marca || '-';
@@ -1587,6 +1622,7 @@ include '../../includes/ui-confirm.php';
         overlay.querySelector('[data-field="tamanho"]').innerText  = tamanho + ' ' + unidade;
         overlay.querySelector('[data-field="custo"]').innerText    = 'R$ ' + custo;
         overlay.querySelector('[data-field="validade"]').innerText = validade || '-';
+        overlay.querySelector('[data-field="minimo"]').innerText   = minimo;
         overlay.querySelector('[data-field="obs"]').innerText      = obs || '-';
         overlay.querySelector('[data-field="statusText"]').innerText = status;
 
