@@ -15,4 +15,33 @@ if ($_SERVER['HTTP_HOST'] == 'localhost' || $_SERVER['HTTP_HOST'] == '127.0.0.1'
 define('AUTO_LOGOUT', true);
 // Tempo de inatividade em minutos
 define('AUTO_LOGOUT_MINUTES', 30);
+
+if (!function_exists('slugify')) {
+    function slugify($text)
+    {
+        $text = trim((string)$text);
+        if ($text === '') {
+            return 'estabelecimento';
+        }
+
+        $translit = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
+        if ($translit !== false) {
+            $text = $translit;
+        }
+
+        $text = strtolower($text);
+        $text = preg_replace('/[^a-z0-9]+/', '-', $text);
+        $text = trim($text, '-');
+
+        return $text !== '' ? $text : 'estabelecimento';
+    }
+}
+
+if (!function_exists('buildAgendarSlug')) {
+    function buildAgendarSlug($nomeBase, $userId)
+    {
+        $slug = slugify($nomeBase);
+        return $slug . '-' . (int)$userId;
+    }
+}
 ?>

@@ -47,7 +47,7 @@ $iniciais  = 'V';
 $firstName = 'Visitante';
 
 if (isset($pdo) && isset($_SESSION['user_id'])) {
-    $stmtUser = $pdo->prepare("SELECT nome, email FROM usuarios WHERE id = ? LIMIT 1");
+    $stmtUser = $pdo->prepare("SELECT nome, email, estabelecimento FROM usuarios WHERE id = ? LIMIT 1");
     $stmtUser->execute([$_SESSION['user_id']]);
     $dadoUsuario = $stmtUser->fetch(PDO::FETCH_ASSOC);
 
@@ -66,6 +66,14 @@ if (isset($pdo) && isset($_SESSION['user_id'])) {
         }
 
         $iniciais = strtoupper($primeiraLetra . $ultimaLetra);
+    }
+
+    $estabelecimentoNome = trim($dadoUsuario['estabelecimento'] ?? '');
+    $paginaAtual = basename($_SERVER['PHP_SELF']);
+    if ($estabelecimentoNome === '' && $paginaAtual !== 'perfil.php') {
+        $perfilUrl = $isProd ? '/perfil' : '/karen_site/controle-salao/pages/perfil/perfil.php';
+        header('Location: ' . $perfilUrl);
+        exit;
     }
 }
 

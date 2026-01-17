@@ -3,6 +3,8 @@
 // 1. CONFIGURAÇÃO E BACKEND 
 // ========================================================= 
  
+require_once __DIR__ . '/includes/config.php';
+
 // Ajuste o caminho do include conforme sua estrutura de pastas 
 $dbPath = 'includes/db.php'; 
 if (!file_exists($dbPath)) $dbPath = '../../includes/db.php'; 
@@ -10,9 +12,20 @@ require_once $dbPath;
 
 // 🔹 Detecta ambiente (prod vs local) - DECLARADO NO INÍCIO
 $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+$currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+if (empty($currentPath)) {
+    $currentPath = $isProd ? '/agendar' : '/karen_site/controle-salao/agendar.php';
+}
  
-// ID do Profissional (Pega da URL) 
-$profissionalId = isset($_GET['user']) ? (int)$_GET['user'] : 0; 
+// ID do Profissional (Pega da URL ou da rota amigável)
+$profissionalId = isset($_GET['user']) ? (int)$_GET['user'] : 0;
+if ($profissionalId <= 0) {
+    $requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    $slugCandidate = basename($requestPath ?: '');
+    if ($slugCandidate && preg_match('/-([0-9]+)$/', $slugCandidate, $matches)) {
+        $profissionalId = (int)$matches[1];
+    }
+}
  
 // Se não tiver ID na URL, retorna erro
 if ($profissionalId <= 0) { 
@@ -46,6 +59,11 @@ $iconesEstabelecimento = [
     'Studio'          => 'bi-palette'
 ];
 $iconeServico = $iconesEstabelecimento[$tipoEstabelecimento] ?? 'bi-scissors'; 
+
+// URL pÃºblica amigÃ¡vel
+$nomeBaseSlug = !empty($profissional['estabelecimento']) ? $profissional['estabelecimento'] : ($profissional['nome'] ?? 'Estabelecimento');
+$publicSlug = buildAgendarSlug($nomeBaseSlug, $profissionalId);
+$publicUrl = rtrim(BASE_URL, '/') . '/' . $publicSlug;
  
 // Endereço Formatado 
 $enderecoCompleto = $profissional['endereco'] ?? ''; 
@@ -823,7 +841,7 @@ foreach ($todosServicos as $s) {
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
         <meta property="og:image:alt" content="<?php echo htmlspecialchars($nomeEstabelecimento); ?>">
-        <meta property="og:url" content="<?php echo $isProd ? 'https://salao.develoi.com/agendar?user=' : 'http://'.$_SERVER['HTTP_HOST'].'/karen_site/controle-salao/agendar.php?user='; ?><?php echo $profissionalId; ?>">
+        <meta property="og:url" content="<?php echo htmlspecialchars($publicUrl); ?>">
         
         <!-- Twitter -->
         <meta property="twitter:card" content="summary_large_image">
@@ -832,7 +850,7 @@ foreach ($todosServicos as $s) {
         <meta property="twitter:image" content="<?php echo $imagemCompartilhamento; ?>">
         
         <!-- Canonical URL -->
-        <link rel="canonical" href="<?php echo $isProd ? 'https://salao.develoi.com/agendar?user=' : 'http://'.$_SERVER['HTTP_HOST'].'/karen_site/controle-salao/agendar.php?user='; ?><?php echo $profissionalId; ?>">
+        <link rel="canonical" href="<?php echo htmlspecialchars($publicUrl); ?>">
         
         <!-- Schema.org para Google -->
         <script type="application/ld+json">
@@ -845,7 +863,7 @@ foreach ($todosServicos as $s) {
           <?php if ($telefone): ?>"telephone": "<?php echo htmlspecialchars($telefone); ?>",<?php endif; ?>
           <?php if ($enderecoCompleto): ?>"address": "<?php echo htmlspecialchars($enderecoCompleto); ?>",<?php endif; ?>
           "priceRange": "$$",
-          "url": "<?php echo $isProd ? 'https://salao.develoi.com/agendar?user=' : 'http://'.$_SERVER['HTTP_HOST'].'/karen_site/controle-salao/agendar.php?user='; ?><?php echo $profissionalId; ?>"
+          "url": "<?php echo htmlspecialchars($publicUrl); ?>"
         }
         </script> 
 
@@ -2991,7 +3009,7 @@ foreach ($todosServicos as $s) {
  
 <script>
     const PROF_ID = <?php echo $profissionalId; ?>;
-    const CURRENT_PAGE = <?php echo json_encode($isProd ? '/agendar' : '/karen_site/controle-salao/agendar.php'); ?>;
+    const CURRENT_PAGE = <?php echo json_encode($currentPath); ?>;
     let selectedServices = [];
     let currentServiceDuration = 0;
     

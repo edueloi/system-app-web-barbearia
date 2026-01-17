@@ -1,67 +1,52 @@
-# ====== NOTA DE SERVIÇO ======
-# /nota ou /nota.php vão para pages/agenda/nota.php
-RewriteRule ^nota$ pages/agenda/nota.php [L]
-RewriteRule ^nota\.php$ pages/agenda/nota.php [L]
-# Redireciona /agenda/nota.php para /nota (URL amigável)
-RewriteCond %{THE_REQUEST} \s/agenda/nota\.php[?\s] [NC]
-RewriteRule ^agenda/nota\.php$ /nota [R=301,L]
-RewriteEngine On
-RewriteBase /
-
-# Não listar arquivos da pasta (segurança)
 Options -Indexes
+Options -Multiviews
 
-# Bloqueia acesso direto à pasta "pages" pela URL (opcional, mas bom pra segurança)
-# Se alguém digitar salao.develoi.com/pages/agenda/agenda.php, redireciona para a URL bonita
-RewriteCond %{THE_REQUEST} \s/pages/([^/]+)/([^.]+)\.php [NC]
-RewriteRule ^ /%1 [R=301,L]
+RewriteEngine On
 
-# --- ROTAS AMIGÁVEIS ---
+# ✅ Base correta (você está dentro de /karen_site/controle-salao/)
+RewriteBase /karen_site/controle-salao/
 
-# Rota: /dashboard -> abre pages/dashboard.php (ou onde ele estiver)
-# OBS: Verifiquei que na sua print não vi dashboard.php na raiz, assumo que esteja em pages
-RewriteRule ^dashboard$ pages/dashboard.php [L]
+# ✅ 1) Não reescrever arquivos/pastas reais
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
 
-# Rota: /agenda -> abre pages/agenda/agenda.php
-RewriteRule ^agenda$ pages/agenda/agenda.php [L]
+# ✅ 2) Redireciona acesso direto a /pages/...php para URL bonita
+# Ex: /karen_site/controle-salao/pages/agenda/agenda.php -> /karen_site/controle-salao/agenda
+RewriteCond %{THE_REQUEST} \s/+karen_site/controle-salao/pages/([^/]+)/([^.]+)\.php [NC]
+RewriteRule ^pages/([^/]+)/([^.]+)\.php$ %1 [R=301,L]
 
-# Rota: /clientes -> abre pages/clientes/clientes.php
-RewriteRule ^clientes$ pages/clientes/clientes.php [L]
+# ✅ 3) NOTA
+RewriteRule ^nota/?$ pages/agenda/nota.php [L]
+RewriteCond %{THE_REQUEST} \s/+karen_site/controle-salao/agenda/nota\.php[?\s] [NC]
+RewriteRule ^agenda/nota\.php$ nota [R=301,L]
 
-# Rota: /financeiro -> abre pages/financeiro/financeiro.php
-RewriteRule ^financeiro$ pages/financeiro/financeiro.php [L]
+# ✅ 4) ROTAS AMIGÁVEIS
+RewriteRule ^dashboard/?$ pages/dashboard.php [L]
+RewriteRule ^agenda/?$ pages/agenda/agenda.php [L]
+RewriteRule ^clientes/?$ pages/clientes/clientes.php [L]
+RewriteRule ^financeiro/?$ pages/financeiro/financeiro.php [L]
+RewriteRule ^recorrencias/?$ pages/clientes/recorrencias.php [L,QSA]
+RewriteRule ^servicos/?$ pages/servicos/servicos.php [L]
+RewriteRule ^estoque/?$ pages/produtos-estoque/produtos-estoque.php [L]
+RewriteRule ^produtos-estoque/?$ pages/produtos-estoque/produtos-estoque.php [L]
+RewriteRule ^comandas/?$ pages/comandas/comandas.php [L]
+RewriteRule ^perfil/?$ pages/perfil/perfil.php [L]
+RewriteRule ^calcular-servico/?$ pages/calcular-servico/calcular-servico.php [L]
+RewriteRule ^horarios/?$ pages/horarios/horarios.php [L]
+RewriteRule ^configuracoes/?$ pages/configuracoes/configuracoes.php [L]
 
-# Rota: /recorrencias -> abre pages/clientes/recorrencias.php (com query string preservada)
-RewriteRule ^recorrencias$ pages/clientes/recorrencias.php [L,QSA]
+# ✅ 5) Rota pública de agendamento: /barbearia-anivaldo-16
+RewriteRule ^([a-z0-9-]+)-([0-9]+)$ agendar.php?user=$2 [L,QSA]
 
-# Rota: /servicos -> abre pages/servicos/servicos.php
-RewriteRule ^servicos$ pages/servicos/servicos.php [L]
-
-# Rota: /estoque -> abre pages/produtos-estoque/produtos-estoque.php
-RewriteRule ^estoque$ pages/produtos-estoque/produtos-estoque.php [L]
-# Rota: /produtos-estoque -> abre pages/produtos-estoque/produtos-estoque.php
-RewriteRule ^produtos-estoque$ pages/produtos-estoque/produtos-estoque.php [L]
-
-# Rota: /comandas -> abre pages/comandas/comandas.php
-RewriteRule ^comandas$ pages/comandas/comandas.php [L]
-
-# Rota: /perfil -> abre pages/perfil/perfil.php
-RewriteRule ^perfil$ pages/perfil/perfil.php [L]
-
-# Rota: /calcular-servico -> abre pages/calcular-servico/calcular-servico.php
-RewriteRule ^calcular-servico$ pages/calcular-servico/calcular-servico.php [L]
-
-# Rota: /horarios -> abre pages/horarios/horarios.php
-RewriteRule ^horarios$ pages/horarios/horarios.php [L]
-
-# Rota: /configuracoes -> abre pages/configuracoes/configuracoes.php
-RewriteRule ^configuracoes$ pages/configuracoes/configuracoes.php [L]
-
-# Esconde .php de arquivos na RAIZ (ex: login.php, cadastro.php)
+# ✅ 6) Esconder .php só na RAIZ (login -> login.php)
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME}.php -f
-RewriteRule ^([a-z0-9-_]+)$ $1.php [NC,L]
+RewriteRule ^([a-z0-9-_]+)/?$ $1.php [NC,L]
 
-# ====== PÁGINA 404 PERSONALIZADA ======
-# Redireciona qualquer rota não encontrada para a página 404
+# ✅ 7) Fallback: qualquer rota que sobrar vai para index.php (ou escolha sua "home")
+# Se você não tem index.php, troque para pages/agenda/agenda.php (por exemplo).
+RewriteRule ^ index.php [L]
+
+# 404
 ErrorDocument 404 /karen_site/controle-salao/404.php

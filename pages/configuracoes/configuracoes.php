@@ -141,18 +141,17 @@ if (isset($_GET['download_backup'])) {
     }
 }
 
-// Link Público
+// Link Publico
 $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
 
-if ($isProd) {
-    // Produção: usa rota amigável
-    $linkFinal = 'https://salao.develoi.com/agendar?user=' . $userId;
-} else {
-    // Local: usa caminho completo
-    $protocol  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
-    $host      = $_SERVER['HTTP_HOST'];
-    $linkFinal = $protocol . '://' . $host . '/karen_site/controle-salao/agendar.php?user=' . $userId;
-}
+$stmtLink = $pdo->prepare("SELECT nome, estabelecimento FROM usuarios WHERE id = ?");
+$stmtLink->execute([$userId]);
+$userLinkInfo = $stmtLink->fetch();
+$nomeBaseSlug = !empty($userLinkInfo['estabelecimento'])
+    ? $userLinkInfo['estabelecimento']
+    : ($userLinkInfo['nome'] ?? 'Estabelecimento');
+$slugAgendamento = buildAgendarSlug($nomeBaseSlug, $userId);
+$linkFinal = rtrim(BASE_URL, '/') . '/' . $slugAgendamento;
 
 
 // Buscar configurações do usuário

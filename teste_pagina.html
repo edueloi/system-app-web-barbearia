@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Develoi Agenda • Agendamento para Salão e Barbearia</title>
+  <meta name="description" content="Sistema simples e profissional para agendamento de salão e barbearia. Organize horários, clientes e atendimentos.">
+  <meta name="theme-color" content="#ffffff" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Develoi Agenda • Agendamento para Salão e Barbearia">
+  <meta property="og:description" content="Organize horários, clientes e atendimentos. Mais profissionalismo e menos confusão.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://salao.develoi.com/">
+  <meta property="og:image" content="https://salao.develoi.com/img/logo-azul.png">
+
+  <style>
+    :root{
+      --bg:#f7f8fb;
+      --surface:#ffffff;
+      --surface2:#fbfbfe;
+      --text:#0f172a;
+      --muted:#475569;
+      --muted2:#64748b;
+      --line:rgba(15,23,42,.10);
+      --brand:#2563eb;
+      --brand2:#3b82f6;
+      --ok:#16a34a;
+      --shadow: 0 16px 40px rgba(15,23,42,.10);
+      --shadow2: 0 10px 24px rgba(15,23,42,.08);
+      --radius: 18px;
+      --max: 1120px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background:
+        radial-gradient(900px 600px at 20% 0%, rgba(37,99,235,.10), transparent 60%),
+        radial-gradient(900px 600px at 90% 10%, rgba(59,130,246,.09), transparent 60%),
+        var(--bg);
+      color:var(--text);
+      line-height:1.45;
+      overflow-x:hidden;
+    }
+    a{color:inherit;text-decoration:none}
+    .container{max-width:var(--max);margin:0 auto;padding:0 18px}
+
+    /* NAV */
+    .nav{
+      position:sticky;top:0;z-index:50;
+      background: rgba(255,255,255,.80);
+      backdrop-filter: blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+    .nav-inner{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:12px;
+      padding:12px 0;
+    }
+    .brand{
+      display:flex;align-items:center;gap:10px;
+      font-weight:900;
+      letter-spacing:-.2px;
+    }
+    .brand img{
+      width:36px;height:36px;border-radius:12px;
+      background:#fff; padding:7px; object-fit:contain;
+      box-shadow: var(--shadow2);
+      border:1px solid rgba(15,23,42,.08);
+    }
+    .nav-actions{
+      display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;
+    }
+    .pill{
+      font-size:13px;
+      color:var(--muted);
+      border:1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.65);
+      padding:8px 10px;
+      border-radius:999px;
+      white-space:nowrap;
+    }
+
+    /* BUTTONS */
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      gap:10px;
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid rgba(15,23,42,.12);
+      background: #fff;
+      color:var(--text);
+      cursor:pointer;
+      transition: transform .08s ease, box-shadow .2s ease, background .2s ease;
+      font-weight:800;
+      white-space:nowrap;
+      box-shadow: 0 8px 18px rgba(15,23,42,.06);
+    }
+    .btn:hover{transform: translateY(-1px); box-shadow: 0 12px 26px rgba(15,23,42,.10)}
+    .btn:active{transform: translateY(0px)}
+    .btn-primary{
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      border-color: rgba(37,99,235,.25);
+      color:#fff;
+      box-shadow: 0 14px 28px rgba(37,99,235,.18);
+    }
+    .btn-primary:hover{box-shadow: 0 18px 36px rgba(37,99,235,.22)}
+    .btn-soft{
+      background: rgba(37,99,235,.08);
+      border-color: rgba(37,99,235,.20);
+      color: #1e3a8a;
+      box-shadow: none;
+    }
+    .btn-soft:hover{background: rgba(37,99,235,.10); box-shadow:none}
+    .btn-green{
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      border-color: rgba(34,197,94,.25);
+      color:#fff;
+      box-shadow: 0 14px 28px rgba(34,197,94,.16);
+    }
+    .btn-green:hover{box-shadow: 0 18px 36px rgba(34,197,94,.20)}
+
+    /* HERO */
+    header.hero{
+      padding:42px 0 22px;
+    }
+    .hero-grid{
+      display:grid;
+      grid-template-columns: 1.18fr .82fr;
+      gap:18px;
+      align-items:stretch;
+    }
+    @media (max-width: 980px){ .hero-grid{grid-template-columns:1fr} }
+
+    .badge{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 10px;border-radius:999px;
+      border:1px solid rgba(37,99,235,.18);
+      background: rgba(37,99,235,.08);
+      color:#1e3a8a;
+      font-weight:900;
+      font-size:12px;
+      letter-spacing:.2px;
+    }
+    .badge svg{width:14px;height:14px}
+
+    .headline{
+      font-size: clamp(28px, 4.1vw, 48px);
+      line-height:1.05;
+      letter-spacing:-.9px;
+      margin:12px 0 10px;
+      font-weight:950;
+    }
+    .sub{
+      color:var(--muted);
+      font-size: clamp(15px, 1.5vw, 18px);
+      margin:0 0 16px;
+      max-width: 64ch;
+    }
+    .bullets{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap:10px 14px;
+      margin: 16px 0 18px;
+    }
+    @media (max-width: 640px){ .bullets{grid-template-columns:1fr} }
+
+    .bullet{
+      display:flex;gap:10px;align-items:flex-start;
+      color:var(--muted);
+      font-size:14px;
+    }
+    .tick{
+      width:18px;height:18px;border-radius:7px;
+      display:inline-flex;align-items:center;justify-content:center;
+      background: rgba(34,197,94,.12);
+      border: 1px solid rgba(34,197,94,.22);
+      margin-top:1px;
+      flex:0 0 auto;
+    }
+    .tick svg{width:12px;height:12px}
+
+    .hero-cta{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .fineprint{color:var(--muted2);font-size:12px;margin-top:10px}
+
+    /* CARDS */
+    .card{
+      background: rgba(255,255,255,.88);
+      border:1px solid rgba(15,23,42,.10);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .hero-card{
+      padding:18px;
+      display:flex;flex-direction:column;gap:12px;
+    }
+    .price{
+      padding:16px;
+      border:1px solid rgba(15,23,42,.08);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(37,99,235,.06), rgba(255,255,255,.6));
+    }
+    .price h3{margin:0;font-size:14px;color:var(--muted);font-weight:900}
+    .price .value{
+      margin:8px 0 0;
+      font-size:36px;
+      font-weight:950;
+      letter-spacing:-.6px;
+    }
+    .price .value small{
+      font-size:14px;color:var(--muted);font-weight:800
+    }
+    .price .note{margin:8px 0 0;color:var(--muted);font-size:13px}
+
+    .mini{
+      display:grid;grid-template-columns:1fr 1fr;gap:10px
+    }
+    .mini .item{
+      padding:12px;
+      border:1px solid rgba(15,23,42,.08);
+      border-radius:14px;
+      color:var(--muted);
+      font-size:13px;
+      background: rgba(255,255,255,.70);
+    }
+    .divider{height:1px;background:var(--line);margin:10px 0}
+
+    /* SECTIONS */
+    section{padding:32px 0}
+    .section-title{
+      font-size: 26px;
+      margin: 0 0 10px;
+      letter-spacing:-.2px;
+    }
+    .section-sub{color:var(--muted);margin:0 0 18px;max-width:70ch}
+
+    .grid-3{
+      display:grid;grid-template-columns: repeat(3, minmax(0,1fr));
+      gap:14px;
+    }
+    @media (max-width: 980px){ .grid-3{grid-template-columns:1fr} }
+
+    .feat{
+      padding:18px;
+      border-radius: var(--radius);
+      border:1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.75);
+      box-shadow: 0 10px 22px rgba(15,23,42,.06);
+    }
+    .feat h4{margin:10px 0 6px}
+    .feat p{margin:0;color:var(--muted);font-size:14px}
+    .icon{
+      width:42px;height:42px;border-radius:16px;
+      display:flex;align-items:center;justify-content:center;
+      border:1px solid rgba(37,99,235,.18);
+      background: rgba(37,99,235,.08);
+    }
+    .icon svg{width:20px;height:20px;color:#1e3a8a}
+
+    .split{
+      display:grid;grid-template-columns: 1fr 1fr;gap:14px;
+    }
+    @media (max-width: 980px){ .split{grid-template-columns:1fr} }
+    .box{
+      padding:18px;
+      border:1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.78);
+      border-radius: var(--radius);
+      box-shadow: 0 10px 22px rgba(15,23,42,.06);
+    }
+    .list{margin:0;padding-left:18px;color:var(--muted)}
+    .list li{margin:8px 0}
+
+    .how{
+      display:grid;grid-template-columns: repeat(3, minmax(0,1fr));
+      gap:14px;
+    }
+    @media (max-width: 980px){ .how{grid-template-columns:1fr} }
+    .step{
+      padding:18px;
+      border-radius: var(--radius);
+      border:1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.78);
+      box-shadow: 0 10px 22px rgba(15,23,42,.06);
+    }
+    .step b{
+      display:inline-flex;
+      width:34px;height:34px;border-radius:12px;
+      align-items:center;justify-content:center;
+      background: rgba(37,99,235,.10);
+      border:1px solid rgba(37,99,235,.18);
+      color:#1e3a8a;
+      margin-bottom:10px;
+      font-weight:950;
+    }
+    .step h4{margin:0 0 6px}
+    .step p{margin:0;color:var(--muted);font-size:14px}
+
+    .offer{
+      display:grid;grid-template-columns: 1fr 1fr;gap:14px;align-items:stretch;
+    }
+    @media (max-width: 980px){ .offer{grid-template-columns:1fr} }
+    .offer-card{padding:20px}
+
+    .check{
+      display:flex;gap:10px;align-items:flex-start;color:var(--muted);font-size:14px;margin:10px 0;
+    }
+    .check span{
+      width:20px;height:20px;border-radius:7px;
+      display:inline-flex;align-items:center;justify-content:center;
+      background: rgba(34,197,94,.12);
+      border:1px solid rgba(34,197,94,.22);
+      flex:0 0 auto;
+      margin-top:1px;
+    }
+    .check svg{width:13px;height:13px}
+
+    /* FAQ */
+    .faq{display:grid;grid-template-columns: 1fr 1fr;gap:14px;}
+    @media (max-width: 980px){ .faq{grid-template-columns:1fr} }
+    details{
+      padding:16px;
+      border:1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.78);
+      border-radius: var(--radius);
+      box-shadow: 0 10px 22px rgba(15,23,42,.06);
+    }
+    summary{
+      cursor:pointer;
+      font-weight:900;
+      list-style:none;
+      outline:none;
+    }
+    summary::-webkit-details-marker{display:none}
+    details p{margin:10px 0 0;color:var(--muted);font-size:14px}
+
+    /* FOOTER */
+    footer{
+      padding:26px 0 34px;
+      color:var(--muted2);
+      border-top:1px solid var(--line);
+      background: rgba(255,255,255,.55);
+    }
+
+    /* WhatsApp floating */
+    .floating-whats{
+      position:fixed;
+      right:16px;
+      bottom:16px;
+      z-index:80;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      align-items:flex-end;
+    }
+    .whats-hint{
+      background: rgba(255,255,255,.88);
+      border:1px solid rgba(15,23,42,.10);
+      color:var(--muted);
+      font-size:12px;
+      padding:8px 10px;
+      border-radius:999px;
+      box-shadow: 0 10px 22px rgba(15,23,42,.08);
+    }
+    .btn-whats{
+      width:56px;height:56px;border-radius:18px;
+      display:flex;align-items:center;justify-content:center;
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      border:1px solid rgba(34,197,94,.25);
+      box-shadow: 0 16px 28px rgba(15,23,42,.14);
+      cursor:pointer;
+      transition: transform .1s ease;
+      color:#fff;
+    }
+    .btn-whats:hover{transform: translateY(-1px)}
+    .btn-whats svg{width:26px;height:26px}
+
+    /* small */
+    @media (max-width:520px){
+      .pill{display:none}
+    }
+  </style>
+</head>
+
+<body>
+  <script>
+    // ✅ Edite aqui (config rápida)
+    const CONFIG = {
+      productName: "Develoi Agenda",
+      siteUrl: "https://salao.develoi.com",
+      logoUrl: "https://salao.develoi.com/img/logo-azul.png",
+      whatsapp: "5515992897425",
+      waMsgDemo: "Olá! Tenho interesse no Develoi Agenda e gostaria de solicitar uma demonstração.",
+      priceText: "R$ 69,90",
+      priceCycle: "/mês",
+      checkoutUrl: "" // cole seu link de checkout aqui (opcional). Se vazio, CTA vai pro WhatsApp.
+    };
+
+    function buildWhatsAppLink(message){
+      const base = "https://wa.me/" + CONFIG.whatsapp;
+      const text = encodeURIComponent(message || "");
+      return base + "?text=" + text;
+    }
+
+    function primaryLink(){
+      return (CONFIG.checkoutUrl && CONFIG.checkoutUrl.trim().length > 0)
+        ? CONFIG.checkoutUrl.trim()
+        : buildWhatsAppLink(
+            "Olá! Quero assinar o " + CONFIG.productName + " no valor de " +
+            CONFIG.priceText + " " + CONFIG.priceCycle + ". Como faço para liberar o acesso?"
+          );
+    }
+
+    function setText(id, txt){ const el=document.getElementById(id); if(el) el.textContent=txt; }
+    function setSrc(id, src){ const el=document.getElementById(id); if(el) el.src=src; }
+    function setHref(id, href){ const el=document.getElementById(id); if(el) el.href=href; }
+  </script>
+
+  <!-- NAV -->
+  <div class="nav">
+    <div class="container">
+      <div class="nav-inner">
+        <div class="brand">
+          <img id="logo" alt="Logo">
+          <div>
+            <div style="font-size:14px;opacity:.95" id="brandName">Develoi Agenda</div>
+            <div style="font-size:12px;color:var(--muted2)">Agendamento • Salão & Barbearia</div>
+          </div>
+        </div>
+
+        <div class="nav-actions">
+          <span class="pill">✅ Sem fidelidade</span>
+          <span class="pill">📱 Celular + PC</span>
+          <a class="btn btn-primary" href="#comprar">Começar agora</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="container">
+      <div class="hero-grid">
+        <div>
+          <span class="badge">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 2l3 7h7l-5.5 4.1 2 7L12 16l-6.5 4.1 2-7L2 9h7l3-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+            Layout clean • focado em conversão
+          </span>
+
+          <h1 class="headline">Agendamento simples e profissional para salão e barbearia.</h1>
+          <p class="sub">
+            O <b id="pName1">Develoi Agenda</b> organiza sua rotina com uma agenda clara, cadastro de clientes e histórico de atendimentos —
+            sem complicação, sem telas confusas.
+          </p>
+
+          <div class="bullets">
+            <div class="bullet">
+              <span class="tick" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              Menos faltas e confusões na agenda
+            </div>
+            <div class="bullet">
+              <span class="tick" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              Mais profissionalismo com seus clientes
+            </div>
+            <div class="bullet">
+              <span class="tick" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              Acesso no celular e computador
+            </div>
+            <div class="bullet">
+              <span class="tick" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              Comece em minutos, sem instalação
+            </div>
+          </div>
+
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="#comprar">Quero assinar agora</a>
+            <a class="btn btn-soft" href="#como-funciona">Ver como funciona</a>
+          </div>
+
+          <p class="fineprint">
+            ✅ Sem fidelidade • ✅ Cancelamento fácil • ✅ Suporte básico incluso
+          </p>
+        </div>
+
+        <div class="card hero-card" id="comprar">
+          <div class="price">
+            <h3>Plano Mensal</h3>
+            <div class="value"><span id="priceValue">R$ 69,90</span> <small id="priceCycle">/mês</small></div>
+            <div class="note">Menos de <b>R$ 2,50 por dia</b> para organizar sua agenda.</div>
+          </div>
+
+          <div class="mini">
+            <div class="item">📅 Agenda clara</div>
+            <div class="item">👤 Clientes</div>
+            <div class="item">🧾 Histórico</div>
+            <div class="item">📱 Mobile + PC</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <a class="btn btn-primary" id="ctaBuy" href="#">Assinar agora</a>
+          <a class="btn btn-green" id="ctaDemo" href="#">Pedir demonstração</a>
+
+          <p class="fineprint">
+            Ao clicar, você vai para WhatsApp (ou checkout, se você colar o link no CONFIG).
+          </p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- PROBLEMA -->
+  <section>
+    <div class="container">
+      <h2 class="section-title">Agenda bagunçada custa dinheiro</h2>
+      <p class="section-sub">
+        Se você ainda depende de papel e mensagens soltas, é normal perder tempo, se estressar e ver o cliente sumir.
+        O Develoi Agenda resolve com o básico bem feito.
+      </p>
+
+      <div class="split">
+        <div class="box">
+          <h3 style="margin:0 0 10px">O que acontece sem sistema</h3>
+          <ul class="list">
+            <li>Horários duplicados e encaixes confusos</li>
+            <li>Cliente esquece e não aparece</li>
+            <li>Tempo perdido procurando conversa</li>
+            <li>Falta de padrão no atendimento</li>
+          </ul>
+        </div>
+        <div class="box">
+          <h3 style="margin:0 0 10px">O que muda com o Develoi</h3>
+          <ul class="list">
+            <li>Visão clara do dia e da semana</li>
+            <li>Atendimento mais rápido e profissional</li>
+            <li>Histórico do cliente sempre disponível</li>
+            <li>Rotina organizada e mais tranquila</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BENEFÍCIOS -->
+  <section>
+    <div class="container">
+      <h2 class="section-title">Feito para o dia real do salão e barbearia</h2>
+      <p class="section-sub">
+        Sem “mil funções” que ninguém usa. Só o que você precisa para trabalhar com controle.
+      </p>
+
+      <div class="grid-3">
+        <div class="feat">
+          <div class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M7 3v3M17 3v3M4 8h16M6 6h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h4>Agenda organizada</h4>
+          <p>Veja horários com clareza e pare de “se perder” em mensagens.</p>
+        </div>
+
+        <div class="feat">
+          <div class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </div>
+          <h4>Clientes & histórico</h4>
+          <p>Tenha tudo do cliente organizado para fidelizar e padronizar.</p>
+        </div>
+
+        <div class="feat">
+          <div class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 2a10 10 0 1 0 10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h4>Ganho de tempo</h4>
+          <p>Menos retrabalho e mais foco no atendimento — todos os dias.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMO FUNCIONA -->
+  <section id="como-funciona">
+    <div class="container">
+      <h2 class="section-title">Como funciona</h2>
+      <p class="section-sub">Em minutos você começa a usar — sem instalação.</p>
+
+      <div class="how">
+        <div class="step">
+          <b>1</b>
+          <h4>Acesse</h4>
+          <p>Entre pelo celular ou computador e vá direto para sua agenda.</p>
+        </div>
+        <div class="step">
+          <b>2</b>
+          <h4>Cadastre</h4>
+          <p>Clientes, horários e serviços — simples e rápido.</p>
+        </div>
+        <div class="step">
+          <b>3</b>
+          <h4>Organize</h4>
+          <p>Trabalhe com controle e passe mais profissionalismo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- OFERTA -->
+  <section>
+    <div class="container">
+      <div class="offer">
+        <div class="card offer-card">
+          <h3 style="margin:0 0 8px;font-size:22px">O que está incluso</h3>
+          <p style="margin:0 0 12px;color:var(--muted)">
+            O essencial para você parar de perder clientes por desorganização.
+          </p>
+
+          <div class="check">
+            <span aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            Agenda digital (salão e barbearia)
+          </div>
+          <div class="check">
+            <span aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            Cadastro e histórico de clientes
+          </div>
+          <div class="check">
+            <span aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            Suporte básico e atualizações
+          </div>
+          <div class="check">
+            <span aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            Sem fidelidade — cancele quando quiser
+          </div>
+        </div>
+
+        <div class="card offer-card">
+          <h3 style="margin:0 0 6px;font-size:22px">Comece hoje</h3>
+          <p style="margin:0 0 14px;color:var(--muted)">
+            Clique abaixo para assinar (checkout) ou pedir uma demonstração no WhatsApp.
+          </p>
+
+          <div class="price">
+            <h3>Plano Mensal</h3>
+            <div class="value"><span id="priceValue2">R$ 69,90</span> <small id="priceCycle2">/mês</small></div>
+            <div class="note">✅ Pagamento seguro • ✅ Sem fidelidade • ✅ Cancelamento fácil</div>
+          </div>
+
+          <div style="height:12px"></div>
+          <a class="btn btn-primary" id="ctaBuy2" href="#">Assinar agora</a>
+          <div style="height:10px"></div>
+          <a class="btn btn-green" id="ctaWhats2" href="#">Falar no WhatsApp</a>
+
+          <p class="fineprint" style="margin-top:12px">
+            Se você preferir, eu te mostro o sistema rapidamente e te ajudo a começar.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section>
+    <div class="container">
+      <h2 class="section-title">Perguntas frequentes</h2>
+      <p class="section-sub">Respostas rápidas para decidir com tranquilidade.</p>
+
+      <div class="faq">
+        <details>
+          <summary>Funciona no celular?</summary>
+          <p>Sim. Você usa no celular, tablet ou computador, sem instalar nada.</p>
+        </details>
+        <details>
+          <summary>Tem fidelidade?</summary>
+          <p>Não. Assinatura mensal. Você pode cancelar quando quiser.</p>
+        </details>
+        <details>
+          <summary>Preciso de CNPJ?</summary>
+          <p>Não necessariamente. O que importa é a forma de pagamento no checkout/assinatura (se houver).</p>
+        </details>
+        <details>
+          <summary>Como começo agora?</summary>
+          <p>Clique em “Assinar agora” (checkout) ou fale no WhatsApp para uma demonstração.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA FINAL -->
+  <section>
+    <div class="container">
+      <div class="card" style="padding:20px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+        <div>
+          <h2 style="margin:0 0 6px;font-size:22px">Pronto para organizar sua agenda?</h2>
+          <p style="margin:0;color:var(--muted)">Pare de perder clientes por desorganização e comece hoje.</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn btn-primary" id="ctaFinal" href="#">Assinar agora</a>
+          <a class="btn btn-green" id="ctaFinalWa" href="#">WhatsApp</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container" style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
+      <div>
+        <b id="footerName">Develoi Agenda</b> • <span id="footerUrl">salao.develoi.com</span><br/>
+        <span>© <span id="year"></span> • Todos os direitos reservados.</span>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <span class="pill">🔒 Seguro</span>
+        <span class="pill">⚡ Rápido</span>
+        <span class="pill">✅ Sem fidelidade</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- WhatsApp flutuante -->
+  <div class="floating-whats">
+    <div class="whats-hint">Precisa de ajuda? Fale comigo</div>
+    <button class="btn-whats" id="whatsFloat" aria-label="WhatsApp">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M20.5 11.5a8.5 8.5 0 0 1-12.7 7.4L3 20l1.2-4.6A8.5 8.5 0 1 1 20.5 11.5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M8.7 8.7c.2-.4.4-.4.7-.4h.5c.2 0 .4.1.5.3l.8 1.9c.1.2.1.5-.1.7l-.6.7c-.2.2-.2.5 0 .8.7 1.3 1.7 2.3 3 3 .3.2.6.2.8 0l.8-.6c.2-.2.5-.2.7-.1l1.9.8c.2.1.3.3.3.5v.5c0 .3 0 .5-.4.7-.6.4-1.7.8-2.4.6-1.6-.4-3.5-1.6-5.2-3.3-1.7-1.7-2.9-3.6-3.3-5.2-.2-.7.2-1.8.6-2.4z" fill="currentColor" opacity=".95"/>
+      </svg>
+    </button>
+  </div>
+
+  <script>
+    // Populate
+    setSrc("logo", CONFIG.logoUrl);
+    setText("brandName", CONFIG.productName);
+    setText("pName1", CONFIG.productName);
+
+    setText("priceValue", CONFIG.priceText);
+    setText("priceCycle", CONFIG.priceCycle);
+    setText("priceValue2", CONFIG.priceText);
+    setText("priceCycle2", CONFIG.priceCycle);
+
+    setText("footerName", CONFIG.productName);
+    setText("footerUrl", CONFIG.siteUrl.replace("https://","").replace("http://","").replace(/\/+$/,""));
+    setText("year", String(new Date().getFullYear()));
+
+    const buy = primaryLink();
+    const demo = buildWhatsAppLink(CONFIG.waMsgDemo);
+
+    setHref("ctaBuy", buy);
+    setHref("ctaBuy2", buy);
+    setHref("ctaFinal", buy);
+
+    setHref("ctaDemo", demo);
+    setHref("ctaWhats2", demo);
+    setHref("ctaFinalWa", demo);
+
+    document.getElementById("whatsFloat").addEventListener("click", function(){
+      window.open(demo, "_blank", "noopener");
+    });
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(a=>{
+      a.addEventListener("click", (e)=>{
+        const href = a.getAttribute("href");
+        if(href && href.startsWith("#") && href.length > 1){
+          const target = document.querySelector(href);
+          if(target){
+            e.preventDefault();
+            target.scrollIntoView({behavior:"smooth", block:"start"});
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

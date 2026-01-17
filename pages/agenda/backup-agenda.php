@@ -40,15 +40,17 @@ $agendaUrl = $isProd
     : $_SERVER['PHP_SELF'];        // local usa o próprio arquivo
 
 // Buscar estabelecimento
-$stmtUser = $pdo->prepare("SELECT estabelecimento FROM usuarios WHERE id = ?");
+$stmtUser = $pdo->prepare("SELECT nome, estabelecimento FROM usuarios WHERE id = ?");
 $stmtUser->execute([$userId]);
 $userInfo = $stmtUser->fetch();
-$nomeEstabelecimento = $userInfo['estabelecimento'] ?? 'Meu Salão';
+$nomeEstabelecimento = $userInfo['estabelecimento'] ?? 'Meu Salao';
+$nomeBaseSlug = !empty($userInfo['estabelecimento'])
+    ? $userInfo['estabelecimento']
+    : ($userInfo['nome'] ?? 'Estabelecimento');
 
 // Link de agendamento online
-$linkAgendamento = $isProd
-    ? "https://salao.develoi.com/agendar?user={$userId}"
-    : "http://localhost/karen_site/controle-salao/agendar.php?user={$userId}";
+$slugAgendamento = buildAgendarSlug($nomeBaseSlug, $userId);
+$linkAgendamento = rtrim(BASE_URL, '/') . '/' . $slugAgendamento;
 
 // Função Auxiliar de Redirecionamento
 function redirect($data, $view)
