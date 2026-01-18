@@ -485,6 +485,74 @@ if (isset($_SESSION['login_erro'])) {
             margin-left: auto;
         }
 
+        .install-btn {
+            background: #4f46e5;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .install-close {
+            background: transparent;
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+
+        .install-guide {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 10000;
+        }
+
+        .install-guide-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 18px;
+            max-width: 420px;
+            width: 100%;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
+            text-align: left;
+        }
+
+        .install-guide-title {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .install-guide-steps {
+            font-size: 0.9rem;
+            color: #374151;
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .install-guide-actions {
+            margin-top: 12px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        @media (min-width: 768px) {
+            #installCta {
+                display: none !important;
+            }
+        }
+
         .install-banner {
             position: fixed;
             left: 16px;
@@ -671,6 +739,9 @@ if (isset($_SESSION['login_erro'])) {
                         Entrar na Agenda <i class="fa-solid fa-arrow-right ms-2"></i>
                     </button>
                 </form>
+                <button type="button" class="btn btn-outline-secondary w-100 mt-3" id="installCta" data-bs-toggle="modal" data-bs-target="#installModal">
+                    <i class="fa-solid fa-mobile-screen-button me-2"></i> Instalar no celular
+                </button>
 
                 <div class="brand-footer">
                     <span>Tecnologia</span>
@@ -734,16 +805,35 @@ if (isset($_SESSION['login_erro'])) {
 
     </div>
 
-    <div class="install-banner" id="installBanner">
-        <div>
-            <div class="install-title">Instalar o app</div>
-            <div class="install-sub">Coloque na tela inicial para acesso rapido</div>
-            <div class="install-tip" id="installTip" style="display:none;"></div>
+    <div class="install-guide" id="installGuide">
+        <div class="install-guide-card">
+            <div class="install-guide-title">Como instalar</div>
+            <ol class="install-guide-steps" id="installGuideSteps"></ol>
+            <div class="install-guide-actions">
+                <button class="install-close" id="installGuideClose">Fechar</button>
+            </div>
         </div>
-        <div class="install-actions">
-            <button class="install-btn" id="installBtn">Instalar</button>
-            <button class="install-close" id="installGuideBtn">Como instalar</button>
-            <button class="install-close" id="installClose">Agora nao</button>
+    </div>
+
+    <div class="modal fade" id="installModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:18px;">
+                <div class="modal-header" style="border:none;">
+                    <h5 class="modal-title" style="font-family:'Outfit',sans-serif; font-weight:700;">Instalar no celular</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-2">Deixe o sistema na tela inicial para acesso rapido.</p>
+                    <ol class="mb-3" id="installSteps"></ol>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-primary w-50" id="installConfirm" data-bs-dismiss="modal">Entendi</button>
+                        <button type="button" class="btn btn-outline-secondary w-50" data-bs-dismiss="modal">Fechar</button>
+                    </div>
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-dark w-100" id="installPromptBtn">Abrir instalacao</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -776,14 +866,14 @@ if (isset($_SESSION['login_erro'])) {
     });
 
     // Instalar na tela inicial
-    const installBanner = document.getElementById('installBanner');
-    const installBtn = document.getElementById('installBtn');
-    const installClose = document.getElementById('installClose');
-    const installTip = document.getElementById('installTip');
     const installGuideBtn = document.getElementById('installGuideBtn');
     const installGuide = document.getElementById('installGuide');
     const installGuideSteps = document.getElementById('installGuideSteps');
     const installGuideClose = document.getElementById('installGuideClose');
+    const installCta = document.getElementById('installCta');
+    const installConfirm = document.getElementById('installConfirm');
+    const installSteps = document.getElementById('installSteps');
+    const installPromptBtn = document.getElementById('installPromptBtn');
     let deferredPrompt = null;
 
     function isMobile() {
@@ -792,24 +882,6 @@ if (isset($_SESSION['login_erro'])) {
 
     function isStandalone() {
         return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    }
-
-    function showInstallBanner(showTip = false, showButton = true) {
-        if (!installBanner) return;
-        installBanner.style.display = 'flex';
-        if (installTip) installTip.style.display = showTip ? 'block' : 'none';
-        if (installBtn) installBtn.style.display = showButton ? 'inline-block' : 'none';
-    }
-
-    function setInstallTip() {
-        if (!installTip) return;
-        const ua = navigator.userAgent || '';
-        const isiOS = /iPhone|iPad|iPod/i.test(ua);
-        if (isiOS) {
-            installTip.textContent = 'No iPhone: toque em compartilhar e selecione \"Adicionar a Tela de Inicio\".';
-        } else {
-            installTip.textContent = 'No Android: toque no menu do navegador e selecione \"Adicionar a Tela inicial\".';
-        }
     }
 
     function setInstallGuideSteps() {
@@ -827,14 +899,28 @@ if (isset($_SESSION['login_erro'])) {
         });
     }
 
-    if (installClose) {
-        installClose.addEventListener('click', () => {
-            installBanner.style.display = 'none';
+    function setInstallSteps() {
+        if (!installSteps) return;
+        const ua = navigator.userAgent || '';
+        const isiOS = /iPhone|iPad|iPod/i.test(ua);
+        installSteps.innerHTML = '';
+        const steps = isiOS
+            ? ['Toque no botao Compartilhar', 'Selecione "Adicionar a Tela de Inicio"', 'Confirme para instalar']
+            : ['Toque no menu (tres pontos)', 'Selecione "Adicionar a Tela inicial"', 'Confirme para instalar'];
+        steps.forEach(step => {
+            const li = document.createElement('li');
+            li.textContent = step;
+            installSteps.appendChild(li);
         });
+    }
+
+    function hideInstallUI() {
+        if (installCta) installCta.style.display = 'none';
     }
 
     if (installGuideBtn) {
         installGuideBtn.addEventListener('click', () => {
+            setInstallSteps();
             setInstallGuideSteps();
             if (installGuide) installGuide.style.display = 'flex';
         });
@@ -850,26 +936,33 @@ if (isset($_SESSION['login_erro'])) {
         if (!isMobile() || isStandalone()) return;
         e.preventDefault();
         deferredPrompt = e;
-        showInstallBanner(false, true);
     });
 
-    if (installBtn) {
-        installBtn.addEventListener('click', async () => {
+    if (installPromptBtn) {
+        installPromptBtn.addEventListener('click', async () => {
             if (!deferredPrompt) {
-                setInstallTip();
-                showInstallBanner(true, false);
+                setInstallSteps();
                 return;
             }
             deferredPrompt.prompt();
             await deferredPrompt.userChoice;
             deferredPrompt = null;
-            installBanner.style.display = 'none';
         });
     }
 
     if (isMobile() && !isStandalone() && !deferredPrompt) {
-        setInstallTip();
-        showInstallBanner(true, false);
+        setInstallSteps();
+    }
+
+    if (installConfirm) {
+        installConfirm.addEventListener('click', () => {
+            localStorage.setItem('installDismissed', '1');
+            hideInstallUI();
+        });
+    }
+
+    if (localStorage.getItem('installDismissed') === '1') {
+        hideInstallUI();
     }
 </script>
 </body>
