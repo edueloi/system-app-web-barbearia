@@ -114,23 +114,26 @@ if (!empty($profissional['foto'])) {
     // else error_log("Foto não encontrada. Valor no banco: " . $profissional['foto']);
 }
 
-// 🔹 NORMALIZAÇÃO DO CAMINHO DA FOTO PARA COMPARTILHAMENTO
+// ???? NORMALIZA????O DO CAMINHO DA FOTO PARA COMPARTILHAMENTO
 if ($temFoto) {
-    // Se já é uma URL absoluta (http/https), deixa como está
+    // Se j?? ?? uma URL absoluta (http/https), deixa como est??
     if (preg_match('#^https?://#', $fotoPerfil)) {
-        // URL absoluta, não mexe
+        // URL absoluta, n??o mexe
     } else {
-        // Garante que é um caminho relativo começando com /
-        // Remove possíveis duplicações de /karen_site/controle-salao
+        // Garante que ?? um caminho relativo come??ando com /
         $fotoPerfil = '/' . ltrim($fotoPerfil, '/');
-        
-        // Se estiver em localhost e tiver /karen_site no path, remove duplicações
-        if (!$isProd && strpos($fotoPerfil, '/karen_site/controle-salao/') !== false) {
+
+        // Se estiver em localhost, prefixa com a base do projeto
+        if (!$isProd) {
+            $baseLocal = '/karen_site/controle-salao';
+            if (strpos($fotoPerfil, $baseLocal . '/') !== 0) {
+                $fotoPerfil = $baseLocal . $fotoPerfil;
+            }
             $fotoPerfil = preg_replace('#^(/karen_site/controle-salao)+#', '/karen_site/controle-salao', $fotoPerfil);
         }
     }
-} 
- 
+}
+
 // --- CONFIGURAÇÃO DE CORES (AGORA VEM DO BANCO) --- 
 $corPersonalizada = '#4f46e5'; // padrão 
  
@@ -155,6 +158,15 @@ $servicoNome = $servicoNome ?? '';
 $servicoConfirmado = $_GET['servico'] ?? '';
 $dataConfirmada    = $_GET['data'] ?? '';
 $horaConfirmada    = $_GET['hora'] ?? '';
+$clienteConfirmado = $_GET['cliente'] ?? '';
+$valorConfirmado   = $_GET['valor'] ?? '';
+if ($valorConfirmado !== '') {
+    $valorConfirmado = (float)str_replace(',', '.', $valorConfirmado);
+} elseif (isset($servicoValor)) {
+    $valorConfirmado = (float)$servicoValor;
+} else {
+    $valorConfirmado = 0.0;
+}
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     // Garante que não dará warning ao acessar fora do POST
     $_POST['data_escolhida'] = $_POST['data_escolhida'] ?? '';
@@ -715,6 +727,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'servico' => $servicoNome,
             'data'    => $data,
             'hora'    => $horario,
+            'cliente' => $nome,
+            'valor'   => $servicoValor,
         ];
 
         header('Location: ' . $agendarUrl . '?' . http_build_query($params));
@@ -2640,8 +2654,9 @@ foreach ($todosServicos as $s) {
                         <div class="logo-initial"><?php echo $iniciais; ?></div>
                     <?php endif; ?>
                 </div>
-                <h2 class="card-title" style="color:#10b981; margin-bottom:16px;">Agendamento Confirmado!</h2> 
-                <div style="background:rgba(16, 185, 129, 0.08); padding:20px; border-radius:20px; margin-bottom:30px; border:1px solid rgba(16, 185, 129, 0.2);">
+                <h2 class="card-title" style="color:#f59e0b; margin-bottom:10px;">Aguardando confirmacao</h2> 
+                <p class="card-subtitle" style="margin-bottom:18px;">Seu agendamento foi enviado ao profissional. Aguarde a confirmacao.</p>
+                <div style="background:rgba(245, 158, 11, 0.08); padding:20px; border-radius:20px; margin-bottom:30px; border:1px solid rgba(245, 158, 11, 0.2);">
                     <div style="font-size:0.85rem; color:#64748b; margin-bottom:8px;">Serviço</div>
                     <div style="font-weight:700; font-size:1.2rem; color:var(--text-main); margin-bottom:16px; font-family:'Outfit', sans-serif;">
                         <?php echo htmlspecialchars($servicoConfirmado); ?>
@@ -2661,15 +2676,33 @@ foreach ($todosServicos as $s) {
                 $diasSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
                 $diaSemana = $diasSemana[date('w', strtotime($dataConfirmada))];
                 
+                // Inicializa variáveis para evitar avisos
+                $clienteNomeMsg = !empty($clienteConfirmado) ? $clienteConfirmado : ($nome ?? '');
                 $msg = rawurlencode(
-                    "Olá! 👋\n\n" .
-                    "Gostaria de *confirmar meu agendamento*:\n\n" .
-                    "📌 *Serviço:* {$servicoConfirmado}\n" .
-                    "📅 *Data:* {$diaSemana}, {$dataFormatada}\n" .
-                    "🕐 *Horário:* {$horaConfirmada}\n\n" .
-                    "Aguardo a confirmação. Obrigado! 😊"
+                    "Ola, fiz um agendamento pelo sistema:\n\n" .
+                    "Cliente: {$clienteNomeMsg}\n" .
+                    "Servico: {$servicoConfirmado}\n" .
+                    "Valor: R$ " . number_format((float)$valorConfirmado, 2, ',', '.') . "\n" .
+                    "Data: {$diaSemana}, {$dataFormatada}\n" .
+                    "Horario: {$horaConfirmada}\n\n" .
+                    "Aguardo a confirmacao. Obrigado!"
                 );
                 ?>
+                <?php
+                $whatsNumero = $whats;
+                if (!empty($whatsNumero) && !str_starts_with($whatsNumero, '55')) {
+                    $whatsNumero = '55' . $whatsNumero;
+                }
+                ?>
+                <?php if (!empty($whatsNumero)): ?>
+                <a href="https://wa.me/<?php echo $whatsNumero; ?>?text=<?php echo $msg; ?>" class="btn-action" style="background:linear-gradient(135deg, var(--brand-color), var(--brand-dark)); margin-bottom:14px;"> 
+                    <i class="bi bi-whatsapp"></i> Enviar confirmacao ao profissional
+                </a> 
+                <?php else: ?>
+                <span class="btn-action" style="background:#e5e7eb;color:#6b7280;cursor:not-allowed;margin-bottom:14px;">
+                    <i class="bi bi-whatsapp"></i> Profissional sem WhatsApp cadastrado
+                </span>
+                <?php endif; ?>
                 <a href="?user=<?php echo $profissionalId; ?>" class="btn-action" style="background:linear-gradient(135deg, var(--brand-color), var(--brand-dark)); margin-bottom:14px;"> 
                     <i class="bi bi-arrow-clockwise"></i> Agendar Novamente 
                 </a> 
