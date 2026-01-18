@@ -964,26 +964,8 @@ if (isset($_SESSION['login_erro'])) {
     }
 
     function fecharInstallModal() {
-        localStorage.setItem('installDismissed', '1');
-        updateInstallCtaVisibility();
         const modal = document.getElementById('installModalCustom');
         if (modal) modal.style.display = 'none';
-    }
-
-    function updateInstallCtaVisibility() {
-        if (!installCta) return;
-
-        if (!isMobile() || isStandalone()) {
-            installCta.style.display = 'none';
-            return;
-        }
-
-        if (localStorage.getItem('installDismissed') === '1') {
-            installCta.style.display = 'none';
-            return;
-        }
-
-        installCta.style.display = 'block';
     }
 
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -1014,8 +996,6 @@ if (isset($_SESSION['login_erro'])) {
     if (isStandalone() && installPromptBtn) {
         installPromptBtn.style.display = 'none';
     }
-
-    updateInstallCtaVisibility();
 </script>
 </body>
 </html>

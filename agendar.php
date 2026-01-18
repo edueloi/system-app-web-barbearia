@@ -3507,29 +3507,8 @@ foreach ($todosServicos as $s) {
     }
 
     function fecharInstallModal() {
-        localStorage.setItem('installDismissedAgendar', '1');
-        updateInstallCtaVisibility();
         const modal = document.getElementById('installModalCustom');
         if (modal) modal.classList.remove('active');
-    }
-
-    function updateInstallCtaVisibility() {
-        const installCta = document.getElementById('installCta');
-        if (!installCta) return;
-
-        // Só mobile e só se não estiver instalado como app
-        if (!isMobile() || isStandalone()) {
-            installCta.style.display = 'none';
-            return;
-        }
-
-        // Se usuário já dispensou
-        if (localStorage.getItem('installDismissedAgendar') === '1') {
-            installCta.style.display = 'none';
-            return;
-        }
-
-        installCta.style.display = 'flex';
     }
 
     let dadosClienteConsulta = null;
@@ -4049,9 +4028,6 @@ foreach ($todosServicos as $s) {
     if (isStandalone() && installPromptBtn) {
         installPromptBtn.style.display = 'none';
     }
-
-    // Atualiza visibilidade do botão de instalação
-    updateInstallCtaVisibility();
 </script>
 
 <footer class="footer-develoi">
