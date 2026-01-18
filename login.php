@@ -739,7 +739,7 @@ if (isset($_SESSION['login_erro'])) {
                         Entrar na Agenda <i class="fa-solid fa-arrow-right ms-2"></i>
                     </button>
                 </form>
-                <button type="button" class="btn btn-outline-secondary w-100 mt-3" id="installCta" data-bs-toggle="modal" data-bs-target="#installModal">
+                <button type="button" class="btn btn-outline-secondary w-100 mt-3" id="installCta" onclick="abrirInstallModal()">
                     <i class="fa-solid fa-mobile-screen-button me-2"></i> Instalar no celular
                 </button>
 
@@ -805,44 +805,93 @@ if (isset($_SESSION['login_erro'])) {
 
     </div>
 
-    <div class="install-guide" id="installGuide">
-        <div class="install-guide-card">
-            <div class="install-guide-title">Como instalar</div>
-            <ol class="install-guide-steps" id="installGuideSteps"></ol>
-            <div class="install-guide-actions">
-                <button class="install-close" id="installGuideClose">Fechar</button>
-            </div>
-        </div>
-    </div>
+    <!-- Modal Instalar App (custom, moderno) -->
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:9999;padding:1rem;" id="installModalCustom" onclick="if(event.target===this) fecharInstallModal()">
+        <div style="background:var(--card-bg,white);border-radius:24px;padding:0;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:slideUpFade 0.3s ease-out;position:relative;">
+            <button onclick="fecharInstallModal()" style="position:absolute;right:16px;top:16px;background:rgba(148,163,184,0.1);border:none;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#64748b;transition:all 0.2s;z-index:1;" onmouseover="this.style.background='rgba(148,163,184,0.2)'" onmouseout="this.style.background='rgba(148,163,184,0.1)'">
+                <i class="fa-solid fa-xmark" style="font-size:18px;"></i>
+            </button>
 
-    <div class="modal fade" id="installModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" style="border-radius:18px;">
-                <div class="modal-header" style="border:none;">
-                    <h5 class="modal-title" style="font-family:'Outfit',sans-serif; font-weight:700;">Instalar no celular</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div style="padding:32px;text-align:center;">
+                <div style="width:64px;height:64px;margin:0 auto 16px;background:linear-gradient(135deg,#0f2f66,#1e40af);border-radius:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(15,47,102,0.25);">
+                    <i class="fa-solid fa-mobile-screen-button" style="font-size:32px;color:white;"></i>
                 </div>
-                <div class="modal-body">
-                    <p class="text-muted mb-2">Deixe o sistema na tela inicial para acesso rapido.</p>
-                    <ol class="mb-3" id="installSteps"></ol>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-primary w-50" id="installConfirm" data-bs-dismiss="modal">Entendi</button>
-                        <button type="button" class="btn btn-outline-secondary w-50" data-bs-dismiss="modal">Fechar</button>
-                    </div>
-                    <div class="mt-3">
-                        <button type="button" class="btn btn-dark w-100" id="installPromptBtn">Abrir instalacao</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+                <h2 style="font-size:1.5rem;font-weight:700;color:#0f172a;margin-bottom:8px;font-family:'Outfit',sans-serif;">Instalar no Celular</h2>
+                <p style="color:#64748b;font-size:0.95rem;margin-bottom:24px;">
+                    Acesse rápido direto da tela inicial!
+                </p>
 
-    <div class="install-guide" id="installGuide">
-        <div class="install-guide-card">
-            <div class="install-guide-title">Como instalar</div>
-            <ol class="install-guide-steps" id="installGuideSteps"></ol>
-            <div class="install-guide-actions">
-                <button class="install-close" id="installGuideClose">Fechar</button>
+                <!-- iOS Instructions -->
+                <div id="installInstructionsIOS" style="display:none;">
+                    <div style="background:linear-gradient(135deg,#007AFF,#0051D5);padding:20px;border-radius:18px;margin-bottom:16px;box-shadow:0 4px 16px rgba(0,122,255,0.2);text-align:left;">
+                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+                            <i class="fa-brands fa-apple" style="font-size:28px;color:white;"></i>
+                            <div>
+                                <div style="font-weight:700;color:white;font-size:1.05rem;">iPhone / iPad</div>
+                                <div style="color:rgba(255,255,255,0.9);font-size:0.8rem;">Safari</div>
+                            </div>
+                        </div>
+                        <ol style="margin:0;padding-left:20px;color:white;line-height:1.8;">
+                            <li>Toque no ícone <strong>Compartilhar</strong> <i class="fa-solid fa-arrow-up-from-bracket" style="font-size:14px;"></i></li>
+                            <li>Role para baixo e toque em <strong>"Adicionar à Tela de Início"</strong></li>
+                            <li>Toque em <strong>"Adicionar"</strong> para confirmar</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Android Instructions -->
+                <div id="installInstructionsAndroid" style="display:none;">
+                    <div style="background:linear-gradient(135deg,#34A853,#0F9D58);padding:20px;border-radius:18px;margin-bottom:16px;box-shadow:0 4px 16px rgba(52,168,83,0.2);text-align:left;">
+                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+                            <i class="fa-brands fa-android" style="font-size:28px;color:white;"></i>
+                            <div>
+                                <div style="font-weight:700;color:white;font-size:1.05rem;">Android</div>
+                                <div style="color:rgba(255,255,255,0.9);font-size:0.8rem;">Chrome / Edge</div>
+                            </div>
+                        </div>
+                        <ol style="margin:0;padding-left:20px;color:white;line-height:1.8;">
+                            <li>Toque no menu <strong>⋮</strong> (três pontos) no canto superior</li>
+                            <li>Selecione <strong>"Adicionar à tela inicial"</strong> ou <strong>"Instalar app"</strong></li>
+                            <li>Confirme tocando em <strong>"Adicionar"</strong></li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Both platforms (fallback) -->
+                <div id="installInstructionsBoth" style="display:none;">
+                    <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:16px;text-align:left;">
+                        <!-- iOS -->
+                        <div style="background:linear-gradient(135deg,#007AFF,#0051D5);padding:16px;border-radius:16px;box-shadow:0 2px 12px rgba(0,122,255,0.15);">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                                <i class="fa-brands fa-apple" style="font-size:24px;color:white;"></i>
+                                <strong style="color:white;font-size:0.95rem;">iPhone/iPad (Safari)</strong>
+                            </div>
+                            <ol style="margin:0;padding-left:18px;color:white;line-height:1.6;font-size:0.85rem;">
+                                <li>Toque em <i class="fa-solid fa-arrow-up-from-bracket"></i> <strong>Compartilhar</strong></li>
+                                <li><strong>"Adicionar à Tela de Início"</strong></li>
+                            </ol>
+                        </div>
+                        <!-- Android -->
+                        <div style="background:linear-gradient(135deg,#34A853,#0F9D58);padding:16px;border-radius:16px;box-shadow:0 2px 12px rgba(52,168,83,0.15);">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                                <i class="fa-brands fa-android" style="font-size:24px;color:white;"></i>
+                                <strong style="color:white;font-size:0.95rem;">Android (Chrome)</strong>
+                            </div>
+                            <ol style="margin:0;padding-left:18px;color:white;line-height:1.6;font-size:0.85rem;">
+                                <li>Menu <strong>⋮</strong> (três pontos)</li>
+                                <li><strong>"Adicionar à tela inicial"</strong></li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" id="installPromptBtn" style="display:none;width:100%;padding:14px;background:linear-gradient(135deg,#0f2f66,#1e40af);color:white;border:none;border-radius:12px;font-weight:600;cursor:pointer;margin-bottom:10px;transition:all 0.2s;font-size:0.95rem;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(15,47,102,0.3)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+                    <i class="fa-solid fa-download me-2"></i>Instalar Automaticamente
+                </button>
+
+                <button type="button" onclick="fecharInstallModal()" style="width:100%;padding:14px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:12px;font-weight:600;cursor:pointer;transition:all 0.2s;font-size:0.95rem;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+                    <i class="fa-solid fa-check me-2"></i>Entendi
+                </button>
             </div>
         </div>
     </div>
@@ -865,14 +914,8 @@ if (isset($_SESSION['login_erro'])) {
         }
     });
 
-    // Instalar na tela inicial
-    const installGuideBtn = document.getElementById('installGuideBtn');
-    const installGuide = document.getElementById('installGuide');
-    const installGuideSteps = document.getElementById('installGuideSteps');
-    const installGuideClose = document.getElementById('installGuideClose');
+    // PWA Install
     const installCta = document.getElementById('installCta');
-    const installConfirm = document.getElementById('installConfirm');
-    const installSteps = document.getElementById('installSteps');
     const installPromptBtn = document.getElementById('installPromptBtn');
     let deferredPrompt = null;
 
@@ -884,86 +927,95 @@ if (isset($_SESSION['login_erro'])) {
         return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
     }
 
-    function setInstallGuideSteps() {
-        if (!installGuideSteps) return;
+    function detectPlatform() {
         const ua = navigator.userAgent || '';
         const isiOS = /iPhone|iPad|iPod/i.test(ua);
-        installGuideSteps.innerHTML = '';
-        const steps = isiOS
-            ? ['Toque em Compartilhar', 'Escolha "Adicionar a Tela de Inicio"', 'Confirme a instalacao']
-            : ['Toque no menu (tres pontos)', 'Selecione "Adicionar a Tela inicial"', 'Confirme a instalacao'];
-        steps.forEach(step => {
-            const li = document.createElement('li');
-            li.textContent = step;
-            installGuideSteps.appendChild(li);
-        });
+        const isAndroid = /Android/i.test(ua);
+        return { isiOS, isAndroid };
     }
 
-    function setInstallSteps() {
-        if (!installSteps) return;
-        const ua = navigator.userAgent || '';
-        const isiOS = /iPhone|iPad|iPod/i.test(ua);
-        installSteps.innerHTML = '';
-        const steps = isiOS
-            ? ['Toque no botao Compartilhar', 'Selecione "Adicionar a Tela de Inicio"', 'Confirme para instalar']
-            : ['Toque no menu (tres pontos)', 'Selecione "Adicionar a Tela inicial"', 'Confirme para instalar'];
-        steps.forEach(step => {
-            const li = document.createElement('li');
-            li.textContent = step;
-            installSteps.appendChild(li);
-        });
+    function setInstallInstructions() {
+        const { isiOS, isAndroid } = detectPlatform();
+        
+        const iosInstructions = document.getElementById('installInstructionsIOS');
+        const androidInstructions = document.getElementById('installInstructionsAndroid');
+        const bothInstructions = document.getElementById('installInstructionsBoth');
+        
+        // Esconde todos primeiro
+        if (iosInstructions) iosInstructions.style.display = 'none';
+        if (androidInstructions) androidInstructions.style.display = 'none';
+        if (bothInstructions) bothInstructions.style.display = 'none';
+        
+        // Mostra o apropriado
+        if (isiOS && iosInstructions) {
+            iosInstructions.style.display = 'block';
+        } else if (isAndroid && androidInstructions) {
+            androidInstructions.style.display = 'block';
+        } else if (bothInstructions) {
+            bothInstructions.style.display = 'block';
+        }
     }
 
-    function hideInstallUI() {
-        if (installCta) installCta.style.display = 'none';
+    function abrirInstallModal() {
+        const modal = document.getElementById('installModalCustom');
+        if (!modal) return;
+        setInstallInstructions();
+        modal.style.display = 'flex';
     }
 
-    if (installGuideBtn) {
-        installGuideBtn.addEventListener('click', () => {
-            setInstallSteps();
-            setInstallGuideSteps();
-            if (installGuide) installGuide.style.display = 'flex';
-        });
+    function fecharInstallModal() {
+        localStorage.setItem('installDismissed', '1');
+        updateInstallCtaVisibility();
+        const modal = document.getElementById('installModalCustom');
+        if (modal) modal.style.display = 'none';
     }
 
-    if (installGuideClose) {
-        installGuideClose.addEventListener('click', () => {
-            if (installGuide) installGuide.style.display = 'none';
-        });
+    function updateInstallCtaVisibility() {
+        if (!installCta) return;
+
+        if (!isMobile() || isStandalone()) {
+            installCta.style.display = 'none';
+            return;
+        }
+
+        if (localStorage.getItem('installDismissed') === '1') {
+            installCta.style.display = 'none';
+            return;
+        }
+
+        installCta.style.display = 'block';
     }
 
     window.addEventListener('beforeinstallprompt', (e) => {
         if (!isMobile() || isStandalone()) return;
         e.preventDefault();
         deferredPrompt = e;
+        if (installPromptBtn) {
+            installPromptBtn.style.display = 'block';
+        }
     });
 
     if (installPromptBtn) {
         installPromptBtn.addEventListener('click', async () => {
             if (!deferredPrompt) {
-                setInstallSteps();
+                alert('A instalação automática não está disponível neste navegador. Siga as instruções acima para adicionar manualmente.');
                 return;
             }
             deferredPrompt.prompt();
-            await deferredPrompt.userChoice;
+            const choiceResult = await deferredPrompt.userChoice;
+            if (choiceResult.outcome === 'accepted') {
+                console.log('PWA instalado com sucesso');
+            }
             deferredPrompt = null;
+            installPromptBtn.style.display = 'none';
         });
     }
 
-    if (isMobile() && !isStandalone() && !deferredPrompt) {
-        setInstallSteps();
+    if (isStandalone() && installPromptBtn) {
+        installPromptBtn.style.display = 'none';
     }
 
-    if (installConfirm) {
-        installConfirm.addEventListener('click', () => {
-            localStorage.setItem('installDismissed', '1');
-            hideInstallUI();
-        });
-    }
-
-    if (localStorage.getItem('installDismissed') === '1') {
-        hideInstallUI();
-    }
+    updateInstallCtaVisibility();
 </script>
 </body>
 </html>
