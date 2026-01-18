@@ -13,7 +13,7 @@ $logoutUrl = $isProd ? '/logout' : '/karen_site/controle-salao/logout.php';
 $dashboardUrl = $isProd ? '/dashboard' : '/karen_site/controle-salao/pages/dashboard.php';
 $painelAdminUrl = $isProd ? '/painel-admin' : '/karen_site/controle-salao/painel-admin.php';
 
-if (isset($_SESSION['admin_logged_in'])) {
+if (isset($_SESSION['admin_logged_in']) && !isset($_SESSION['vendedor_id'])) {
     header("Location: {$painelAdminUrl}");
     exit;
 }
@@ -267,17 +267,17 @@ foreach ($clientes as $cliente) {
             background: rgba(255,255,255,0.06);
             border: 1px solid rgba(255,255,255,0.12);
             border-radius: 20px;
-            padding: 20px 24px;
+            padding: 18px 20px;
             color: #fff;
-            box-shadow: 0 20px 60px -30px rgba(15, 23, 42, 0.5);
+            box-shadow: none;
         }
 
         .stat-card {
             background: var(--card);
             border-radius: 18px;
-            padding: 18px;
+            padding: 14px 16px;
             border: 1px solid rgba(226,232,240,0.8);
-            box-shadow: 0 22px 45px -28px rgba(15,23,42,0.35);
+            box-shadow: none;
             position: relative;
             overflow: hidden;
         }
@@ -290,14 +290,15 @@ foreach ($clientes as $cliente) {
             height: 160px;
             border-radius: 50%;
             background: rgba(79,70,229,0.08);
+            display: none;
         }
 
         .section-card {
             background: var(--card);
             border-radius: 22px;
-            padding: 22px;
+            padding: 16px 18px;
             border: 1px solid rgba(148,163,184,0.2);
-            box-shadow: 0 18px 45px -28px rgba(15,23,42,0.35);
+            box-shadow: none;
             margin-bottom: 24px;
         }
 
@@ -344,12 +345,12 @@ foreach ($clientes as $cliente) {
 
         .card-vencido {
             border: 1px solid rgba(239,68,68,0.5) !important;
-            box-shadow: 0 12px 24px -20px rgba(220,38,38,0.6);
+            box-shadow: none;
         }
 
         .card-vencendo {
             border: 1px solid rgba(245,158,11,0.5) !important;
-            box-shadow: 0 12px 24px -20px rgba(245,158,11,0.5);
+            box-shadow: none;
         }
 
         .table thead th {
@@ -384,7 +385,7 @@ foreach ($clientes as $cliente) {
         .btn-primary {
             background: var(--primary);
             border: none;
-            box-shadow: 0 12px 24px -18px rgba(79, 70, 229, 0.4);
+            box-shadow: none;
         }
 
         .btn-primary:hover {
@@ -457,7 +458,7 @@ foreach ($clientes as $cliente) {
         .chart-bar {
             height: 10px;
             border-radius: 999px;
-            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            background: var(--primary);
             opacity: 0.9;
         }
 
@@ -467,7 +468,7 @@ foreach ($clientes as $cliente) {
             }
 
             .section-card {
-                padding: 18px;
+                padding: 14px 16px;
             }
 
             .stat-card {
@@ -512,7 +513,7 @@ foreach ($clientes as $cliente) {
             }
 
             .section-card {
-                padding: 18px;
+                padding: 14px 16px;
             }
 
             .stat-card {

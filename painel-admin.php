@@ -803,11 +803,12 @@ $lucianaSaldoFinal   = $luciana10Total + $lucianaSoIndicacoes;
             --dark: #0f172a;
             --light: #f8fafc;
             --success: #10b981;
-            --glass-bg: rgba(255, 255, 255, 0.75);
+            --card: #ffffff;
+            --border: #e5e7eb;
             --text-main: #111827;
             --text-muted: #6b7280;
-            --shadow-soft: 0 20px 40px -10px rgba(0, 0, 0, 0.08);
-            --shadow-strong: 0 25px 60px -15px rgba(15, 23, 42, 0.15);
+            --shadow-soft: 0 8px 20px rgba(15, 23, 42, 0.08);
+            --shadow-strong: 0 12px 28px rgba(15, 23, 42, 0.12);
         }
 
         * {
@@ -816,7 +817,7 @@ $lucianaSaldoFinal   = $luciana10Total + $lucianaSoIndicacoes;
 
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background: linear-gradient(180deg, #eef2ff 0%, #ffffff 100%);
+            background: #f5f7fb;
             color: var(--text-main);
             padding-bottom: 40px;
             font-size: 14px;
@@ -920,38 +921,13 @@ $lucianaSaldoFinal   = $luciana10Total + $lucianaSoIndicacoes;
         }
 
         .stat-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
-            padding: 1.5rem 1.3rem;
+            background: var(--card);
+            border-radius: 18px;
+            padding: 1.25rem 1.2rem;
             box-shadow: var(--shadow-soft);
-            transition: all 0.3s ease;
+            transition: box-shadow 0.2s ease;
             height: 100%;
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-8px);
-            box-shadow: var(--shadow-strong);
-            background: white;
-        }
-
-        .stat-card:hover::before {
-            opacity: 1;
+            border: 1px solid var(--border);
         }
 
         .stat-value {
@@ -971,47 +947,48 @@ $lucianaSaldoFinal   = $luciana10Total + $lucianaSoIndicacoes;
             color: var(--text-muted);
         }
 
+        .stat-label i {
+            display: none;
+        }
+
         .content-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(20px);
-            border-radius: 28px;
+            background: var(--card);
+            border-radius: 20px;
             box-shadow: var(--shadow-soft);
             overflow: hidden;
             margin-bottom: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            transition: all 0.3s;
-        }
-
-        .content-card:hover {
-            box-shadow: var(--shadow-strong);
-            background: white;
+            border: 1px solid var(--border);
         }
 
         .card-header-custom {
-            padding: 1.5rem 1.8rem;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
             gap: 1rem;
-            background: rgba(249, 250, 251, 0.5);
+            background: transparent;
         }
 
         .table-custom th {
-            background: #f9fafb;
+            background: #f3f4f6;
             font-size: 0.7rem;
             text-transform: uppercase;
             color: var(--text-muted);
-            font-weight: 600;
-            padding: 0.7rem 1.1rem;
+            font-weight: 700;
+            padding: 0.75rem 1.1rem;
         }
 
         .table-custom td {
-            padding: 0.7rem 1.1rem;
+            padding: 0.8rem 1.1rem;
             vertical-align: middle;
             border-bottom: 1px solid #f3f4f6;
-            font-size: 0.8rem;
+            font-size: 0.82rem;
+        }
+
+        .table-custom tbody tr:hover {
+            background: #f8fafc;
         }
 
         .avatar-circle {
@@ -1233,7 +1210,18 @@ $lucianaSaldoFinal   = $luciana10Total + $lucianaSoIndicacoes;
             }
 
             .stat-value {
-                font-size: 1.6rem;
+                font-size: 1.35rem;
+            }
+
+            .stat-label {
+                font-size: 0.62rem;
+                letter-spacing: 0.04em;
+            }
+
+            .table-custom th,
+            .table-custom td {
+                padding: 0.55rem 0.7rem;
+                font-size: 0.75rem;
             }
 
             .top-nav {
