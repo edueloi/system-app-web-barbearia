@@ -1431,105 +1431,10 @@ foreach ($todosServicos as $s) {
             transform: none;
         } 
 
-        .install-banner {
-            position: fixed;
-            left: 16px;
-            right: 16px;
-            bottom: 16px;
-            max-width: 520px;
-            margin: 0 auto;
-            background: #111827;
-            color: #fff;
-            border-radius: 14px;
-            padding: 14px 16px;
-            display: none;
-            gap: 10px;
-            align-items: center;
-            z-index: 9999;
-            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.25);
-        }
-
-        .install-banner .install-title {
-            font-size: 0.9rem;
-            font-weight: 700;
-        }
-
-        .install-banner .install-sub {
-            font-size: 0.78rem;
-            opacity: 0.8;
-        }
-
-        .install-actions {
-            display: flex;
-            gap: 8px;
-            margin-left: auto;
-        }
-
-        .install-btn {
-            background: #4f46e5;
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            padding: 8px 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .install-close {
-            background: transparent;
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.25);
-            border-radius: 10px;
-            padding: 8px 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .install-tip {
-            margin-top: 6px;
-            font-size: 0.75rem;
-            opacity: 0.8;
-        }
-
-        .install-guide {
-            position: fixed;
-            inset: 0;
-            background: rgba(15, 23, 42, 0.7);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            z-index: 10000;
-        }
-
-        .install-guide-card {
-            background: #ffffff;
-            border-radius: 16px;
-            padding: 18px;
-            max-width: 420px;
-            width: 100%;
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
-            text-align: left;
-        }
-
-        .install-guide-title {
-            font-family: 'Outfit', sans-serif;
-            font-weight: 700;
-            font-size: 1.1rem;
-            margin-bottom: 8px;
-        }
-
-        .install-guide-steps {
-            font-size: 0.9rem;
-            color: #374151;
-            margin: 0;
-            padding-left: 18px;
-        }
-
-        .install-guide-actions {
-            margin-top: 12px;
-            display: flex;
-            justify-content: flex-end;
+        @media (min-width: 768px) {
+            #installCta {
+                display: none !important;
+            }
         }
  
         .step-screen { 
@@ -2070,6 +1975,9 @@ foreach ($todosServicos as $s) {
             justify-content: center;
             gap: 0.625rem;
             box-shadow: var(--shadow-card);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .btn-welcome-icon {
@@ -2454,11 +2362,14 @@ foreach ($todosServicos as $s) {
             }
 
             .btn-welcome {
-                padding: 12px 18px;
-                font-size: 0.9rem;
+                padding: 12px 16px;
+                font-size: 0.85rem;
                 border-radius: 999px;
-                gap: 8px;
+                gap: 6px;
                 box-shadow: 0 6px 18px -4px rgba(0,0,0,0.2);
+                white-space: nowrap;
+                min-width: 0;
+                flex: 1 1 auto;
             }
             
             .btn-welcome-icon {
@@ -2625,9 +2536,15 @@ foreach ($todosServicos as $s) {
                 <span class="btn-welcome-icon">
                     <i class="bi bi-instagram"></i>
                 </span>
-                Nosso Instagram
+                <span>Instagram</span>
             </a>
             <?php endif; ?>
+            <button type="button" class="btn-welcome secondary" id="installCta" onclick="abrirInstallModal()">
+                <span class="btn-welcome-icon">
+                    <i class="bi bi-phone"></i>
+                </span>
+                <span>Instalar App</span>
+            </button>
         </div>
     </div>
     <?php endif; ?>
@@ -2667,30 +2584,99 @@ foreach ($todosServicos as $s) {
         <div class="aurora-blob blob-2"></div>
     </div> 
  
-<div class="app-container" id="mainApp" style="display:none;"> 
-    <div class="install-banner" id="installBanner">
-        <div>
-            <div class="install-title">Fixar no celular</div>
-            <div class="install-sub">Instale este agendamento na tela inicial</div>
-            <div class="install-tip" id="installTip" style="display:none;">
-                No iPhone: toque em compartilhar e selecione "Adicionar a Tela de Inicio".
+<!-- Modal Instalar App (custom, sem Bootstrap) -->
+<div class="consulta-modal" id="installModalCustom">
+    <div class="consulta-content" style="max-width:480px;">
+        <button class="consulta-close" onclick="fecharInstallModal()">
+            <i class="bi bi-x-lg"></i>
+        </button>
+
+        <div style="text-align:center; margin-bottom:20px;">
+            <div style="width:64px;height:64px;margin:0 auto 16px;background:linear-gradient(135deg,var(--brand-color),var(--brand-dark));border-radius:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(79,70,229,0.25);">
+                <i class="bi bi-phone" style="font-size:32px;color:white;"></i>
+            </div>
+            <h2 class="card-title" style="margin-bottom:8px;">Instalar no Celular</h2>
+            <p class="card-subtitle" style="margin-bottom:0;">
+                Acesse rápido direto da tela inicial!
+            </p>
+        </div>
+
+        <!-- iOS Instructions -->
+        <div id="installInstructionsIOS" style="display:none;">
+            <div style="background:linear-gradient(135deg,#007AFF,#0051D5);padding:16px;border-radius:16px;margin-bottom:16px;box-shadow:0 4px 16px rgba(0,122,255,0.2);">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                    <i class="bi bi-apple" style="font-size:28px;color:white;"></i>
+                    <div>
+                        <div style="font-weight:700;color:white;font-size:1.05rem;">iPhone / iPad</div>
+                        <div style="color:rgba(255,255,255,0.9);font-size:0.8rem;">Safari</div>
+                    </div>
+                </div>
+                <ol style="margin:0;padding-left:20px;color:white;line-height:1.8;">
+                    <li>Toque no ícone <strong>Compartilhar</strong> <i class="bi bi-box-arrow-up" style="font-size:14px;"></i></li>
+                    <li>Role para baixo e toque em <strong>"Adicionar à Tela de Início"</strong></li>
+                    <li>Toque em <strong>"Adicionar"</strong> para confirmar</li>
+                </ol>
             </div>
         </div>
-        <div class="install-actions">
-            <button class="install-btn" id="installBtn">Instalar</button>
-            <button class="install-close" id="installGuideBtn">Como instalar</button>
-            <button class="install-close" id="installClose">Agora nao</button>
-        </div>
-    </div>
-    <div class="install-guide" id="installGuide">
-        <div class="install-guide-card">
-            <div class="install-guide-title">Como instalar</div>
-            <ol class="install-guide-steps" id="installGuideSteps"></ol>
-            <div class="install-guide-actions">
-                <button class="install-close" id="installGuideClose">Fechar</button>
+
+        <!-- Android Instructions -->
+        <div id="installInstructionsAndroid" style="display:none;">
+            <div style="background:linear-gradient(135deg,#34A853,#0F9D58);padding:16px;border-radius:16px;margin-bottom:16px;box-shadow:0 4px 16px rgba(52,168,83,0.2);">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                    <i class="bi bi-android2" style="font-size:28px;color:white;"></i>
+                    <div>
+                        <div style="font-weight:700;color:white;font-size:1.05rem;">Android</div>
+                        <div style="color:rgba(255,255,255,0.9);font-size:0.8rem;">Chrome / Edge</div>
+                    </div>
+                </div>
+                <ol style="margin:0;padding-left:20px;color:white;line-height:1.8;">
+                    <li>Toque no menu <strong>⋮</strong> (três pontos) no canto superior</li>
+                    <li>Selecione <strong>"Adicionar à tela inicial"</strong> ou <strong>"Instalar app"</strong></li>
+                    <li>Confirme tocando em <strong>"Adicionar"</strong></li>
+                </ol>
             </div>
         </div>
+
+        <!-- Both platforms (fallback) -->
+        <div id="installInstructionsBoth" style="display:none;">
+            <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:16px;">
+                <!-- iOS -->
+                <div style="background:linear-gradient(135deg,#007AFF,#0051D5);padding:14px;border-radius:14px;box-shadow:0 2px 12px rgba(0,122,255,0.15);">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                        <i class="bi bi-apple" style="font-size:24px;color:white;"></i>
+                        <strong style="color:white;font-size:0.95rem;">iPhone/iPad (Safari)</strong>
+                    </div>
+                    <ol style="margin:0;padding-left:18px;color:white;line-height:1.6;font-size:0.85rem;">
+                        <li>Toque em <i class="bi bi-box-arrow-up"></i> <strong>Compartilhar</strong></li>
+                        <li><strong>"Adicionar à Tela de Início"</strong></li>
+                    </ol>
+                </div>
+                <!-- Android -->
+                <div style="background:linear-gradient(135deg,#34A853,#0F9D58);padding:14px;border-radius:14px;box-shadow:0 2px 12px rgba(52,168,83,0.15);">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                        <i class="bi bi-android2" style="font-size:24px;color:white;"></i>
+                        <strong style="color:white;font-size:0.95rem;">Android (Chrome)</strong>
+                    </div>
+                    <ol style="margin:0;padding-left:18px;color:white;line-height:1.6;font-size:0.85rem;">
+                        <li>Menu <strong>⋮</strong> (três pontos)</li>
+                        <li><strong>"Adicionar à tela inicial"</strong></li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <button type="button" class="btn-action" id="installPromptBtn" style="display:none; margin-bottom:10px;background:linear-gradient(135deg,var(--brand-color),var(--brand-dark));">
+            <i class="bi bi-download"></i> Instalar Automaticamente
+        </button>
+
+        <button type="button" class="btn-action" style="background:var(--bg-card); color:var(--text-main); border:1px solid var(--border);"
+                onclick="fecharInstallModal()">
+            <i class="bi bi-check-lg"></i> Entendi
+        </button>
     </div>
+</div>
+
+<div class="app-container" id="mainApp" style="display:none;">
     <div class="sidebar"> 
         <div class="business-logo"> 
             <?php if ($temFoto): ?> 
@@ -3513,6 +3499,39 @@ foreach ($todosServicos as $s) {
         document.getElementById('consultaResult').innerHTML = '';
     }
 
+    function abrirInstallModal() {
+        const modal = document.getElementById('installModalCustom');
+        if (!modal) return;
+        setInstallSteps(); // reaproveita a função existente
+        modal.classList.add('active');
+    }
+
+    function fecharInstallModal() {
+        localStorage.setItem('installDismissedAgendar', '1');
+        updateInstallCtaVisibility();
+        const modal = document.getElementById('installModalCustom');
+        if (modal) modal.classList.remove('active');
+    }
+
+    function updateInstallCtaVisibility() {
+        const installCta = document.getElementById('installCta');
+        if (!installCta) return;
+
+        // Só mobile e só se não estiver instalado como app
+        if (!isMobile() || isStandalone()) {
+            installCta.style.display = 'none';
+            return;
+        }
+
+        // Se usuário já dispensou
+        if (localStorage.getItem('installDismissedAgendar') === '1') {
+            installCta.style.display = 'none';
+            return;
+        }
+
+        installCta.style.display = 'flex';
+    }
+
     let dadosClienteConsulta = null;
 
     async function buscarAgendamento() {
@@ -3955,14 +3974,9 @@ foreach ($todosServicos as $s) {
     }
 
     // Instalar na tela inicial (PWA)
-    const installBanner = document.getElementById('installBanner');
-    const installBtn = document.getElementById('installBtn');
-    const installClose = document.getElementById('installClose');
-    const installTip = document.getElementById('installTip');
-    const installGuideBtn = document.getElementById('installGuideBtn');
-    const installGuide = document.getElementById('installGuide');
-    const installGuideSteps = document.getElementById('installGuideSteps');
-    const installGuideClose = document.getElementById('installGuideClose');
+    const installCta = document.getElementById('installCta');
+    const installSteps = document.getElementById('installSteps');
+    const installPromptBtn = document.getElementById('installPromptBtn');
     let deferredPrompt = null;
 
     function isMobile() {
@@ -3973,82 +3987,71 @@ foreach ($todosServicos as $s) {
         return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
     }
 
-    function showInstallBanner(showTip = false, showButton = true) {
-        if (!installBanner) return;
-        installBanner.style.display = 'flex';
-        if (installTip) installTip.style.display = showTip ? 'block' : 'none';
-        if (installBtn) installBtn.style.display = showButton ? 'inline-block' : 'none';
-    }
-
-    function setInstallGuideSteps() {
-        if (!installGuideSteps) return;
+    function detectPlatform() {
         const ua = navigator.userAgent || '';
         const isiOS = /iPhone|iPad|iPod/i.test(ua);
-        installGuideSteps.innerHTML = '';
-        const steps = isiOS
-            ? ['Toque em Compartilhar', 'Escolha "Adicionar a Tela de Inicio"', 'Confirme a instalacao']
-            : ['Toque no menu (tres pontos)', 'Selecione "Adicionar a Tela inicial"', 'Confirme a instalacao'];
-        steps.forEach(step => {
-            const li = document.createElement('li');
-            li.textContent = step;
-            installGuideSteps.appendChild(li);
-        });
+        const isAndroid = /Android/i.test(ua);
+        return { isiOS, isAndroid };
     }
 
-    if (installClose) {
-        installClose.addEventListener('click', () => {
-            installBanner.style.display = 'none';
-        });
+    function setInstallSteps() {
+        const { isiOS, isAndroid } = detectPlatform();
+        
+        const iosInstructions = document.getElementById('installInstructionsIOS');
+        const androidInstructions = document.getElementById('installInstructionsAndroid');
+        const bothInstructions = document.getElementById('installInstructionsBoth');
+        
+        // Esconde todos primeiro
+        if (iosInstructions) iosInstructions.style.display = 'none';
+        if (androidInstructions) androidInstructions.style.display = 'none';
+        if (bothInstructions) bothInstructions.style.display = 'none';
+        
+        // Mostra o apropriado
+        if (isiOS && iosInstructions) {
+            iosInstructions.style.display = 'block';
+        } else if (isAndroid && androidInstructions) {
+            androidInstructions.style.display = 'block';
+        } else if (bothInstructions) {
+            // Se não conseguir detectar ou for desktop, mostra ambos
+            bothInstructions.style.display = 'block';
+        }
     }
 
-    if (installGuideBtn) {
-        installGuideBtn.addEventListener('click', () => {
-            setInstallGuideSteps();
-            if (installGuide) installGuide.style.display = 'flex';
-        });
-    }
-
-    if (installGuideClose) {
-        installGuideClose.addEventListener('click', () => {
-            if (installGuide) installGuide.style.display = 'none';
-        });
-    }
+    setInstallSteps();
 
     window.addEventListener('beforeinstallprompt', (e) => {
         if (!isMobile() || isStandalone()) return;
         e.preventDefault();
         deferredPrompt = e;
-        showInstallBanner(false, true);
+        // Mostra o botão de instalação quando o prompt estiver disponível
+        if (installPromptBtn) {
+            installPromptBtn.style.display = 'block';
+        }
     });
 
-    if (installBtn) {
-        installBtn.addEventListener('click', async () => {
+    if (installPromptBtn) {
+        installPromptBtn.addEventListener('click', async () => {
             if (!deferredPrompt) {
-                showInstallBanner(true, false);
+                alert('A instalação automática não está disponível neste navegador. Siga as instruções acima para adicionar manualmente.');
                 return;
             }
             deferredPrompt.prompt();
-            await deferredPrompt.userChoice;
+            const choiceResult = await deferredPrompt.userChoice;
+            if (choiceResult.outcome === 'accepted') {
+                console.log('PWA instalado com sucesso');
+            }
             deferredPrompt = null;
-            installBanner.style.display = 'none';
+            installPromptBtn.style.display = 'none';
         });
     }
 
-    function setInstallTip() {
-        if (!installTip) return;
-        const ua = navigator.userAgent || '';
-        const isiOS = /iPhone|iPad|iPod/i.test(ua);
-        if (isiOS) {
-            installTip.textContent = 'No iPhone: toque em compartilhar e selecione \"Adicionar a Tela de Inicio\".';
-        } else {
-            installTip.textContent = 'No Android: toque no menu do navegador e selecione \"Adicionar a Tela inicial\".';
-        }
+    // Oculta o botão se já estiver instalado
+    if (isStandalone() && installPromptBtn) {
+        installPromptBtn.style.display = 'none';
     }
 
-    if (isMobile() && !isStandalone() && !deferredPrompt) {
-        setInstallTip();
-        showInstallBanner(true, false);
-    }
+    // Atualiza visibilidade do botão de instalação
+    updateInstallCtaVisibility();
 </script>
 
 <footer class="footer-develoi">
@@ -4063,7 +4066,6 @@ foreach ($todosServicos as $s) {
             </a>
         </div>
 
-        <!-- NOVA ÁREA DE AÇÃO -->
         <div class="footer-action" id="footerAction" style="display:none;">
             <button type="button"
                     class="footer-action-btn"
