@@ -485,6 +485,107 @@ if (isset($_SESSION['login_erro'])) {
             margin-left: auto;
         }
 
+        .install-banner {
+            position: fixed;
+            left: 16px;
+            right: 16px;
+            bottom: 16px;
+            max-width: 520px;
+            margin: 0 auto;
+            background: #111827;
+            color: #fff;
+            border-radius: 14px;
+            padding: 14px 16px;
+            display: none;
+            gap: 10px;
+            align-items: center;
+            z-index: 9999;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.25);
+        }
+
+        .install-banner .install-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .install-banner .install-sub {
+            font-size: 0.78rem;
+            opacity: 0.8;
+        }
+
+        .install-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .install-btn {
+            background: #4f46e5;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .install-close {
+            background: transparent;
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .install-tip {
+            margin-top: 6px;
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        .install-guide {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 10000;
+        }
+
+        .install-guide-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 18px;
+            max-width: 420px;
+            width: 100%;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
+            text-align: left;
+        }
+
+        .install-guide-title {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .install-guide-steps {
+            font-size: 0.9rem;
+            color: #374151;
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .install-guide-actions {
+            margin-top: 12px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
         @keyframes slideUpFade {
             from { opacity: 0; transform: translateY(40px) scale(0.9); }
             to { opacity: 1; transform: translateY(0) scale(1); }
@@ -633,6 +734,29 @@ if (isset($_SESSION['login_erro'])) {
 
     </div>
 
+    <div class="install-banner" id="installBanner">
+        <div>
+            <div class="install-title">Instalar o app</div>
+            <div class="install-sub">Coloque na tela inicial para acesso rapido</div>
+            <div class="install-tip" id="installTip" style="display:none;"></div>
+        </div>
+        <div class="install-actions">
+            <button class="install-btn" id="installBtn">Instalar</button>
+            <button class="install-close" id="installGuideBtn">Como instalar</button>
+            <button class="install-close" id="installClose">Agora nao</button>
+        </div>
+    </div>
+
+    <div class="install-guide" id="installGuide">
+        <div class="install-guide-card">
+            <div class="install-guide-title">Como instalar</div>
+            <ol class="install-guide-steps" id="installGuideSteps"></ol>
+            <div class="install-guide-actions">
+                <button class="install-close" id="installGuideClose">Fechar</button>
+            </div>
+        </div>
+    </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     const toggleSenha = document.getElementById('toggleSenha');
@@ -650,6 +774,103 @@ if (isset($_SESSION['login_erro'])) {
             icon.classList.add('fa-eye');
         }
     });
+
+    // Instalar na tela inicial
+    const installBanner = document.getElementById('installBanner');
+    const installBtn = document.getElementById('installBtn');
+    const installClose = document.getElementById('installClose');
+    const installTip = document.getElementById('installTip');
+    const installGuideBtn = document.getElementById('installGuideBtn');
+    const installGuide = document.getElementById('installGuide');
+    const installGuideSteps = document.getElementById('installGuideSteps');
+    const installGuideClose = document.getElementById('installGuideClose');
+    let deferredPrompt = null;
+
+    function isMobile() {
+        return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+    }
+
+    function isStandalone() {
+        return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    }
+
+    function showInstallBanner(showTip = false, showButton = true) {
+        if (!installBanner) return;
+        installBanner.style.display = 'flex';
+        if (installTip) installTip.style.display = showTip ? 'block' : 'none';
+        if (installBtn) installBtn.style.display = showButton ? 'inline-block' : 'none';
+    }
+
+    function setInstallTip() {
+        if (!installTip) return;
+        const ua = navigator.userAgent || '';
+        const isiOS = /iPhone|iPad|iPod/i.test(ua);
+        if (isiOS) {
+            installTip.textContent = 'No iPhone: toque em compartilhar e selecione \"Adicionar a Tela de Inicio\".';
+        } else {
+            installTip.textContent = 'No Android: toque no menu do navegador e selecione \"Adicionar a Tela inicial\".';
+        }
+    }
+
+    function setInstallGuideSteps() {
+        if (!installGuideSteps) return;
+        const ua = navigator.userAgent || '';
+        const isiOS = /iPhone|iPad|iPod/i.test(ua);
+        installGuideSteps.innerHTML = '';
+        const steps = isiOS
+            ? ['Toque em Compartilhar', 'Escolha "Adicionar a Tela de Inicio"', 'Confirme a instalacao']
+            : ['Toque no menu (tres pontos)', 'Selecione "Adicionar a Tela inicial"', 'Confirme a instalacao'];
+        steps.forEach(step => {
+            const li = document.createElement('li');
+            li.textContent = step;
+            installGuideSteps.appendChild(li);
+        });
+    }
+
+    if (installClose) {
+        installClose.addEventListener('click', () => {
+            installBanner.style.display = 'none';
+        });
+    }
+
+    if (installGuideBtn) {
+        installGuideBtn.addEventListener('click', () => {
+            setInstallGuideSteps();
+            if (installGuide) installGuide.style.display = 'flex';
+        });
+    }
+
+    if (installGuideClose) {
+        installGuideClose.addEventListener('click', () => {
+            if (installGuide) installGuide.style.display = 'none';
+        });
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        if (!isMobile() || isStandalone()) return;
+        e.preventDefault();
+        deferredPrompt = e;
+        showInstallBanner(false, true);
+    });
+
+    if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) {
+                setInstallTip();
+                showInstallBanner(true, false);
+                return;
+            }
+            deferredPrompt.prompt();
+            await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            installBanner.style.display = 'none';
+        });
+    }
+
+    if (isMobile() && !isStandalone() && !deferredPrompt) {
+        setInstallTip();
+        showInstallBanner(true, false);
+    }
 </script>
 </body>
 </html>
