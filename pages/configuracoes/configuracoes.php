@@ -1330,7 +1330,6 @@ include '../../includes/menu.php';
     const ONE_SIGNAL_APP_ID = '<?php echo htmlspecialchars(ONESIGNAL_APP_ID ?? "", ENT_QUOTES); ?>';
     const ONE_SIGNAL_USER_ID = '<?php echo (int)$userId; ?>';
     const ONE_SIGNAL_SW_PATH = '<?php echo $isProd ? "/OneSignalSDKWorker.js" : "/karen_site/controle-salao/OneSignalSDKWorker.js"; ?>';
-    const ONE_SIGNAL_SW_UPDATER_PATH = '<?php echo $isProd ? "/OneSignalSDKUpdaterWorker.js" : "/karen_site/controle-salao/OneSignalSDKUpdaterWorker.js"; ?>';
     const ONE_SIGNAL_SW_SCOPE = '<?php echo $isProd ? "/" : "/karen_site/controle-salao/"; ?>';
 
     function setPushStatus(text, state) {
@@ -1360,7 +1359,6 @@ include '../../includes/menu.php';
                 appId: ONE_SIGNAL_APP_ID,
                 allowLocalhostAsSecureOrigin: true,
                 serviceWorkerPath: ONE_SIGNAL_SW_PATH,
-                serviceWorkerUpdaterPath: ONE_SIGNAL_SW_UPDATER_PATH,
                 serviceWorkerParam: { scope: ONE_SIGNAL_SW_SCOPE }
             });
 
