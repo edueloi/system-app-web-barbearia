@@ -825,6 +825,11 @@ foreach ($todosServicos as $s) {
         <meta name="author" content="<?php echo htmlspecialchars($nomeEstabelecimento); ?>">
         <meta name="robots" content="index, follow">
         <meta name="theme-color" content="<?php echo $corPersonalizada; ?>">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="<?php echo htmlspecialchars($nomeEstabelecimento); ?>">
+        <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+        <link rel="icon" href="favicon.ico" type="image/x-icon">
         
         <!-- Open Graph / Facebook -->
         <meta property="og:type" content="website">
