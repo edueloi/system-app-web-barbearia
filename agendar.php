@@ -517,6 +517,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmtNotif->execute([$profissionalId, $mensagemNotif, $linkNotif]);
 
         // ===============================
+        // NOTIFICAR PUSH WEB (SE HABILITADO)
+        // ===============================
+        require_once __DIR__ . '/includes/push_helper.php';
+        if (function_exists('sendPushNovoAgendamento')) {
+            sendPushNovoAgendamento((int)$profissionalId, $mensagemNotif, $linkNotif, (int)$idAgendamento);
+        }
+
+        // ===============================
         // NOTIFICAR BOT WHATSAPP
         // ===============================
         require_once __DIR__ . '/includes/notificar_bot.php';

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/push_config.php';
 // pages/configuracoes/configuracoes.php
 
 // =========================================================
@@ -1111,6 +1112,29 @@ include '../../includes/menu.php';
 
         <div class="card">
             <h3 class="card-title">
+                <i class="bi bi-bell-fill" style="color:#0ea5e9;"></i>
+                Notificacoes Push
+            </h3>
+            <p class="card-desc">Ative para receber avisos de novos agendamentos e lembretes no celular.</p>
+
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                <div style="font-size:0.85rem;color:#475569;font-weight:600;">
+                    Status: <span id="pushStatus" style="font-weight:700;">Verificando...</span>
+                </div>
+                <button type="button" class="btn-primary" id="btnEnablePush">
+                    <i class="bi bi-phone-vibrate"></i> Ativar neste dispositivo
+                </button>
+                <button type="button" class="btn-primary" id="btnDisablePush" style="background:linear-gradient(135deg,#e2e8f0 0%,#cbd5e1 100%);color:#0f172a;box-shadow:none;">
+                    <i class="bi bi-bell-slash"></i> Desativar neste dispositivo
+                </button>
+                <div id="pushHint" style="font-size:0.78rem;color:#64748b;">
+                    Use o Chrome ou Edge no celular para permitir notificacoes.
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 class="card-title">
                 <i class="bi bi-shield-lock-fill" style="color:#10b981;"></i>
                 Segurança da Conta
             </h3>
@@ -1164,6 +1188,7 @@ include '../../includes/menu.php';
 
 <?php include '../../includes/footer.php'; ?>
 
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
     function updatePreview(color) {
         var btn = document.getElementById('btnPreview');
@@ -1300,5 +1325,121 @@ include '../../includes/menu.php';
             // Marca o tema ativo se coincidir com algum preset
             highlightActiveTheme(colorInput.value);
         }
+    });
+
+    const ONE_SIGNAL_APP_ID = '<?php echo htmlspecialchars(ONESIGNAL_APP_ID ?? "", ENT_QUOTES); ?>';
+    const ONE_SIGNAL_USER_ID = '<?php echo (int)$userId; ?>';
+    const ONE_SIGNAL_SW_PATH = '<?php echo $isProd ? "/OneSignalSDKWorker.js" : "/karen_site/controle-salao/OneSignalSDKWorker.js"; ?>';
+    const ONE_SIGNAL_SW_UPDATER_PATH = '<?php echo $isProd ? "/OneSignalSDKUpdaterWorker.js" : "/karen_site/controle-salao/OneSignalSDKUpdaterWorker.js"; ?>';
+    const ONE_SIGNAL_SW_SCOPE = '<?php echo $isProd ? "/" : "/karen_site/controle-salao/"; ?>';
+
+    function setPushStatus(text, state) {
+        const statusEl = document.getElementById('pushStatus');
+        const btnEnable = document.getElementById('btnEnablePush');
+        const btnDisable = document.getElementById('btnDisablePush');
+        if (statusEl) {
+            statusEl.textContent = text;
+        }
+        if (btnEnable) {
+            btnEnable.disabled = state === 'enabled' || state === 'unsupported' || state === 'disabled';
+        }
+        if (btnDisable) {
+            btnDisable.disabled = state !== 'enabled';
+        }
+    }
+
+    function initOneSignal() {
+        if (!ONE_SIGNAL_APP_ID) {
+            setPushStatus('Nao configurado', 'disabled');
+            return;
+        }
+
+        window.OneSignal = window.OneSignal || [];
+        OneSignal.push(function () {
+            OneSignal.init({
+                appId: ONE_SIGNAL_APP_ID,
+                allowLocalhostAsSecureOrigin: true,
+                serviceWorkerPath: ONE_SIGNAL_SW_PATH,
+                serviceWorkerUpdaterPath: ONE_SIGNAL_SW_UPDATER_PATH,
+                serviceWorkerParam: { scope: ONE_SIGNAL_SW_SCOPE }
+            });
+
+            if (typeof OneSignal.login === 'function') {
+                OneSignal.login(String(ONE_SIGNAL_USER_ID));
+            } else if (typeof OneSignal.setExternalUserId === 'function') {
+                OneSignal.setExternalUserId(String(ONE_SIGNAL_USER_ID));
+            }
+
+            updatePushStatus();
+        });
+    }
+
+    function updatePushStatus() {
+        OneSignal.push(async function () {
+            try {
+                if (OneSignal.Notifications && OneSignal.Notifications.permission) {
+                    const perm = OneSignal.Notifications.permission;
+                    if (perm === 'granted') {
+                        setPushStatus('Ativo neste dispositivo', 'enabled');
+                        return;
+                    }
+                    if (perm === 'denied') {
+                        setPushStatus('Permissao negada', 'idle');
+                        return;
+                    }
+                }
+
+                if (typeof OneSignal.isPushNotificationsEnabled === 'function') {
+                    const enabled = await OneSignal.isPushNotificationsEnabled();
+                    setPushStatus(enabled ? 'Ativo neste dispositivo' : 'Inativo', enabled ? 'enabled' : 'idle');
+                    return;
+                }
+
+                setPushStatus('Inativo', 'idle');
+            } catch (e) {
+                console.error(e);
+                setPushStatus('Erro ao carregar', 'idle');
+            }
+        });
+    }
+
+    function enablePush() {
+        OneSignal.push(function () {
+            if (OneSignal.Notifications && OneSignal.Notifications.requestPermission) {
+                OneSignal.Notifications.requestPermission().then(updatePushStatus);
+                return;
+            }
+            if (typeof OneSignal.showNativePrompt === 'function') {
+                OneSignal.showNativePrompt();
+                setTimeout(updatePushStatus, 1500);
+                return;
+            }
+            if (typeof OneSignal.registerForPushNotifications === 'function') {
+                OneSignal.registerForPushNotifications();
+                setTimeout(updatePushStatus, 1500);
+            }
+        });
+    }
+
+    function disablePush() {
+        OneSignal.push(function () {
+            if (OneSignal.Notifications && OneSignal.Notifications.disable) {
+                OneSignal.Notifications.disable();
+                setTimeout(updatePushStatus, 500);
+                return;
+            }
+            if (typeof OneSignal.setSubscription === 'function') {
+                OneSignal.setSubscription(false);
+                setTimeout(updatePushStatus, 500);
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        initOneSignal();
+        const btnEnable = document.getElementById('btnEnablePush');
+        const btnDisable = document.getElementById('btnDisablePush');
+        if (btnEnable) btnEnable.addEventListener('click', enablePush);
+        if (btnDisable) btnDisable.addEventListener('click', disablePush);
     });
 </script>

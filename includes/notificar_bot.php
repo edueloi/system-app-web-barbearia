@@ -420,6 +420,7 @@ if (!function_exists('notificarBotLembreteAgendamento')) {
 }
 
 require_once __DIR__ . '/mailer.php';
+require_once __DIR__ . '/push_helper.php';
 
 if (!function_exists('processarLembretesAutomaticos')) {
     /**
@@ -460,6 +461,11 @@ if (!function_exists('processarLembretesAutomaticos')) {
             $totalEnviados = 0;
 
             foreach ($agendamentos as $ag) {
+                // Envia push web (se habilitado)
+                if (function_exists('sendPushLembreteAgendamento')) {
+                    sendPushLembreteAgendamento($pdo, (int)$ag['id'], $minutosAntes);
+                }
+
                 // Envia WhatsApp/bot
                 notificarBotLembreteAgendamento($pdo, $ag['id'], $minutosAntes);
 

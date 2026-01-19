@@ -166,15 +166,16 @@ try {
     try { $pdo->exec("ALTER TABLE usuarios ADD COLUMN vendedor_id INTEGER"); } catch (Exception $e) {}
 
     // 7. Notificações / Alertas 
-    $pdo->exec("CREATE TABLE IF NOT EXISTS notifications ( 
-        id INTEGER PRIMARY KEY AUTOINCREMENT, 
-        user_id INTEGER NOT NULL, 
-        type TEXT NOT NULL, 
-        message TEXT NOT NULL, 
-        link TEXT, 
-        is_read INTEGER DEFAULT 0, 
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP 
-    )"); 
+    $pdo->exec("CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        message TEXT NOT NULL,
+        link TEXT,
+        is_read INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
 
     // 8. Comandas (pacotes / comandas recorrentes do paciente)
     $pdo->exec("CREATE TABLE IF NOT EXISTS comandas (
