@@ -96,6 +96,7 @@ if (!function_exists('sendOneSignalToUser')) {
             return false;
         }
 
+        error_log('[PUSH] OneSignal OK HTTP ' . $httpCode . ' - Resp: ' . $response);
         return true;
     }
 }

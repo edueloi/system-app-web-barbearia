@@ -22,6 +22,55 @@ $userId = $_SESSION['user_id'];
 
 // --- PROCESSAR FORMULÁRIOS ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // 0. RESTAURAR BACKUP DO BANCO
+    if (isset($_POST['acao']) && $_POST['acao'] === 'restaurar_backup') {
+        $dbPath = realpath(__DIR__ . '/../../banco_salao.sqlite');
+        if (!$dbPath) {
+            $dbPath = __DIR__ . '/../../banco_salao.sqlite';
+        }
+
+        $upload = $_FILES['backup_sqlite'] ?? null;
+        if (!$upload || !isset($upload['tmp_name']) || $upload['error'] !== UPLOAD_ERR_OK) {
+            $_SESSION['config_msg'] = 'Falha ao enviar o arquivo de backup.';
+            $_SESSION['config_msgType'] = 'error';
+        } else {
+            $ext = strtolower(pathinfo($upload['name'], PATHINFO_EXTENSION));
+            if ($ext !== 'sqlite') {
+                $_SESSION['config_msg'] = 'Arquivo invalido. Use um arquivo .sqlite.';
+                $_SESSION['config_msgType'] = 'error';
+            } else {
+                if (is_writable(dirname($dbPath))) {
+                    try {
+                        if (isset($pdo)) {
+                            $pdo = null;
+                        }
+                        if (file_exists($dbPath)) {
+                            $backupPath = $dbPath . '.bak-' . date('Ymd-His');
+                            @copy($dbPath, $backupPath);
+                        }
+                        if (move_uploaded_file($upload['tmp_name'], $dbPath)) {
+                            $_SESSION['config_msg'] = 'Backup restaurado com sucesso. Recarregue o painel.';
+                            $_SESSION['config_msgType'] = 'success';
+                        } else {
+                            $_SESSION['config_msg'] = 'Nao foi possivel substituir o banco de dados.';
+                            $_SESSION['config_msgType'] = 'error';
+                        }
+                    } catch (Throwable $e) {
+                        $_SESSION['config_msg'] = 'Erro ao restaurar backup.';
+                        $_SESSION['config_msgType'] = 'error';
+                    }
+                } else {
+                    $_SESSION['config_msg'] = 'Sem permissao para gravar no servidor.';
+                    $_SESSION['config_msgType'] = 'error';
+                }
+            }
+        }
+
+        $isProd = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
+        $configUrl = $isProd ? '/configuracoes' : '/karen_site/controle-salao/pages/configuracoes/configuracoes.php';
+        header("Location: {$configUrl}");
+        exit;
+    }
     // 3. SALVAR LEMBRETES E RESTRIÇÕES DE AGENDAMENTO
     if (isset($_POST['acao']) && $_POST['acao'] === 'salvar_lembretes_email') {
         $lembrete_email_ativo = isset($_POST['lembrete_email_ativo']) ? 1 : 0;
@@ -1127,6 +1176,10 @@ include '../../includes/menu.php';
                 <button type="button" class="btn-primary" id="btnDisablePush" style="background:linear-gradient(135deg,#e2e8f0 0%,#cbd5e1 100%);color:#0f172a;box-shadow:none;">
                     <i class="bi bi-bell-slash"></i> Desativar neste dispositivo
                 </button>
+                <button type="button" class="btn-primary" id="btnTestPush" style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);box-shadow:none;">
+                    <i class="bi bi-bell"></i> Testar notificacao
+                </button>
+                <div id="pushTestStatus" style="font-size:0.78rem;color:#64748b;"></div>
                 <div id="pushHint" style="font-size:0.78rem;color:#64748b;">
                     Use o Chrome ou Edge no celular para permitir notificacoes.
                 </div>
@@ -1331,6 +1384,7 @@ include '../../includes/menu.php';
     const ONE_SIGNAL_USER_ID = '<?php echo (int)$userId; ?>';
     const ONE_SIGNAL_SW_PATH = '<?php echo $isProd ? "/OneSignalSDKWorker.js" : "/karen_site/controle-salao/OneSignalSDKWorker.js"; ?>';
     const ONE_SIGNAL_SW_SCOPE = '<?php echo $isProd ? "/" : "/karen_site/controle-salao/"; ?>';
+    const ONE_SIGNAL_TEST_URL = '<?php echo $isProd ? "/pages/push_test.php" : "/karen_site/controle-salao/pages/push_test.php"; ?>';
 
     function setPushStatus(text, state) {
         const statusEl = document.getElementById('pushStatus');
@@ -1347,15 +1401,20 @@ include '../../includes/menu.php';
         }
     }
 
+    function getOneSignalInstance() {
+        return window.__oneSignalInstance || window.OneSignal || null;
+    }
+
     function initOneSignal() {
         if (!ONE_SIGNAL_APP_ID) {
             setPushStatus('Nao configurado', 'disabled');
             return;
         }
 
-        window.OneSignal = window.OneSignal || [];
-        OneSignal.push(function () {
-            OneSignal.init({
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        window.OneSignalDeferred.push(async function (OneSignal) {
+            window.__oneSignalInstance = OneSignal;
+            await OneSignal.init({
                 appId: ONE_SIGNAL_APP_ID,
                 allowLocalhostAsSecureOrigin: true,
                 serviceWorkerPath: ONE_SIGNAL_SW_PATH,
@@ -1373,11 +1432,21 @@ include '../../includes/menu.php';
     }
 
     function updatePushStatus() {
+        const OneSignal = getOneSignalInstance();
+        if (!OneSignal) {
+            setPushStatus('Erro ao carregar', 'idle');
+            return;
+        }
+
         OneSignal.push(async function () {
             try {
                 if (OneSignal.Notifications && OneSignal.Notifications.permission) {
                     const perm = OneSignal.Notifications.permission;
                     if (perm === 'granted') {
+                        if (OneSignal.User && OneSignal.User.PushSubscription && typeof OneSignal.User.PushSubscription.optedIn === 'boolean') {
+                            setPushStatus(OneSignal.User.PushSubscription.optedIn ? 'Ativo neste dispositivo' : 'Inativo', OneSignal.User.PushSubscription.optedIn ? 'enabled' : 'idle');
+                            return;
+                        }
                         setPushStatus('Ativo neste dispositivo', 'enabled');
                         return;
                     }
@@ -1385,6 +1454,11 @@ include '../../includes/menu.php';
                         setPushStatus('Permissao negada', 'idle');
                         return;
                     }
+                }
+
+                if (OneSignal.User && OneSignal.User.PushSubscription && typeof OneSignal.User.PushSubscription.optedIn === 'boolean') {
+                    setPushStatus(OneSignal.User.PushSubscription.optedIn ? 'Ativo neste dispositivo' : 'Inativo', OneSignal.User.PushSubscription.optedIn ? 'enabled' : 'idle');
+                    return;
                 }
 
                 if (typeof OneSignal.isPushNotificationsEnabled === 'function') {
@@ -1402,25 +1476,57 @@ include '../../includes/menu.php';
     }
 
     function enablePush() {
+        const OneSignal = getOneSignalInstance();
+        if (!OneSignal) {
+            setPushStatus('Erro ao carregar', 'idle');
+            return;
+        }
+
         OneSignal.push(function () {
             if (OneSignal.Notifications && OneSignal.Notifications.requestPermission) {
-                OneSignal.Notifications.requestPermission().then(updatePushStatus);
+                OneSignal.Notifications.requestPermission().then(function () {
+                    if (OneSignal.User && OneSignal.User.PushSubscription && typeof OneSignal.User.PushSubscription.optIn === 'function') {
+                        OneSignal.User.PushSubscription.optIn();
+                    }
+                    updatePushStatus();
+                });
                 return;
             }
             if (typeof OneSignal.showNativePrompt === 'function') {
                 OneSignal.showNativePrompt();
-                setTimeout(updatePushStatus, 1500);
+                setTimeout(function () {
+                    if (OneSignal.User && OneSignal.User.PushSubscription && typeof OneSignal.User.PushSubscription.optIn === 'function') {
+                        OneSignal.User.PushSubscription.optIn();
+                    }
+                    updatePushStatus();
+                }, 1500);
                 return;
             }
             if (typeof OneSignal.registerForPushNotifications === 'function') {
                 OneSignal.registerForPushNotifications();
-                setTimeout(updatePushStatus, 1500);
+                setTimeout(function () {
+                    if (OneSignal.User && OneSignal.User.PushSubscription && typeof OneSignal.User.PushSubscription.optIn === 'function') {
+                        OneSignal.User.PushSubscription.optIn();
+                    }
+                    updatePushStatus();
+                }, 1500);
             }
         });
     }
 
     function disablePush() {
+        const OneSignal = getOneSignalInstance();
+        if (!OneSignal) {
+            setPushStatus('Erro ao carregar', 'idle');
+            return;
+        }
+
         OneSignal.push(function () {
+            if (OneSignal.User && OneSignal.User.PushSubscription && typeof OneSignal.User.PushSubscription.optOut === 'function') {
+                OneSignal.User.PushSubscription.optOut();
+                setTimeout(updatePushStatus, 500);
+                return;
+            }
             if (OneSignal.Notifications && OneSignal.Notifications.disable) {
                 OneSignal.Notifications.disable();
                 setTimeout(updatePushStatus, 500);
@@ -1433,11 +1539,30 @@ include '../../includes/menu.php';
         });
     }
 
+    async function testPush() {
+        const statusEl = document.getElementById('pushTestStatus');
+        if (statusEl) statusEl.textContent = 'Enviando teste...';
+        try {
+            const res = await fetch(ONE_SIGNAL_TEST_URL, { method: 'POST' });
+            const data = await res.json();
+            if (data && data.success) {
+                if (statusEl) statusEl.textContent = 'Teste enviado. Verifique a notificacao.';
+            } else {
+                if (statusEl) statusEl.textContent = 'Falha ao enviar teste.';
+            }
+        } catch (e) {
+            console.error(e);
+            if (statusEl) statusEl.textContent = 'Erro ao enviar teste.';
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         initOneSignal();
         const btnEnable = document.getElementById('btnEnablePush');
         const btnDisable = document.getElementById('btnDisablePush');
+        const btnTest = document.getElementById('btnTestPush');
         if (btnEnable) btnEnable.addEventListener('click', enablePush);
         if (btnDisable) btnDisable.addEventListener('click', disablePush);
+        if (btnTest) btnTest.addEventListener('click', testPush);
     });
 </script>

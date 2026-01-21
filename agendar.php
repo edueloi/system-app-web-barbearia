@@ -173,6 +173,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     $_POST['horario_escolhido'] = $_POST['horario_escolhido'] ?? '';
 }
 $sucesso = isset($_GET['ok']) && $_GET['ok'] == 1; 
+$erroAntecedencia = isset($_GET['erro']) && $_GET['erro'] === 'antecedencia';
+$erroAntecedenciaMsg = '';
+if ($erroAntecedencia) {
+    $minGet = isset($_GET['min']) ? (int)$_GET['min'] : 4;
+    $unGet = $_GET['un'] ?? 'horas';
+    $erroAntecedenciaMsg = 'O agendamento deve ser feito com pelo menos ' . $minGet . ' ' . htmlspecialchars($unGet) . ' de antecedência.';
+}
  
 // ========================================================= 
 // 2. API AJAX (JSON) 
@@ -451,7 +458,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $minutosNecessarios = $minAntecedencia * 1440;
         }
         if ($diffMinutos < $minutosNecessarios) {
-            echo '<div style="font-family:sans-serif;text-align:center;padding:40px;color:#ef4444;">⏰ O agendamento deve ser feito com pelo menos ' . $minAntecedencia . ' ' . htmlspecialchars($minUnidade) . ' de antecedência.</div>';
+            $query = $_GET;
+            $query['erro'] = 'antecedencia';
+            $query['min'] = $minAntecedencia;
+            $query['un'] = $minUnidade;
+            $redirectUrl = $currentPath;
+            if (!empty($query)) {
+                $redirectUrl .= '?' . http_build_query($query);
+            }
+            header('Location: ' . $redirectUrl);
             exit;
         }
         // Cliente 
@@ -3875,6 +3890,12 @@ foreach ($todosServicos as $s) {
     function fecharErro() {
         document.getElementById('errorModal').classList.remove('active');
     }
+
+    <?php if (!empty($erroAntecedenciaMsg)): ?>
+    document.addEventListener('DOMContentLoaded', function () {
+        mostrarErro('Agendamento inválido', '<?php echo addslashes($erroAntecedenciaMsg); ?>');
+    });
+    <?php endif; ?>
 
     function validateForm(onlyReturn = false) {
         const telInput = document.getElementById('telInput');
