@@ -22,6 +22,11 @@ if (!file_exists($dbPath)) {
 }
 require_once $dbPath;
 
+if (!isset($pdo) || !($pdo instanceof PDO)) {
+    throw new RuntimeException('Conexao com banco indisponivel.');
+}
+/** @var PDO $pdo */
+
 // Tenta incluir o helper do BOT (notificações)
 $botPath = __DIR__ . '/../../includes/notificar_bot.php';
 if (file_exists($botPath)) {
@@ -43,6 +48,7 @@ $agendaUrl = $isProd
 $stmtUser = $pdo->prepare("SELECT nome, estabelecimento FROM usuarios WHERE id = ?");
 $stmtUser->execute([$userId]);
 $userInfo = $stmtUser->fetch();
+if (!$userInfo) $userInfo = []; // Previne erro ao acessar índice de booleano
 $nomeEstabelecimento = $userInfo['estabelecimento'] ?? 'Meu Salão';
 
 // Link de agendamento online
@@ -56,7 +62,7 @@ $linkAgendamento = rtrim(BASE_URL, '/') . '/' . $slugAgendamento;
 function redirect($data, $view)
 {
     global $agendaUrl;
-    header("Location: {$agendaUrl}?data=" . urlencode($data) . "&view=" . $view);
+    header("Location: {" . $agendaUrl . "}?data=" . urlencode($data) . "&view=" . $view);
     exit;
 }
 
@@ -177,7 +183,7 @@ try {
         if (!empty($servicosIds)) {
             $placeholders = implode(',', array_fill(0, count($servicosIds), '?'));
             $params = array_merge([$userId], $servicosIds);
-            $stmtServ = $pdo->prepare("
+            $stmtServ = $pdo->prepare(" 
                 SELECT id, nome, preco 
                 FROM servicos 
                 WHERE user_id = ? 
@@ -200,14 +206,23 @@ try {
         }
 
         // Recorrência
-        $recorrenciaAtiva     = isset($_POST['recorrencia_ativa']) && $_POST['recorrencia_ativa'] == '1';
-        $recorrenciaIntervalo = isset($_POST['recorrencia_intervalo']) ? (int)$_POST['recorrencia_intervalo'] : 0;
-        $recorrenciaQtd       = isset($_POST['recorrencia_qtd']) ? (int)$_POST['recorrencia_qtd'] : 1;
-        if ($recorrenciaIntervalo < 1) $recorrenciaIntervalo = 1;
+        $recorrenciaAtiva = isset($_POST['recorrencia_ativa']) && $_POST['recorrencia_ativa'] == '1';
+        $recorrenciaFrequencia = $_POST['recorrencia_frequencia'] ?? 'semanal';
+        $frequenciasValidas = ['diaria', 'semanal', 'quinzenal', 'mensal_dia'];
+        if (!in_array($recorrenciaFrequencia, $frequenciasValidas, true)) {
+            $recorrenciaFrequencia = 'semanal';
+        }
+        $recorrenciaQtd = isset($_POST['recorrencia_qtd']) ? (int)$_POST['recorrencia_qtd'] : 1;
         if ($recorrenciaQtd < 1) $recorrenciaQtd = 1;
+        $intervaloPorFrequencia = [
+            'diaria' => 1,
+            'semanal' => 7,
+            'quinzenal' => 15,
+            'mensal_dia' => 30
+        ];
+        $recorrenciaIntervalo = $intervaloPorFrequencia[$recorrenciaFrequencia] ?? 7;
         $recorrenciaDiasSemana = isset($_POST['recorrencia_dias_semana']) ? (array)$_POST['recorrencia_dias_semana'] : [];
         $recorrenciaDiasSemana = array_values(array_unique(array_filter(array_map('intval', $recorrenciaDiasSemana), function($d){ return $d >= 0 && $d <= 6; })));
-        $recorrenciaDiasSemanaJson = !empty($recorrenciaDiasSemana) ? json_encode($recorrenciaDiasSemana) : null;
 
         if ($cliente && $horario) {
             $dadosAgendamento = [
@@ -216,25 +231,46 @@ try {
                 'servico_id'    => $servicoId,
                 'servico_nome'  => $servicoNome,
                 'valor'         => $valor,
+                'horario'       => $horario,
+                'data_inicio'   => $dataAg,
                 'observacoes'   => $obs,
                 'servicos_json' => json_encode($servicosIds),
+                'recorrencia_ativa' => $recorrenciaAtiva,
+                'recorrencia_frequencia' => $recorrenciaFrequencia,
+                'recorrencia_intervalo' => $recorrenciaIntervalo,
+                'recorrencia_qtd' => $recorrenciaQtd,
+                'recorrencia_dias_semana' => $recorrenciaDiasSemana
             ];
+            $resultado = null;
 
             if ($recorrenciaAtiva && $recorrenciaQtd > 1) {
-                // Lógica para criar agendamentos recorrentes
-                $agendamentosCriados = criarAgendamentosRecorrentes(
-                    $pdo, $userId, $dadosAgendamento, $dataAg, $horario,
-                    $recorrenciaIntervalo, $recorrenciaQtd, $recorrenciaDiasSemana
-                );
-                 // Compromete o estoque para todos agendamentos criados
-                 foreach ($agendamentosCriados as $agendamentoId) {
+                $resultado = criarAgendamentosRecorrentes($pdo, $userId, $dadosAgendamento);
+                if (!empty($resultado['sucesso'])) {
+                    if ($servicoId && !empty($resultado['ids_criados']) && is_array($resultado['ids_criados'])) {
+                        foreach ($resultado['ids_criados'] as $agendamentoId) {
+                            comprometerEstoque($pdo, $userId, $agendamentoId, $servicoId);
+                        }
+                    }
+                } else {
+                    $_SESSION['mensagem_erro'] = $resultado['erro'] ?? 'Erro ao criar agendamento recorrente. Salvando apenas este horário.';
+                    $stmt = $pdo->prepare(" 
+                        INSERT INTO agendamentos (user_id, cliente_id, cliente_nome, servico_id, servico, valor, data_agendamento, horario, observacoes, servicos_json)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ");
+                    $stmt->execute([
+                        $userId, $dadosAgendamento['cliente_id'], $dadosAgendamento['cliente_nome'], $dadosAgendamento['servico_id'],
+                        $dadosAgendamento['servico_nome'], $dadosAgendamento['valor'], $dataAg, $horario,
+                        $dadosAgendamento['observacoes'], $dadosAgendamento['servicos_json']
+                    ]);
+                    $lastId = (int)$pdo->lastInsertId();
+                    $resultado = ['sucesso' => true, 'ids_criados' => [$lastId]];
                     if ($servicoId) {
-                        comprometerEstoque($pdo, $userId, $agendamentoId, $servicoId);
+                        comprometerEstoque($pdo, $userId, $lastId, $servicoId);
                     }
                 }
             } else {
                 // Agendamento único
-                $stmt = $pdo->prepare("
+                $stmt = $pdo->prepare(" 
                     INSERT INTO agendamentos (user_id, cliente_id, cliente_nome, servico_id, servico, valor, data_agendamento, horario, observacoes, servicos_json)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
@@ -244,6 +280,7 @@ try {
                     $dadosAgendamento['observacoes'], $dadosAgendamento['servicos_json']
                 ]);
                 $lastId = $pdo->lastInsertId();
+                $resultado = ['sucesso' => true, 'ids_criados' => [(int)$lastId]];
                 // Compromete o estoque para o agendamento único
                 if ($servicoId) {
                     comprometerEstoque($pdo, $userId, $lastId, $servicoId);
@@ -260,7 +297,7 @@ try {
                 }
                 // Senão, se tiver serie_id, buscamos todos da série
                 elseif (!empty($resultado['serie_id'])) {
-                    $stmtIds = $pdo->prepare("
+                    $stmtIds = $pdo->prepare(" 
                         SELECT id 
                         FROM agendamentos 
                         WHERE user_id = ? AND serie_id = ?
@@ -307,7 +344,7 @@ if ($viewType === 'month') {
     $tituloData = $diasSemana[date('w', strtotime($dataExibida))] . ', ' . date('d/m', strtotime($dataExibida));
 }
 
-$stmt = $pdo->prepare("
+$stmt = $pdo->prepare(" 
     SELECT 
         a.*,
         s.tipo_recorrencia,
@@ -327,7 +364,7 @@ $servicos = $pdo->query("SELECT id, nome, preco, duracao, permite_recorrencia, t
 $clientes = $pdo->query("SELECT id, nome, telefone FROM clientes WHERE user_id=$userId ORDER BY nome ASC")->fetchAll();
 
 // corrige valor 0 usando preço do serviço
-foreach ($raw as &$r) {
+foreach ($raw as & $r) {
     if ((float)$r['valor'] <= 0) {
         foreach ($servicos as $s) {
             if ($s['nome'] === $r['servico']) {
@@ -1098,9 +1135,8 @@ include '../../includes/menu.php';
         padding-top: 0.5rem;
     }
 </style>
-
 <div class="app-header">
-    <h1 class="agenda-title">📅 Minha Agenda</h1>
+    <h1 class="agenda-title"><i class="bi bi-calendar3"></i> Minha Agenda</h1>
 
     <div class="view-control">
         <a href="<?php echo $agendaUrl; ?>?data=<?php echo $dataExibida; ?>&view=day" class="view-opt <?php echo $viewType === 'day' ? 'active' : ''; ?>">Dia</a>
@@ -1127,7 +1163,7 @@ include '../../includes/menu.php';
 
     <div class="header-cards">
     <div class="finance-card">
-        <span class="fin-label">💰 Faturamento</span>
+        <span class="fin-label"><i class="bi bi-cash-stack"></i> Faturamento</span>
         <span class="fin-value">R$ <?php echo number_format($faturamento, 2, ',', '.'); ?></span>
     </div>
 
@@ -1258,8 +1294,7 @@ include '../../includes/menu.php';
                             name="data_agendamento"
                             value="<?php echo $viewType==='day' ? $dataExibida : $hoje; ?>"
                             class="form-input"
-                            required
-                        >
+                            required>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Horário</label>
@@ -1285,8 +1320,7 @@ include '../../includes/menu.php';
                             class="form-input"
                             placeholder="Digite o nome ou escolha da lista"
                             autocomplete="off"
-                            oninput="filtrarClientes()"
-                        >
+                            oninput="filtrarClientes()">
                         <span class="combo-arrow">
                             <i class="bi bi-chevron-down"></i>
                         </span>
@@ -1319,8 +1353,7 @@ include '../../includes/menu.php';
                         name="telefone"
                         id="inputTel"
                         class="form-input"
-                        placeholder="(11) 99999-9999"
-                    >
+                        placeholder="(11) 99999-9999">
                 </div>
             </div>
 
@@ -1352,8 +1385,7 @@ include '../../includes/menu.php';
                                             name="servicos_ids[]"
                                             value="<?php echo $s['id']; ?>"
                                             data-preco="<?php echo $s['preco']; ?>"
-                                            onchange="calcTotal()"
-                                        >
+                                            onchange="calcTotal()">
                                         <span>
                                             <?php echo htmlspecialchars($s['nome']) . ' (R$ ' . number_format($s['preco'],2,',','.') . ')'; ?>
                                             <span style="color:#64748b;font-size:0.72rem;margin-left:4px;">[Serviço]</span>
@@ -1372,8 +1404,7 @@ include '../../includes/menu.php';
                                             name="servicos_ids[]"
                                             value="<?php echo $s['id']; ?>"
                                             data-preco="<?php echo $s['preco']; ?>"
-                                            onchange="calcTotal()"
-                                        >
+                                            onchange="calcTotal()">
                                         <span>
                                             <?php echo htmlspecialchars($s['nome']) . ' (R$ ' . number_format($s['preco'],2,',','.') . ')'; ?>
                                             <span style="color:#64748b;font-size:0.72rem;margin-left:4px;">[Pacote]</span>
@@ -1395,8 +1426,7 @@ include '../../includes/menu.php';
                             id="inputValor"
                             step="0.01"
                             class="form-input"
-                            placeholder="Será somado automaticamente pelos serviços"
-                        >
+                            placeholder="Será somado automaticamente pelos serviços">
                     </div>
                 </div>
             </div>
@@ -1417,8 +1447,7 @@ include '../../includes/menu.php';
                                 name="recorrencia_ativa"
                                 value="0"
                                 checked
-                                onclick="toggleRec(false)"
-                            >
+                                onclick="toggleRec(false)">
                             <span>Não repetir</span>
                         </label>
                         <label class="toggle-pill">
@@ -1426,30 +1455,28 @@ include '../../includes/menu.php';
                                 type="radio"
                                 name="recorrencia_ativa"
                                 value="1"
-                                onclick="toggleRec(true)"
-                            >
+                                onclick="toggleRec(true)">
                             <span>Repetir</span>
                         </label>
                     </div>
 
                     <div id="divRec">
                         <div class="form-group">
-                            <label class="form-label">Intervalo (dias)</label>
-                            <input
-                                type="number"
-                                name="recorrencia_intervalo"
-                                value="15"
-                                class="form-input"
-                            >
+                            <label class="form-label">Frequência</label>
+                            <select name="recorrencia_frequencia" id="recorrenciaFrequencia" class="form-input">
+                                <option value="semanal">Semanal</option>
+                                <option value="quinzenal">Quinzenal</option>
+                                <option value="mensal_dia">Mensal (1 vez por mês)</option>
+                                <option value="diaria">Diária</option>
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Qtd. Sess?es</label>
+                            <label class="form-label">Quantidade de sessões</label>
                             <input
                                 type="number"
                                 name="recorrencia_qtd"
                                 value="4"
-                                class="form-input"
-                            >
+                                class="form-input">
                         </div>
                         <div class="form-group rec-days-group">
                             <label class="form-label">Dias da semana</label>
@@ -1500,8 +1527,7 @@ include '../../includes/menu.php';
                     <textarea
                         name="obs"
                         class="form-input"
-                        placeholder="Ex.: prefere água com gás, está em transição capilar, lembrar de oferecer tratamento X..."
-                    ></textarea>
+                        placeholder="Ex.: prefere água com gás, está em transição capilar, lembrar de oferecer tratamento X..."></textarea>
                 </div>
             </div>
         </form>
@@ -1619,18 +1645,18 @@ function renderCard($ag, $clientes) {
         ? "<span style='font-size:0.7rem; background:#dbeafe; color:#0b2555; padding:2px 6px; border-radius:4px; margin-left:4px;'>Recorrente</span>"
         : "";
 
-    echo "
-    <div class='appt-card' data-status='".htmlspecialchars($ag['status'])."'>
-        <div class='status-badge {$stClass}'></div>
+    echo " 
+    <div class='appt-card' data-status='" . htmlspecialchars($ag['status']) . "'>
+        <div class='status-badge {" . $stClass . "}'></div>
         <div class='time-col'>
-            <span class='time-val'>".date('H', strtotime($ag['horario']))."</span>
-            <span class='time-min'>".date('i', strtotime($ag['horario']))."</span>
+            <span class='time-val'>" . date('H', strtotime($ag['horario'])) . "</span>
+            <span class='time-min'>" . date('i', strtotime($ag['horario'])) . "</span>
         </div>
         <div class='info-col'>
-            <div class='client-name'>".htmlspecialchars($ag['cliente_nome'])." {$badgeRec}</div>
-            <div class='service-row'>".htmlspecialchars($ag['servico'])." <span class='price-tag'>R$ {$dados['val']}</span></div>
+            <div class='client-name'>" . htmlspecialchars($ag['cliente_nome']) . " {" . $badgeRec . "}</div>
+            <div class='service-row'>" . htmlspecialchars($ag['servico']) . " <span class='price-tag'>R$ {" . $dados['val'] . "}</span></div>
         </div>
-        <button type='button' onclick='openActions(this)' data-info='{$jsonInfo}'>
+        <button type='button' onclick='openActions(this)' data-info='{" . $jsonInfo . "}'>
             <i class=\"bi bi-three-dots-vertical\"></i>
         </button>
     </div>";
@@ -1756,6 +1782,11 @@ function renderCard($ag, $clientes) {
                 setRecDaysFromDate();
             });
         }
+        const freqInput = document.getElementById('recorrenciaFrequencia');
+        if (freqInput) {
+            freqInput.addEventListener('change', updateRecFrequencyUI);
+        }
+        updateRecFrequencyUI();
         setRecDaysFromDate();
     });
 
@@ -1772,6 +1803,7 @@ function renderCard($ag, $clientes) {
         const rec = document.getElementById('divRec');
         if (rec) rec.style.display = active ? 'grid' : 'none';
         if (active) setRecDaysFromDate();
+        updateRecFrequencyUI();
     }
 
     function getRecDayInputs(){
@@ -1781,13 +1813,35 @@ function renderCard($ag, $clientes) {
     function updateRecHint(){
         const hint = document.getElementById('recDiaHint');
         if (!hint) return;
+        const freqInput = document.getElementById('recorrenciaFrequencia');
+        const freq = freqInput ? freqInput.value : 'semanal';
+        if (freq !== 'semanal') {
+            if (freq === 'diaria') hint.textContent = 'Gerará um agendamento por dia';
+            if (freq === 'quinzenal') hint.textContent = 'Gerará um agendamento a cada 15 dias';
+            if (freq === 'mensal_dia') hint.textContent = 'Gerará um agendamento por mês no mesmo dia';
+            return;
+        }
         const labels = {0:'Dom',1:'Seg',2:'Ter',3:'Qua',4:'Qui',5:'Sex',6:'Sab'};
         const inputs = Array.from(getRecDayInputs());
         const selected = inputs.filter(i => i.checked).map(i => labels[parseInt(i.value, 10)]);
         hint.textContent = selected.length ? 'Dias: ' + selected.join(', ') : 'Dias: nao selecionado';
     }
 
+    function updateRecFrequencyUI(){
+        const freqInput = document.getElementById('recorrenciaFrequencia');
+        const daysGroup = document.querySelector('.rec-days-group');
+        if (!freqInput || !daysGroup) return;
+        const isSemanal = freqInput.value === 'semanal';
+        daysGroup.style.display = isSemanal ? 'block' : 'none';
+        if (isSemanal) {
+            setRecDaysFromDate();
+        }
+        updateRecHint();
+    }
+
     function setRecDaysFromDate(){
+        const freqInput = document.getElementById('recorrenciaFrequencia');
+        if (freqInput && freqInput.value !== 'semanal') return;
         const dateInput = document.querySelector('input[name="data_agendamento"]');
         if (!dateInput || !dateInput.value) return;
         const date = new Date(dateInput.value + 'T00:00:00');
@@ -1921,7 +1975,3 @@ function renderCard($ag, $clientes) {
         window.open(`https://${host}/send?text=${encodeURIComponent(url)}`, '_blank');
     }
 </script>
-
-
-
-
