@@ -1,6 +1,20 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/../../includes/config.php';
 include '../../includes/db.php';
+
+if (!isset($pdo) || !$pdo) {
+    // Try to create a PDO connection if not set
+    try {
+        $pdo = new PDO(
+            $db_dsn ?? 'mysql:host=localhost;dbname=karen_site;charset=utf8mb4',
+            $db_user ?? 'root',
+            $db_pass ?? ''
+        );
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        die('Erro ao conectar ao banco de dados: ' . $e->getMessage());
+    }
+}
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -892,6 +906,64 @@ include '../../includes/ui-toast.php';
         margin-bottom: 16px;
     }
 
+    /* === HISTORICO MOBILE EM CARDS === */
+    .mobile-movements {
+        display: none;
+    }
+
+    .mov-card {
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        background: #ffffff;
+        padding: 12px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .mov-card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .mov-date {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        font-weight: 700;
+    }
+
+    .mov-value {
+        font-size: 1.1rem;
+        font-weight: 800;
+        margin-bottom: 6px;
+    }
+
+    .mov-value.entrada { color: var(--success); }
+    .mov-value.saida { color: var(--danger); }
+
+    .mov-meta {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+
+    .mov-meta-row {
+        font-size: 0.8rem;
+        color: var(--text-main);
+    }
+
+    .mov-meta-row strong {
+        color: var(--text-muted);
+        font-weight: 700;
+        margin-right: 6px;
+    }
+
+    .mov-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
     /* === GRÁFICOS === */
     .charts-grid {
         display: grid;
@@ -1085,49 +1157,14 @@ include '../../includes/ui-toast.php';
             grid-template-columns: 1fr;
         }
 
-        .custom-table,
-        .custom-table thead,
-        .custom-table tbody,
-        .custom-table th,
-        .custom-table td,
-        .custom-table tr {
-            display: block;
-            width: 100%;
-        }
-
-        .custom-table thead {
+        .custom-table {
             display: none;
         }
 
-        .custom-table tbody tr {
-            background: #ffffff;
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            padding: 10px 12px;
-            margin-bottom: 12px;
-        }
-
-        .custom-table td {
-            display: flex;
-            justify-content: space-between;
+        .mobile-movements {
+            display: grid;
             gap: 12px;
-            padding: 8px 6px;
-            border-bottom: 1px dashed #e5e7eb;
         }
-
-        .custom-table td:last-child {
-            border-bottom: none;
-        }
-
-        .custom-table td::before {
-            content: attr(data-label);
-            font-weight: 700;
-            color: var(--text-muted);
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
-
         .table-header {
             flex-direction: column;
             align-items: flex-start;
@@ -1263,7 +1300,7 @@ include '../../includes/ui-toast.php';
             </div>
         </div>
 
-        <div class="dashboard-card info">
+        <div class="dashboard-card info extra-card">
             <div class="card-icon info">
                 <i class="bi bi-calendar2-check"></i>
             </div>
@@ -1595,6 +1632,81 @@ include '../../includes/ui-toast.php';
                 <?php endif; ?>
             </tbody>
         </table>
+        <div class="mobile-movements">
+            <?php if (!empty($movimentos)): ?>
+                <?php foreach ($movimentos as $mov): ?>
+                    <div class="mov-card">
+                        <div class="mov-card-head">
+                            <div class="mov-date"><?php echo date('d/m/Y', strtotime($mov['data_movimento'])); ?></div>
+                            <span class="badge badge-<?php echo $mov['tipo']; ?>">
+                                <?php if ($mov['tipo'] === 'entrada'): ?>
+                                    <i class="bi bi-arrow-up"></i> Entrada
+                                <?php else: ?>
+                                    <i class="bi bi-arrow-down"></i> Saída
+                                <?php endif; ?>
+                            </span>
+                        </div>
+
+                        <div class="mov-value <?php echo $mov['tipo']; ?>">
+                            R$ <?php echo number_format((float)$mov['valor'], 2, ',', '.'); ?>
+                        </div>
+
+                        <div class="mov-meta">
+                            <div class="mov-meta-row">
+                                <strong>Categoria:</strong>
+                                <?php
+                                $cat = htmlspecialchars($mov['categoria'] ?? '-');
+                                if ($mov['origem'] === 'agendamento') {
+                                    echo '<span class="badge badge-agendamento"><i class="bi bi-calendar-check"></i> ' . $cat . '</span>';
+                                } else {
+                                    echo $cat;
+                                }
+                                ?>
+                            </div>
+                            <div class="mov-meta-row">
+                                <strong>Descri��o:</strong>
+                                <?php echo htmlspecialchars($mov['descricao'] ?? '-'); ?>
+                            </div>
+                        </div>
+
+                        <div class="mov-actions">
+                            <?php if ($mov['origem'] !== 'agendamento'): ?>
+                                <button type="button" class="btn-action btn-edit" onclick="editarMovimento(<?php echo $mov['id']; ?>)">
+                                    <i class="bi bi-pencil-square"></i> Editar
+                                </button>
+                                <form method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir este movimento?');">
+                                    <input type="hidden" name="acao" value="excluir">
+                                    <input type="hidden" name="id" value="<?php echo $mov['id']; ?>">
+                                    <button type="submit" class="btn-action btn-delete">
+                                        <i class="bi bi-trash3-fill"></i> Excluir
+                                    </button>
+                                </form>
+                            <?php else: ?>
+                                <span style="color: var(--text-muted); font-size: 0.75rem;">
+                                    <i class="bi bi-lock-fill"></i> Lançamento automático
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="mov-card">
+                    <div class="empty-state" style="padding: 24px 8px;">
+                        <i class="bi bi-inbox"></i>
+                        <div style="font-size: 1rem; font-weight: 600; margin-bottom: 8px;">
+                            Nenhum movimento encontrado
+                        </div>
+                        <div>
+                            <?php if ($filtroCategoria || $filtroTipo || $busca): ?>
+                                Tente ajustar os filtros de busca ou <a href="<?php echo $financeiroUrl; ?>">limpar filtros</a>.
+                            <?php else: ?>
+                                Adicione seu primeiro movimento financeiro usando o formulário acima.
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 
