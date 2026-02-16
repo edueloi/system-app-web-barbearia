@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // pages/comandas/comandas.php
 require_once __DIR__ . '/../../includes/db.php';
 
@@ -94,10 +94,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $titulo     = trim($_POST['titulo'] ?: 'ServiÃ§o Avulso');
             $tipo       = $_POST['tipo'] ?? 'normal'; // normal ou pacote
 
-            // Flag: usar agendamentos do cliente para montar as sessÃµes
+            // Flag: usar agendamentos do cliente para montar as sessões
             $usarAgenda = !empty($_POST['usar_agenda']);
 
-            // Quantidade informada no formulÃ¡rio (padrÃ£o)
+            // Quantidade informada no formulário (padrão)
             $qtdForm    = max(1, (int)$_POST['qtd_total']);
             $qtd        = $qtdForm;
 
@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$uid, $cliente_id, $servico_id, $titulo, $tipo, $valor_tot, $qtd, $dt_inicio, $frequencia]);
             $comanda_id = $pdo->lastInsertId();
 
-            // Calcula valor por sessÃ£o
+            // Calcula valor por sessão
             $valor_sessao = $qtd > 0 ? $valor_tot / $qtd : 0;
 
             // Decide COMO criar os itens
@@ -1124,14 +1124,14 @@ include '../../includes/menu.php';
     <div class="app-header">
         <div class="page-title">
             <h1>Comandas</h1>
-            <p>Controle prÃ¡tico de pacotes e sessÃµes</p>
+            <p>Controle prático de pacotes e sessões</p>
         </div>
         <div class="tabs-pill">
             <a href="?tab=aberta" class="tab-link <?= $filtro_status=='aberta'?'active':'' ?>">
                 <i class="bi bi-circle-half"></i> Abertas
             </a>
             <a href="?tab=fechada" class="tab-link <?= $filtro_status=='fechada'?'active':'' ?>">
-                <i class="bi bi-check-circle"></i> ConcluÃ­das
+                <i class="bi bi-check-circle"></i> Concluídas
             </a>
         </div>
     </div>
@@ -1141,7 +1141,7 @@ include '../../includes/menu.php';
             <input type="hidden" name="tab" value="<?= htmlspecialchars($filtro_status) ?>">
             <div class="search-wrapper">
                 <i class="bi bi-search"></i>
-                <input type="text" name="q" value="<?= htmlspecialchars($busca) ?>" placeholder="Buscar por cliente ou tÃ­tulo..." class="search-input">
+                <input type="text" name="q" value="<?= htmlspecialchars($busca) ?>" placeholder="Buscar por cliente ou título..." class="search-input">
             </div>
         </form>
         <button type="button" class="btn-gradient" onclick="abrirModal('modalNova')">
@@ -1164,9 +1164,9 @@ include '../../includes/menu.php';
                     <th>Pacote</th>
                     <th>Cliente</th>
                     <th>Progresso</th>
-                    <th>PrÃ³xima</th>
+                    <th>Próxima</th>
                     <th>Valor</th>
-                    <th style="text-align:right">OpÃ§Ãµes</th>
+                    <th style="text-align:right">Opções</th>
                 </tr>
             </thead>
             <tbody>
@@ -1182,7 +1182,7 @@ include '../../includes/menu.php';
                         <div style="display:flex; gap:6px; align-items:center; margin-top:4px; flex-wrap:wrap;">
                             <span class="badge-pill badge-<?= $c['tipo']=='pacote'?'orange':'blue' ?>"><?= ucfirst($c['tipo']) ?></span>
                             <span class="badge-pill badge-next">
-                                PrÃ³xima: <?= $c['proxima'] ? date('d/m', strtotime($c['proxima'])) : '--' ?>
+                                Próxima: <?= $c['proxima'] ? date('d/m', strtotime($c['proxima'])) : '--' ?>
                             </span>
                         </div>
                     </td>
@@ -1207,14 +1207,14 @@ include '../../includes/menu.php';
                                     onclick="abrirConfirmacao(<?= $c['id'] ?>, '<?= htmlspecialchars($c['c_nome'], ENT_QUOTES) ?>', <?= $c['feitos'] ?>, <?= $c['qtd_total'] ?>)"
                                     class="btn-icon"
                                     style="color:var(--success); border-color:var(--success-bg); background:var(--success-bg);"
-                                    title="Confirmar prÃ³xima sessÃ£o">
+                                    title="Confirmar prÃ³xima sessão">
                                     <i class="bi bi-check-lg"></i>
                                 </button>
                             <?php endif; ?>
                             <button onclick="abrirDetalhesComanda(<?= $c['id'] ?>)" class="btn-icon" title="Ver sessoes">
                                 <i class="bi bi-eye"></i>
                             </button>
-                            <button onclick='editarComanda(<?= $dataJson ?>)' class="btn-icon" title="Editar tÃ­tulo">
+                            <button onclick='editarComanda(<?= $dataJson ?>)' class="btn-icon" title="Editar Titulo">
                                 <i class="bi bi-pencil"></i>
                             </button>
                             <button onclick="excluirComanda(<?= $c['id'] ?>)" class="btn-icon del" title="Excluir comanda">
@@ -1245,7 +1245,7 @@ include '../../includes/menu.php';
                 <div class="top-right">
                     <span class="badge-pill badge-<?= $c['tipo']=='pacote'?'orange':'blue' ?>"><?= ucfirst($c['tipo']) ?></span>
                     <span class="next-pill">
-                        PrÃ³xima: <?= $c['proxima'] ? date('d/m', strtotime($c['proxima'])) : '--' ?>
+                        Próxima: <?= $c['proxima'] ? date('d/m', strtotime($c['proxima'])) : '--' ?>
                     </span>
                 </div>
             </div>
@@ -1262,7 +1262,7 @@ include '../../includes/menu.php';
 
             <div style="display:flex; gap:8px; margin-bottom:8px;">
                 <div style="flex:1; background:#f8fafc; padding:8px; border-radius:14px;">
-                    <div style="font-size:0.68rem; color:var(--text-muted); margin-bottom:2px;">PrÃ³xima sessÃ£o</div>
+                    <div style="font-size:0.68rem; color:var(--text-muted); margin-bottom:2px;">Próxima sessão</div>
                     <div style="font-weight:600; font-size:0.8rem;">
                         <?= $c['proxima'] ? date('d/m', strtotime($c['proxima'])) : '--' ?>
                     </div>
@@ -1281,12 +1281,12 @@ include '../../includes/menu.php';
                         class="btn-gradient"
                         style="width:100%; justify-content:center; box-shadow:none; font-size:0.8rem; height:32px;"
                         onclick="abrirConfirmacao(<?= $c['id'] ?>, '<?= htmlspecialchars($c['c_nome'], ENT_QUOTES) ?>', <?= $c['feitos'] ?>, <?= $c['qtd_total'] ?>)">
-                        Confirmar sessÃ£o
+                        Confirmar sessão
                     </button>
                 <?php else: ?>
                     <button
                         style="width:100%; border:none; background:#ecfdf5; color:var(--success); border-radius:999px; font-weight:600; font-size:0.78rem; height:32px;">
-                        ConcluÃ­do
+                        Concluído
                     </button>
                 <?php endif; ?>
 
@@ -1379,20 +1379,20 @@ include '../../includes/menu.php';
                         <option value="<?= $p['id'] ?>"
                                 data-preco="<?= $p['preco'] ?>"
                                 data-qtd="<?= $p['qtd_sessoes'] ?>">
-                            <?= htmlspecialchars($p['nome']) ?> - R$ <?= number_format($p['preco'], 2, ',', '.') ?> (<?= $p['qtd_sessoes'] ?> sessÃµes)
+                            <?= htmlspecialchars($p['nome']) ?> - R$ <?= number_format($p['preco'], 2, ',', '.') ?> (<?= $p['qtd_sessoes'] ?> Seções)
                         </option>
                     <?php endforeach; ?>
                 </select>
             </div>
 
             <div class="form-group">
-                <label class="form-label">TÃ­tulo</label>
+                <label class="form-label">Titulo</label>
                 <input type="text" name="titulo" id="titulo" class="form-input" placeholder="Ex: Tratamento facial completo">
             </div>
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
                 <div class="form-group">
-                    <label class="form-label">SessÃµes</label>
+                    <label class="form-label">Sessões</label>
                     <input type="number" name="qtd_total" id="qtd" class="form-input" value="1" min="1" onchange="calcTotal()">
                 </div>
                 <div class="form-group">
@@ -1403,18 +1403,18 @@ include '../../includes/menu.php';
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
                 <div class="form-group">
-                    <label class="form-label">InÃ­cio</label>
+                    <label class="form-label">Início</label>
                     <input type="date" name="data_inicio" class="form-input" value="<?= date('Y-m-d') ?>">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">FrequÃªncia</label>
+                    <label class="form-label">Frequência</label>
                     <select name="frequencia" class="form-input" id="frequenciaSelect">
-                        <option value="diaria">DiÃ¡ria</option>
+                        <option value="diaria">Diaria</option>
                         <option value="semanal">Semanal</option>
                         <option value="quinzenal">Quinzenal</option>
                         <option value="mensal_dia">Mensal (dia fixo)</option>
                         <option value="mensal_semana">Mensal (semana)</option>
-                        <option value="unico">Ãšnico</option>
+                        <option value="unico">Único</option>
                         <option value="personalizada">Personalizada</option>
                     </select>
                     <div id="diasSemanaBox" style="display:none; margin-top:6px;">
@@ -1425,7 +1425,7 @@ include '../../includes/menu.php';
                             <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="3"><span>Qua</span></label>
                             <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="4"><span>Qui</span></label>
                             <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="5"><span>Sex</span></label>
-                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="6"><span>SÃ¡b</span></label>
+                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="6"><span>Sáb</span></label>
                             <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="0"><span>Dom</span></label>
                         </div>
                     </div>
@@ -1442,7 +1442,7 @@ include '../../includes/menu.php';
     </div>
 </div>
 
-<!-- MODAL CONFIRMAR SESSÃƒO -->
+<!-- MODAL CONFIRMAR SESSÃO -->
 <div id="modalConfirmar" class="modal-overlay">
     <div class="modal-box" style="text-align:center;">
         <div style="width:40px; height:4px; background:#e2e8f0; border-radius:999px; margin:0 auto 14px;"></div>
@@ -1450,7 +1450,7 @@ include '../../includes/menu.php';
             <i class="bi bi-check-lg"></i>
         </div>
         <h3 id="confCliente" style="margin:0; font-size:1.05rem; font-weight:700; color:var(--text-main);">Cliente</h3>
-        <p id="confProgress" style="color:var(--text-muted); margin:5px 0 18px; font-size:0.85rem;">SessÃ£o 2 de 5</p>
+        <p id="confProgress" style="color:var(--text-muted); margin:5px 0 18px; font-size:0.85rem;">Sessão 2 de 5</p>
 
         <form method="POST">
             <input type="hidden" name="acao" value="confirmar_sessao">
@@ -1462,7 +1462,7 @@ include '../../includes/menu.php';
             </div>
 
             <button type="submit" class="btn-submit" style="background:linear-gradient(135deg,#10b981,#059669); box-shadow:0 10px 24px rgba(16,185,129,0.45);">
-                Confirmar presenÃ§a
+                Confirmar presença
             </button>
             <button type="button" class="btn-cancel-modal" onclick="fecharModal('modalConfirmar')">Cancelar</button>
         </form>
@@ -1482,7 +1482,7 @@ include '../../includes/menu.php';
 
             <div class="form-group">
                 <label class="form-label">
-                    <i class="bi bi-tag-fill"></i> TÃ­tulo
+                    <i class="bi bi-tag-fill"></i> Titulo
                 </label>
                 <input type="text" name="edit_titulo" id="editTitulo" class="form-input" required>
             </div>
@@ -1490,7 +1490,7 @@ include '../../includes/menu.php';
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
                 <div class="form-group">
                     <label class="form-label">
-                        <i class="bi bi-list-ol"></i> SessÃµes
+                        <i class="bi bi-list-ol"></i> Sessões
                     </label>
                     <input type="number" name="edit_qtd_total" id="editQtdTotal" class="form-input" min="1" required>
                 </div>
@@ -1505,16 +1505,16 @@ include '../../includes/menu.php';
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
                 <div class="form-group">
                     <label class="form-label">
-                        <i class="bi bi-calendar-event"></i> Data InÃ­cio
+                        <i class="bi bi-calendar-event"></i> Data Início
                     </label>
                     <input type="date" name="edit_data_inicio" id="editDataInicio" class="form-input" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">
-                        <i class="bi bi-arrow-repeat"></i> FrequÃªncia
+                        <i class="bi bi-arrow-repeat"></i> Frequência
                     </label>
                     <select name="edit_frequencia" id="editFrequencia" class="form-input" required>
-                        <option value="diaria">DiÃ¡ria</option>
+                        <option value="diaria">Diaria</option>
                         <option value="semanal">Semanal</option>
                         <option value="quinzenal">Quinzenal</option>
                         <option value="mensal_dia">Mensal (dia fixo)</option>
@@ -1527,10 +1527,10 @@ include '../../includes/menu.php';
 
             <div style="background:#fff7ed; padding:12px; border-radius:14px; color:#c2410c; font-size:0.74rem; line-height:1.4; margin-bottom:8px; border:1px solid #fed7aa;">
                 <i class="bi bi-exclamation-triangle-fill"></i>
-                <strong>AtenÃ§Ã£o:</strong> Ao alterar a quantidade de sessÃµes, todas as sessÃµes atuais serÃ£o recriadas. SessÃµes jÃ¡ confirmadas serÃ£o perdidas.
+                <strong>Atenção:</strong> Ao alterar a quantidade de sessões, todas as sessões atuais serão recriadas. Sessões já confirmadas serão perdidas.
             </div>
 
-            <button type="submit" class="btn-submit">Salvar alteraÃ§Ãµes</button>
+            <button type="submit" class="btn-submit">Salvar alterações</button>
             <button type="button" class="btn-cancel-modal" onclick="fecharModal('modalEditar')">Cancelar</button>
         </form>
     </div>
@@ -1579,7 +1579,7 @@ include '../../includes/menu.php';
     const p = new URLSearchParams(window.location.search);
     const msg = p.get('msg');
     if (msg === 'criado')   showToast('Comanda criada com sucesso!');
-    if (msg === 'sessao_ok') showToast('SessÃ£o confirmada!');
+    if (msg === 'sessao_ok') showToast('Sessão confirmada!');
     if (msg === 'deletado') showToast('Comanda removida.');
     if (msg === 'editado')  showToast('Dados atualizados.');
     if (msg === 'sessao_data_ok') showToast('Data da sessao atualizada.');
@@ -1679,7 +1679,7 @@ include '../../includes/menu.php';
         document.getElementById('confCliente').innerText = cliente;
         let proxima = feitos + 1;
         if (proxima > total) proxima = total;
-        document.getElementById('confProgress').innerText = `Confirmando sessÃ£o ${proxima} de ${total}`;
+        document.getElementById('confProgress').innerText = `Confirmando sessão ${proxima} de ${total}`;
         abrirModal('modalConfirmar');
     }
 
