@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // pages/comandas/comandas.php
 require_once __DIR__ . '/../../includes/db.php';
 
@@ -75,7 +75,7 @@ function getNthWeekdayInMonth($year, $month, $weekday, $nth) {
 }
 
 // =========================================================
-// LÓGICA PHP
+// LÃ“GICA PHP
 // =========================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $acao = $_POST['acao'] ?? '';
@@ -86,18 +86,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $cliente_id = (int)$_POST['cliente_id'];
 
-            // Pega o ID do serviço OU do pacote selecionado
+            // Pega o ID do serviÃ§o OU do pacote selecionado
             $servico_id = !empty($_POST['servico_id'])
                 ? (int)$_POST['servico_id']
                 : (!empty($_POST['pacote_id']) ? (int)$_POST['pacote_id'] : null);
 
-            $titulo     = trim($_POST['titulo'] ?: 'Serviço Avulso');
+            $titulo     = trim($_POST['titulo'] ?: 'ServiÃ§o Avulso');
             $tipo       = $_POST['tipo'] ?? 'normal'; // normal ou pacote
 
-            // Flag: usar agendamentos do cliente para montar as sessões
+            // Flag: usar agendamentos do cliente para montar as sessÃµes
             $usarAgenda = !empty($_POST['usar_agenda']);
 
-            // Quantidade informada no formulário (padrão)
+            // Quantidade informada no formulÃ¡rio (padrÃ£o)
             $qtdForm    = max(1, (int)$_POST['qtd_total']);
             $qtd        = $qtdForm;
 
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $diasSemana = normalizeWeekdays($diasSemana);
 
             if ($usarAgenda) {
-                // Busca agendamentos futuros (mesmo critério da API)
+                // Busca agendamentos futuros (mesmo critÃ©rio da API)
                 $stmtAg = $pdo->prepare("
                     SELECT id, data_agendamento as data, horario as hora
                     FROM agendamentos
@@ -126,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $agendamentos = $stmtAg->fetchAll(PDO::FETCH_ASSOC);
 
                 if (!empty($agendamentos)) {
-                    // Força a quantidade de sessões = total de agendamentos
+                    // ForÃ§a a quantidade de sessÃµes = total de agendamentos
                     $qtd = count($agendamentos);
                 }
             }
@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$uid, $cliente_id, $servico_id, $titulo, $tipo, $valor_tot, $qtd, $dt_inicio, $frequencia]);
             $comanda_id = $pdo->lastInsertId();
 
-            // Calcula valor por sessão
+            // Calcula valor por sessÃ£o
             $valor_sessao = $qtd > 0 ? $valor_tot / $qtd : 0;
 
             // Decide COMO criar os itens
@@ -149,13 +149,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // MONTA ITENS USANDO AS DATAS DA AGENDA
                 $numero = 1;
                 $stmtItem = $pdo->prepare("
-                    INSERT INTO comanda_itens (comanda_id, numero, data_prevista, valor_sessao, status)
-                    VALUES (?, ?, ?, ?, 'pendente')
+                    INSERT INTO comanda_itens (comanda_id, numero, data_prevista, valor_sessao, agendamento_id, status)
+                    VALUES (?, ?, ?, ?, ?, 'pendente')
                 ");
 
                 foreach ($agendamentos as $ag) {
-                    $dt_sql = $ag['data']; // já está em Y-m-d no banco
-                    $stmtItem->execute([$comanda_id, $numero, $dt_sql, $valor_sessao]);
+                    $dt_sql = $ag['data']; // jÃ¡ estÃ¡ em Y-m-d no banco
+                    $stmtItem->execute([$comanda_id, $numero, $dt_sql, $valor_sessao, (int)$ag['id']]);
                     $numero++;
                 }
 
@@ -263,6 +263,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
+
+        if ($acao === 'atualizar_data_sessao') {
+            $itemId = (int)($_POST['comanda_item_id'] ?? 0);
+            $novaData = trim($_POST['nova_data'] ?? '');
+
+            if ($itemId <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $novaData)) {
+                header("Location: ?msg=erro_data");
+                exit;
+            }
+
+            $pdo->beginTransaction();
+
+            $stmtItem = $pdo->prepare(" 
+                SELECT i.id, i.data_prevista, i.agendamento_id, c.id AS comanda_id, c.cliente_id, c.servico_id
+                FROM comanda_itens i
+                JOIN comandas c ON c.id = i.comanda_id
+                WHERE i.id = ? AND c.user_id = ?
+                LIMIT 1
+            ");
+            $stmtItem->execute([$itemId, $uid]);
+            $itemRow = $stmtItem->fetch(PDO::FETCH_ASSOC);
+
+            if (!$itemRow) {
+                throw new Exception('Sessao nao encontrada.');
+            }
+
+            $dataAntiga = $itemRow['data_prevista'];
+
+            $pdo->prepare("UPDATE comanda_itens SET data_prevista = ? WHERE id = ?")
+                ->execute([$novaData, $itemId]);
+
+            $agendamentoId = (int)($itemRow['agendamento_id'] ?? 0);
+
+            if ($agendamentoId > 0) {
+                $pdo->prepare("UPDATE agendamentos SET data_agendamento = ? WHERE id = ? AND user_id = ?")
+                    ->execute([$novaData, $agendamentoId, $uid]);
+            } else {
+                $stmtAg = $pdo->prepare(" 
+                    SELECT a.id
+                    FROM agendamentos a
+                    WHERE a.user_id = ?
+                      AND a.cliente_id = ?
+                      AND a.status IN ('Pendente','Confirmado')
+                      AND date(a.data_agendamento) = date(?)
+                      AND a.id NOT IN (
+                        SELECT ci.agendamento_id
+                        FROM comanda_itens ci
+                        WHERE ci.agendamento_id IS NOT NULL
+                          AND ci.id <> ?
+                      )
+                    ORDER BY a.id ASC
+                    LIMIT 1
+                ");
+                $stmtAg->execute([
+                    $uid,
+                    (int)$itemRow['cliente_id'],
+                    $dataAntiga,
+                                        $itemId
+                ]);
+                $ag = $stmtAg->fetch(PDO::FETCH_ASSOC);
+
+                if ($ag && !empty($ag['id'])) {
+                    $agendamentoId = (int)$ag['id'];
+                    $pdo->prepare("UPDATE agendamentos SET data_agendamento = ? WHERE id = ? AND user_id = ?")
+                        ->execute([$novaData, $agendamentoId, $uid]);
+                    $pdo->prepare("UPDATE comanda_itens SET agendamento_id = ? WHERE id = ?")
+                        ->execute([$agendamentoId, $itemId]);
+                }
+            }
+
+            $pdo->commit();
+            $tabDestino = $_POST['tab'] ?? ($_GET['tab'] ?? 'aberta');
+            header("Location: ?msg=sessao_data_ok&tab=" . urlencode($tabDestino));
+            exit;
+        }
         if ($acao === 'editar') {
             $pdo->beginTransaction();
             
@@ -277,7 +352,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare("UPDATE comandas SET titulo = ?, qtd_total = ?, valor_total = ?, data_inicio = ?, frequencia = ? WHERE id = ? AND user_id = ?")
                 ->execute([$titulo, $qtd_total, $valor_total, $data_inicio, $frequencia, $id, $uid]);
             
-            // Verificar se mudou a quantidade de sessões
+            // Verificar se mudou a quantidade de sessÃµes
             $stmtCount = $pdo->prepare("SELECT COUNT(*) as total FROM comanda_itens WHERE comanda_id = ?");
             $stmtCount->execute([$id]);
             $countResult = $stmtCount->fetch(PDO::FETCH_ASSOC);
@@ -297,7 +372,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         VALUES (?, ?, ?, ?, 'pendente')
                     ")->execute([$id, $i, $data_atual->format('Y-m-d'), $valor_sessao]);
                     
-                    // Avançar data conforme frequência
+                    // AvanÃ§ar data conforme frequÃªncia
                     if ($i < $qtd_total) {
                         if ($frequencia === 'semanal') {
                             $data_atual->modify('+7 days');
@@ -331,6 +406,46 @@ if (isset($_GET['del'])) {
     exit;
 }
 
+
+if (isset($_GET['acao']) && $_GET['acao'] === 'detalhes_comanda') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    $id = (int)($_GET['id'] ?? 0);
+    if ($id <= 0) {
+        echo json_encode(['ok' => false, 'erro' => 'ID invalido']);
+        exit;
+    }
+
+    $stmtCom = $pdo->prepare(" 
+        SELECT c.id, c.titulo, c.status, c.qtd_total, c.valor_total, c.data_inicio, c.frequencia,
+               cli.nome AS cliente_nome,
+               s.nome AS servico_nome
+        FROM comandas c
+        JOIN clientes cli ON cli.id = c.cliente_id
+        LEFT JOIN servicos s ON s.id = c.servico_id
+        WHERE c.id = ? AND c.user_id = ?
+        LIMIT 1
+    ");
+    $stmtCom->execute([$id, $uid]);
+    $comanda = $stmtCom->fetch(PDO::FETCH_ASSOC);
+
+    if (!$comanda) {
+        echo json_encode(['ok' => false, 'erro' => 'Comanda nao encontrada']);
+        exit;
+    }
+
+    $stmtItens = $pdo->prepare(" 
+        SELECT id, numero, data_prevista, data_realizada, status, valor_sessao
+        FROM comanda_itens
+        WHERE comanda_id = ?
+        ORDER BY numero ASC, data_prevista ASC
+    ");
+    $stmtItens->execute([$id]);
+    $itens = $stmtItens->fetchAll(PDO::FETCH_ASSOC);
+
+    echo json_encode(['ok' => true, 'comanda' => $comanda, 'itens' => $itens]);
+    exit;
+}
 $filtro_status = $_GET['tab'] ?? 'aberta';
 $busca         = trim($_GET['q'] ?? '');
 
@@ -352,11 +467,11 @@ if ($busca) $stmt->bindValue(':busca', "%$busca%");
 $stmt->execute();
 $lista = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// --- SEPARAÇÃO DE DADOS PARA OS SELECTS ---
+// --- SEPARAÃ‡ÃƒO DE DADOS PARA OS SELECTS ---
 $clientes = $pdo->query("SELECT id, nome FROM clientes WHERE user_id = $uid ORDER BY nome")
     ->fetchAll(PDO::FETCH_ASSOC);
 
-// Serviços avulsos
+// ServiÃ§os avulsos
 $servicosUnicos = $pdo->query("
     SELECT id, nome, preco, tipo, qtd_sessoes 
     FROM servicos 
@@ -1009,14 +1124,14 @@ include '../../includes/menu.php';
     <div class="app-header">
         <div class="page-title">
             <h1>Comandas</h1>
-            <p>Controle prático de pacotes e sessões</p>
+            <p>Controle prÃ¡tico de pacotes e sessÃµes</p>
         </div>
         <div class="tabs-pill">
             <a href="?tab=aberta" class="tab-link <?= $filtro_status=='aberta'?'active':'' ?>">
                 <i class="bi bi-circle-half"></i> Abertas
             </a>
             <a href="?tab=fechada" class="tab-link <?= $filtro_status=='fechada'?'active':'' ?>">
-                <i class="bi bi-check-circle"></i> Concluídas
+                <i class="bi bi-check-circle"></i> ConcluÃ­das
             </a>
         </div>
     </div>
@@ -1026,7 +1141,7 @@ include '../../includes/menu.php';
             <input type="hidden" name="tab" value="<?= htmlspecialchars($filtro_status) ?>">
             <div class="search-wrapper">
                 <i class="bi bi-search"></i>
-                <input type="text" name="q" value="<?= htmlspecialchars($busca) ?>" placeholder="Buscar por cliente ou título..." class="search-input">
+                <input type="text" name="q" value="<?= htmlspecialchars($busca) ?>" placeholder="Buscar por cliente ou tÃ­tulo..." class="search-input">
             </div>
         </form>
         <button type="button" class="btn-gradient" onclick="abrirModal('modalNova')">
@@ -1049,9 +1164,9 @@ include '../../includes/menu.php';
                     <th>Pacote</th>
                     <th>Cliente</th>
                     <th>Progresso</th>
-                    <th>Próxima</th>
+                    <th>PrÃ³xima</th>
                     <th>Valor</th>
-                    <th style="text-align:right">Opções</th>
+                    <th style="text-align:right">OpÃ§Ãµes</th>
                 </tr>
             </thead>
             <tbody>
@@ -1067,7 +1182,7 @@ include '../../includes/menu.php';
                         <div style="display:flex; gap:6px; align-items:center; margin-top:4px; flex-wrap:wrap;">
                             <span class="badge-pill badge-<?= $c['tipo']=='pacote'?'orange':'blue' ?>"><?= ucfirst($c['tipo']) ?></span>
                             <span class="badge-pill badge-next">
-                                Próxima: <?= $c['proxima'] ? date('d/m', strtotime($c['proxima'])) : '--' ?>
+                                PrÃ³xima: <?= $c['proxima'] ? date('d/m', strtotime($c['proxima'])) : '--' ?>
                             </span>
                         </div>
                     </td>
@@ -1092,11 +1207,14 @@ include '../../includes/menu.php';
                                     onclick="abrirConfirmacao(<?= $c['id'] ?>, '<?= htmlspecialchars($c['c_nome'], ENT_QUOTES) ?>', <?= $c['feitos'] ?>, <?= $c['qtd_total'] ?>)"
                                     class="btn-icon"
                                     style="color:var(--success); border-color:var(--success-bg); background:var(--success-bg);"
-                                    title="Confirmar próxima sessão">
+                                    title="Confirmar prÃ³xima sessÃ£o">
                                     <i class="bi bi-check-lg"></i>
                                 </button>
                             <?php endif; ?>
-                            <button onclick='editarComanda(<?= $dataJson ?>)' class="btn-icon" title="Editar título">
+                            <button onclick="abrirDetalhesComanda(<?= $c['id'] ?>)" class="btn-icon" title="Ver sessoes">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button onclick='editarComanda(<?= $dataJson ?>)' class="btn-icon" title="Editar tÃ­tulo">
                                 <i class="bi bi-pencil"></i>
                             </button>
                             <button onclick="excluirComanda(<?= $c['id'] ?>)" class="btn-icon del" title="Excluir comanda">
@@ -1127,7 +1245,7 @@ include '../../includes/menu.php';
                 <div class="top-right">
                     <span class="badge-pill badge-<?= $c['tipo']=='pacote'?'orange':'blue' ?>"><?= ucfirst($c['tipo']) ?></span>
                     <span class="next-pill">
-                        Próxima: <?= $c['proxima'] ? date('d/m', strtotime($c['proxima'])) : '--' ?>
+                        PrÃ³xima: <?= $c['proxima'] ? date('d/m', strtotime($c['proxima'])) : '--' ?>
                     </span>
                 </div>
             </div>
@@ -1144,7 +1262,7 @@ include '../../includes/menu.php';
 
             <div style="display:flex; gap:8px; margin-bottom:8px;">
                 <div style="flex:1; background:#f8fafc; padding:8px; border-radius:14px;">
-                    <div style="font-size:0.68rem; color:var(--text-muted); margin-bottom:2px;">Próxima sessão</div>
+                    <div style="font-size:0.68rem; color:var(--text-muted); margin-bottom:2px;">PrÃ³xima sessÃ£o</div>
                     <div style="font-weight:600; font-size:0.8rem;">
                         <?= $c['proxima'] ? date('d/m', strtotime($c['proxima'])) : '--' ?>
                     </div>
@@ -1157,21 +1275,24 @@ include '../../includes/menu.php';
                 </div>
             </div>
 
-            <div style="display:grid; grid-template-columns: 1fr auto auto; gap:6px; margin-top:6px;">
+            <div style="display:grid; grid-template-columns: 1fr auto auto auto; gap:6px; margin-top:6px;">
                 <?php if($c['status'] == 'aberta'): ?>
                     <button
                         class="btn-gradient"
                         style="width:100%; justify-content:center; box-shadow:none; font-size:0.8rem; height:32px;"
                         onclick="abrirConfirmacao(<?= $c['id'] ?>, '<?= htmlspecialchars($c['c_nome'], ENT_QUOTES) ?>', <?= $c['feitos'] ?>, <?= $c['qtd_total'] ?>)">
-                        Confirmar sessão
+                        Confirmar sessÃ£o
                     </button>
                 <?php else: ?>
                     <button
                         style="width:100%; border:none; background:#ecfdf5; color:var(--success); border-radius:999px; font-weight:600; font-size:0.78rem; height:32px;">
-                        Concluído
+                        ConcluÃ­do
                     </button>
                 <?php endif; ?>
 
+                <button class="btn-icon" onclick="abrirDetalhesComanda(<?= $c['id'] ?>)" title="Sessoes">
+                    <i class="bi bi-eye"></i>
+                </button>
                 <button class="btn-icon" onclick='editarComanda(<?= $dataJson ?>)' title="Editar">
                     <i class="bi bi-pencil"></i>
                 </button>
@@ -1196,7 +1317,7 @@ include '../../includes/menu.php';
             <input type="hidden" name="tipo" id="tipoInput" value="normal">
 
             <div class="switch-wrap">
-                <div class="switch-opt active" onclick="mudarTipo('normal', this)">Serviço</div>
+                <div class="switch-opt active" onclick="mudarTipo('normal', this)">ServiÃ§o</div>
                 <div class="switch-opt" onclick="mudarTipo('pacote', this)">Pacote</div>
             </div>
 
@@ -1237,7 +1358,7 @@ include '../../includes/menu.php';
             </div>
 
             <div class="form-group" id="wrapServico">
-                <label class="form-label">Serviço base</label>
+                <label class="form-label">ServiÃ§o base</label>
                 <select name="servico_id" id="selServico" class="form-input" onchange="atualizarValores()">
                     <option value="" data-preco="0">Selecione...</option>
                     <?php foreach($servicosUnicos as $s): ?>
@@ -1258,20 +1379,20 @@ include '../../includes/menu.php';
                         <option value="<?= $p['id'] ?>"
                                 data-preco="<?= $p['preco'] ?>"
                                 data-qtd="<?= $p['qtd_sessoes'] ?>">
-                            <?= htmlspecialchars($p['nome']) ?> - R$ <?= number_format($p['preco'], 2, ',', '.') ?> (<?= $p['qtd_sessoes'] ?> sessões)
+                            <?= htmlspecialchars($p['nome']) ?> - R$ <?= number_format($p['preco'], 2, ',', '.') ?> (<?= $p['qtd_sessoes'] ?> sessÃµes)
                         </option>
                     <?php endforeach; ?>
                 </select>
             </div>
 
             <div class="form-group">
-                <label class="form-label">Título</label>
+                <label class="form-label">TÃ­tulo</label>
                 <input type="text" name="titulo" id="titulo" class="form-input" placeholder="Ex: Tratamento facial completo">
             </div>
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
                 <div class="form-group">
-                    <label class="form-label">Sessões</label>
+                    <label class="form-label">SessÃµes</label>
                     <input type="number" name="qtd_total" id="qtd" class="form-input" value="1" min="1" onchange="calcTotal()">
                 </div>
                 <div class="form-group">
@@ -1282,18 +1403,18 @@ include '../../includes/menu.php';
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
                 <div class="form-group">
-                    <label class="form-label">Início</label>
+                    <label class="form-label">InÃ­cio</label>
                     <input type="date" name="data_inicio" class="form-input" value="<?= date('Y-m-d') ?>">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Frequência</label>
+                    <label class="form-label">FrequÃªncia</label>
                     <select name="frequencia" class="form-input" id="frequenciaSelect">
-                        <option value="diaria">Diária</option>
+                        <option value="diaria">DiÃ¡ria</option>
                         <option value="semanal">Semanal</option>
                         <option value="quinzenal">Quinzenal</option>
                         <option value="mensal_dia">Mensal (dia fixo)</option>
                         <option value="mensal_semana">Mensal (semana)</option>
-                        <option value="unico">Único</option>
+                        <option value="unico">Ãšnico</option>
                         <option value="personalizada">Personalizada</option>
                     </select>
                     <div id="diasSemanaBox" style="display:none; margin-top:6px;">
@@ -1304,7 +1425,7 @@ include '../../includes/menu.php';
                             <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="3"><span>Qua</span></label>
                             <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="4"><span>Qui</span></label>
                             <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="5"><span>Sex</span></label>
-                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="6"><span>Sáb</span></label>
+                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="6"><span>SÃ¡b</span></label>
                             <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="0"><span>Dom</span></label>
                         </div>
                     </div>
@@ -1321,7 +1442,7 @@ include '../../includes/menu.php';
     </div>
 </div>
 
-<!-- MODAL CONFIRMAR SESSÃO -->
+<!-- MODAL CONFIRMAR SESSÃƒO -->
 <div id="modalConfirmar" class="modal-overlay">
     <div class="modal-box" style="text-align:center;">
         <div style="width:40px; height:4px; background:#e2e8f0; border-radius:999px; margin:0 auto 14px;"></div>
@@ -1329,7 +1450,7 @@ include '../../includes/menu.php';
             <i class="bi bi-check-lg"></i>
         </div>
         <h3 id="confCliente" style="margin:0; font-size:1.05rem; font-weight:700; color:var(--text-main);">Cliente</h3>
-        <p id="confProgress" style="color:var(--text-muted); margin:5px 0 18px; font-size:0.85rem;">Sessão 2 de 5</p>
+        <p id="confProgress" style="color:var(--text-muted); margin:5px 0 18px; font-size:0.85rem;">SessÃ£o 2 de 5</p>
 
         <form method="POST">
             <input type="hidden" name="acao" value="confirmar_sessao">
@@ -1341,7 +1462,7 @@ include '../../includes/menu.php';
             </div>
 
             <button type="submit" class="btn-submit" style="background:linear-gradient(135deg,#10b981,#059669); box-shadow:0 10px 24px rgba(16,185,129,0.45);">
-                Confirmar presença
+                Confirmar presenÃ§a
             </button>
             <button type="button" class="btn-cancel-modal" onclick="fecharModal('modalConfirmar')">Cancelar</button>
         </form>
@@ -1361,7 +1482,7 @@ include '../../includes/menu.php';
 
             <div class="form-group">
                 <label class="form-label">
-                    <i class="bi bi-tag-fill"></i> Título
+                    <i class="bi bi-tag-fill"></i> TÃ­tulo
                 </label>
                 <input type="text" name="edit_titulo" id="editTitulo" class="form-input" required>
             </div>
@@ -1369,7 +1490,7 @@ include '../../includes/menu.php';
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
                 <div class="form-group">
                     <label class="form-label">
-                        <i class="bi bi-list-ol"></i> Sessões
+                        <i class="bi bi-list-ol"></i> SessÃµes
                     </label>
                     <input type="number" name="edit_qtd_total" id="editQtdTotal" class="form-input" min="1" required>
                 </div>
@@ -1384,21 +1505,21 @@ include '../../includes/menu.php';
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
                 <div class="form-group">
                     <label class="form-label">
-                        <i class="bi bi-calendar-event"></i> Data Início
+                        <i class="bi bi-calendar-event"></i> Data InÃ­cio
                     </label>
                     <input type="date" name="edit_data_inicio" id="editDataInicio" class="form-input" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">
-                        <i class="bi bi-arrow-repeat"></i> Frequência
+                        <i class="bi bi-arrow-repeat"></i> FrequÃªncia
                     </label>
                     <select name="edit_frequencia" id="editFrequencia" class="form-input" required>
-                        <option value="diaria">Diária</option>
+                        <option value="diaria">DiÃ¡ria</option>
                         <option value="semanal">Semanal</option>
                         <option value="quinzenal">Quinzenal</option>
                         <option value="mensal_dia">Mensal (dia fixo)</option>
                         <option value="mensal_semana">Mensal (semana)</option>
-                        <option value="unico">Único</option>
+                        <option value="unico">Ãšnico</option>
                         <option value="personalizada">Personalizada</option>
                     </select>
                 </div>
@@ -1406,12 +1527,43 @@ include '../../includes/menu.php';
 
             <div style="background:#fff7ed; padding:12px; border-radius:14px; color:#c2410c; font-size:0.74rem; line-height:1.4; margin-bottom:8px; border:1px solid #fed7aa;">
                 <i class="bi bi-exclamation-triangle-fill"></i>
-                <strong>Atenção:</strong> Ao alterar a quantidade de sessões, todas as sessões atuais serão recriadas. Sessões já confirmadas serão perdidas.
+                <strong>AtenÃ§Ã£o:</strong> Ao alterar a quantidade de sessÃµes, todas as sessÃµes atuais serÃ£o recriadas. SessÃµes jÃ¡ confirmadas serÃ£o perdidas.
             </div>
 
-            <button type="submit" class="btn-submit">Salvar alterações</button>
+            <button type="submit" class="btn-submit">Salvar alteraÃ§Ãµes</button>
             <button type="button" class="btn-cancel-modal" onclick="fecharModal('modalEditar')">Cancelar</button>
         </form>
+    </div>
+</div>
+
+
+<!-- MODAL DETALHES DA COMANDA -->
+<div id="modalDetalhes" class="modal-overlay">
+    <div class="modal-box">
+        <div style="width:40px; height:4px; background:#e2e8f0; border-radius:999px; margin:0 auto 14px;"></div>
+        <h3 id="detTitulo" style="font-size:1rem; font-weight:700; margin:0 0 4px; text-align:center;">Detalhes da comanda</h3>
+        <p id="detCliente" style="text-align:center; color:var(--text-muted); margin:0 0 4px; font-size:0.82rem;"></p>
+        <p id="detServico" style="text-align:center; color:var(--text-muted); margin:0 0 12px; font-size:0.76rem;"></p>
+
+        <div id="detListaSessoes" style="display:flex; flex-direction:column; gap:8px; max-height:55vh; overflow:auto;"></div>
+
+        <button type="button" class="btn-cancel-modal" onclick="fecharModal('modalDetalhes')">Fechar</button>
+    </div>
+</div>
+
+
+<!-- MODAL EXCLUIR COMANDA -->
+<div id="modalExcluirComanda" class="modal-overlay">
+    <div class="modal-box" style="text-align:center;">
+        <div style="width:40px; height:4px; background:#e2e8f0; border-radius:999px; margin:0 auto 14px;"></div>
+        <div style="width:60px; height:60px; background:var(--danger-bg); color:var(--danger); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 12px; font-size:1.7rem;">
+            <i class="bi bi-trash"></i>
+        </div>
+        <h3 style="margin:0; font-size:1.02rem; font-weight:700; color:var(--text-main);">Excluir comanda</h3>
+        <p style="color:var(--text-muted); margin:8px 0 16px; font-size:0.82rem;">Tem certeza? Todo o histórico desta comanda será perdido.</p>
+        <input type="hidden" id="excluirComandaId" value="">
+        <button type="button" class="btn-submit" style="background:linear-gradient(135deg,#ef4444,#dc2626); box-shadow:0 10px 24px rgba(239,68,68,0.35);" onclick="confirmarExcluirComanda()">Excluir comanda</button>
+        <button type="button" class="btn-cancel-modal" onclick="fecharModal('modalExcluirComanda')">Cancelar</button>
     </div>
 </div>
 
@@ -1427,9 +1579,11 @@ include '../../includes/menu.php';
     const p = new URLSearchParams(window.location.search);
     const msg = p.get('msg');
     if (msg === 'criado')   showToast('Comanda criada com sucesso!');
-    if (msg === 'sessao_ok') showToast('Sessão confirmada!');
+    if (msg === 'sessao_ok') showToast('SessÃ£o confirmada!');
     if (msg === 'deletado') showToast('Comanda removida.');
     if (msg === 'editado')  showToast('Dados atualizados.');
+    if (msg === 'sessao_data_ok') showToast('Data da sessao atualizada.');
+    if (msg === 'erro_data') showToast('Data invalida para sessao.');
 
     // MODAIS
     function abrirModal(id) {
@@ -1446,7 +1600,7 @@ include '../../includes/menu.php';
         document.body.style.overflow = '';
     }
 
-    // TIPO (serviço / pacote)
+    // TIPO (serviÃ§o / pacote)
     function mudarTipo(tipo, el) {
         document.getElementById('tipoInput').value = tipo;
         document.querySelectorAll('.switch-opt').forEach(e => e.classList.remove('active'));
@@ -1525,7 +1679,7 @@ include '../../includes/menu.php';
         document.getElementById('confCliente').innerText = cliente;
         let proxima = feitos + 1;
         if (proxima > total) proxima = total;
-        document.getElementById('confProgress').innerText = `Confirmando sessão ${proxima} de ${total}`;
+        document.getElementById('confProgress').innerText = `Confirmando sessÃ£o ${proxima} de ${total}`;
         abrirModal('modalConfirmar');
     }
 
@@ -1539,10 +1693,97 @@ include '../../includes/menu.php';
         abrirModal('modalEditar');
     }
 
+
+    function formatarDataBR(dataSql) {
+        if (!dataSql) return '--';
+        const p = String(dataSql).split('-');
+        if (p.length !== 3) return dataSql;
+        return `${p[2]}/${p[1]}/${p[0]}`;
+    }
+
+    function badgeStatusSessao(status) {
+        if (status === 'realizado') return '<span class="badge-pill badge-blue">Realizado</span>';
+        if (status === 'cancelado') return '<span class="badge-pill badge-orange">Cancelado</span>';
+        return '<span class="badge-pill badge-next">Pendente</span>';
+    }
+
+    function abrirDetalhesComanda(comandaId) {
+        const lista = document.getElementById('detListaSessoes');
+        const titulo = document.getElementById('detTitulo');
+        const cliente = document.getElementById('detCliente');
+        const servico = document.getElementById('detServico');
+        if (!lista || !titulo || !cliente || !servico) return;
+
+        titulo.innerText = 'Detalhes da comanda';
+        cliente.innerText = 'Carregando...';
+        servico.innerText = '';
+        lista.innerHTML = '<div style="padding:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; text-align:center; color:#64748b;">Buscando sessoes...</div>';
+        abrirModal('modalDetalhes');
+
+        fetch('?acao=detalhes_comanda&id=' + encodeURIComponent(comandaId))
+            .then(r => r.json())
+            .then(data => {
+                if (!data || !data.ok) throw new Error((data && data.erro) ? data.erro : 'Erro ao carregar detalhes');
+
+                const c = data.comanda || {};
+                const itens = Array.isArray(data.itens) ? data.itens : [];
+                const tabAtual = new URLSearchParams(window.location.search).get('tab') || 'aberta';
+
+                titulo.innerText = c.titulo || 'Comanda';
+                cliente.innerText = c.cliente_nome ? ('Cliente: ' + c.cliente_nome) : '';
+                servico.innerText = c.servico_nome ? ('Servico: ' + c.servico_nome) : 'Servico: nao informado';
+
+                if (itens.length === 0) {
+                    lista.innerHTML = '<div style="padding:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; text-align:center; color:#64748b;">Nenhuma sessao encontrada.</div>';
+                    return;
+                }
+
+                let html = '';
+                itens.forEach((it, idx) => {
+                    const n = it.numero ? it.numero : (idx + 1);
+                    const dataPrev = it.data_prevista || '';
+                    const dataReal = it.data_realizada ? formatarDataBR(it.data_realizada) : '--';
+                    const status = it.status || 'pendente';
+
+                    html += '<div style="padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px;">';
+                    html += '  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">';
+                    html += '    <strong style="font-size:0.82rem;">Sessao ' + n + '</strong>';
+                    html +=      badgeStatusSessao(status);
+                    html += '  </div>';
+                    html += '  <div style="font-size:0.75rem; color:#64748b; margin-bottom:6px;">Data prevista: <strong style="color:#0f172a;">' + formatarDataBR(dataPrev) + '</strong></div>';
+                    html += '  <div style="font-size:0.74rem; color:#64748b; margin-bottom:8px;">Data realizada: ' + dataReal + '</div>';
+
+                    if (status === 'pendente') {
+                        html += '  <form method="POST" style="display:grid; grid-template-columns:1fr auto; gap:6px; align-items:center;">';
+                        html += '    <input type="hidden" name="acao" value="atualizar_data_sessao">';
+                        html += '    <input type="hidden" name="comanda_item_id" value="' + it.id + '">';
+                        html += '    <input type="hidden" name="tab" value="' + tabAtual + '">';
+                        html += '    <input type="date" name="nova_data" value="' + dataPrev + '" class="form-input" required>';
+                        html += '    <button type="submit" class="btn-submit" style="height:36px; padding:0 12px; margin:0; font-size:0.75rem;">Salvar</button>';
+                        html += '  </form>';
+                    }
+
+                    html += '</div>';
+                });
+
+                lista.innerHTML = html;
+            })
+            .catch(err => {
+                lista.innerHTML = '<div style="padding:12px; background:#fff1f2; border:1px solid #fecdd3; border-radius:12px; color:#be123c;">' + (err && err.message ? err.message : 'Erro ao carregar detalhes') + '</div>';
+            });
+    }
+
     function excluirComanda(id) {
-        if (confirm('Tem certeza? Todo o histórico desta comanda será perdido.')) {
-            window.location.href = '?del=' + id;
-        }
+        const input = document.getElementById('excluirComandaId');
+        if (input) input.value = String(id || '');
+        abrirModal('modalExcluirComanda');
+    }
+
+    function confirmarExcluirComanda() {
+        const input = document.getElementById('excluirComandaId');
+        const id = input ? parseInt(input.value, 10) : 0;
+        if (!id) return;
+        window.location.href = '?del=' + id;
     }
 
     // CLIENTE: busca pacotes e agendamentos
@@ -1593,8 +1834,8 @@ include '../../includes/menu.php';
 
                     let html = '';
                     data.agendamentos.forEach(a => {
-                        const serv = a.servico_nome ? ` • ${a.servico_nome}` : '';
-                        html += `<div>• ${a.data_br} • ${a.hora}${serv}</div>`;
+                        const serv = a.servico_nome ? ` Ã¢â‚¬Â¢ ${a.servico_nome}` : '';
+                        html += `<div>Ã¢â‚¬Â¢ ${a.data_br} Ã¢â‚¬Â¢ ${a.hora}${serv}</div>`;
                     });
                     agLista.innerHTML = html;
 
@@ -1678,3 +1919,4 @@ include '../../includes/menu.php';
         });
     });
 </script>
+
