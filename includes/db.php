@@ -183,6 +183,7 @@ try {
         user_id INTEGER NOT NULL,
         cliente_id INTEGER NOT NULL,
         servico_id INTEGER,
+        serie_id TEXT,
         titulo TEXT NOT NULL,
         tipo TEXT DEFAULT 'normal',           -- normal | pacote
         status TEXT DEFAULT 'aberta',         -- aberta | fechada
@@ -364,6 +365,7 @@ try {
     // novas colunas usadas pelas comandas
     try { $pdo->exec("ALTER TABLE comandas ADD COLUMN servico_id INTEGER"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE comandas ADD COLUMN frequencia TEXT DEFAULT 'unico'"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE comandas ADD COLUMN serie_id TEXT"); } catch (Exception $e) {}
 
     // Migrações comanda_itens
     try { $pdo->exec("ALTER TABLE comanda_itens ADD COLUMN numero INTEGER"); } catch (Exception $e) {}
@@ -375,6 +377,7 @@ try {
 
     // Índices para comandas / comanda_itens
     try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_comandas_user_status ON comandas(user_id, status)"); } catch (Exception $e) {}
+    try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_comandas_serie_id ON comandas(serie_id)"); } catch (Exception $e) {}
     try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_comanda_itens_comanda ON comanda_itens(comanda_id)"); } catch (Exception $e) {}
     try { $pdo->exec("CREATE INDEX IF NOT EXISTS idx_financeiro_user_data ON financeiro_movimentos(user_id, data_movimento)"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE financeiro_movimentos ADD COLUMN origem TEXT"); } catch (Exception $e) {}

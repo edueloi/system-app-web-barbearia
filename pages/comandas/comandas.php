@@ -1058,6 +1058,7 @@ include '../../includes/menu.php';
                 <?php foreach($lista as $c):
                     $percent = ($c['qtd_total'] > 0) ? ($c['feitos'] / $c['qtd_total']) * 100 : 0;
                     $percent = min(100, max(0, $percent));
+                    $sessaoAtual = ($c['status'] === 'aberta') ? min($c['feitos'] + 1, max(1, (int)$c['qtd_total'])) : max(1, (int)$c['qtd_total']);
                     $dataJson = htmlspecialchars(json_encode($c), ENT_QUOTES, 'UTF-8');
                 ?>
                 <tr>
@@ -1073,7 +1074,7 @@ include '../../includes/menu.php';
                     <td><?= htmlspecialchars($c['c_nome']) ?></td>
                     <td style="width:180px;">
                         <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-muted); margin-bottom:3px;">
-                            <span><?= $c['feitos'] ?> de <?= $c['qtd_total'] ?></span>
+                            <span><?= $sessaoAtual ?> de <?= $c['qtd_total'] ?></span>
                             <span><?= round($percent) ?>%</span>
                         </div>
                         <div class="prog-bar">
@@ -1114,6 +1115,7 @@ include '../../includes/menu.php';
         <?php foreach($lista as $c):
             $percent = ($c['qtd_total'] > 0) ? ($c['feitos'] / $c['qtd_total']) * 100 : 0;
             $percent = min(100, max(0, $percent));
+            $sessaoAtual = ($c['status'] === 'aberta') ? min($c['feitos'] + 1, max(1, (int)$c['qtd_total'])) : max(1, (int)$c['qtd_total']);
             $dataJson = htmlspecialchars(json_encode($c), ENT_QUOTES, 'UTF-8');
         ?>
         <div class="card">
@@ -1133,7 +1135,7 @@ include '../../includes/menu.php';
             <div style="margin-bottom:8px;">
                 <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-muted); margin-bottom:3px;">
                     <span>Progresso</span>
-                    <span><?= $c['feitos'] ?>/<?= $c['qtd_total'] ?></span>
+                    <span><?= $sessaoAtual ?> de <?= $c['qtd_total'] ?></span>
                 </div>
                 <div class="prog-bar">
                     <div class="prog-fill <?= $percent>=100?'finished':'' ?>" style="width: <?= $percent ?>%"></div>

@@ -53,21 +53,47 @@ function criarAgendamentosRecorrentes($pdo, $userId, $dados) {
         $dataInicio = new DateTime($dataInicioStr);
 
         if ($recorrenciaAtiva) {
-            if ($temDiasSemana) {
+            $frequencia = $dados['recorrencia_frequencia'] ?? null;
+            $qtdOcorrencias = max(1, (int)($dados['recorrencia_qtd'] ?? 1));
+            $diaInicio = (int)$dataInicio->format('w');
+            $diaMesInicio = (int)$dataInicio->format('d');
+
+            if ($frequencia === 'diaria') {
                 $configDatas = [
-                    'tipo_recorrencia' => 'semanal',
-                    'qtd_ocorrencias'  => max(1, (int)($dados['recorrencia_qtd'] ?? 1)),
-                    'intervalo_dias'   => max(1, (int)($dados['recorrencia_intervalo'] ?? 7)),
-                    'dias_semana'      => $recDiasSemana,
+                    'tipo_recorrencia' => 'diaria',
+                    'qtd_ocorrencias'  => $qtdOcorrencias,
+                    'intervalo_dias'   => 1,
+                    'dias_semana'      => null,
                     'dia_fixo_mes'     => null,
                     'user_id'          => $userId
                 ];
-            } else {
+            } elseif ($frequencia === 'quinzenal') {
                 $configDatas = [
-                    'tipo_recorrencia' => 'personalizada',
-                    'qtd_ocorrencias'  => max(1, (int)($dados['recorrencia_qtd'] ?? 1)),
-                    'intervalo_dias'   => max(1, (int)($dados['recorrencia_intervalo'] ?? 1)),
+                    'tipo_recorrencia' => 'quinzenal',
+                    'qtd_ocorrencias'  => $qtdOcorrencias,
+                    'intervalo_dias'   => 15,
                     'dias_semana'      => null,
+                    'dia_fixo_mes'     => null,
+                    'user_id'          => $userId
+                ];
+            } elseif ($frequencia === 'mensal_dia') {
+                $configDatas = [
+                    'tipo_recorrencia' => 'mensal_dia',
+                    'qtd_ocorrencias'  => $qtdOcorrencias,
+                    'intervalo_dias'   => 30,
+                    'dias_semana'      => null,
+                    'dia_fixo_mes'     => $diaMesInicio,
+                    'user_id'          => $userId
+                ];
+            } else {
+                $diasSemanaSemanal = $temDiasSemana
+                    ? $recDiasSemana
+                    : json_encode([$diaInicio]);
+                $configDatas = [
+                    'tipo_recorrencia' => 'semanal',
+                    'qtd_ocorrencias'  => $qtdOcorrencias,
+                    'intervalo_dias'   => 7,
+                    'dias_semana'      => $diasSemanaSemanal,
                     'dia_fixo_mes'     => null,
                     'user_id'          => $userId
                 ];
@@ -152,6 +178,15 @@ function criarAgendamentosRecorrentes($pdo, $userId, $dados) {
             ]);
             $idsCriados[] = (int)$pdo->lastInsertId();
         }
+
+        criarOuAtualizarComandaRecorrente(
+            $pdo,
+            $userId,
+            $serieId,
+            $dados,
+            $configDatas,
+            $datas
+        );
 
         $pdo->commit();
 
@@ -330,6 +365,100 @@ function gerarDatasRecorrencia($dataInicio, $config) {
  *
  * @return string|false  nome do feriado se for, ou false se não for
  */
+function colunaExiste($pdo, $tabela, $coluna) {
+    try {
+        $stmt = $pdo->query("PRAGMA table_info($tabela)");
+        $cols = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+        foreach ($cols as $c) {
+            if (($c['name'] ?? '') === $coluna) return true;
+        }
+        return false;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+function criarOuAtualizarComandaRecorrente($pdo, $userId, $serieId, $dados, $configDatas, $datas) {
+    $clienteId = isset($dados['cliente_id']) ? (int)$dados['cliente_id'] : 0;
+    if ($clienteId <= 0 || empty($datas)) {
+        return null;
+    }
+
+    $temSerieIdComandas = colunaExiste($pdo, 'comandas', 'serie_id');
+
+    if ($temSerieIdComandas) {
+        $check = $pdo->prepare("SELECT id FROM comandas WHERE user_id = ? AND serie_id = ? LIMIT 1");
+        $check->execute([$userId, $serieId]);
+        $idExistente = (int)$check->fetchColumn();
+        if ($idExistente > 0) {
+            return $idExistente;
+        }
+    }
+
+    $qtdTotal = count($datas);
+    $valorSessao = (float)($dados['valor'] ?? 0);
+    $valorTotal = $valorSessao * $qtdTotal;
+    $dataInicio = $datas[0]->format('Y-m-d');
+    $frequencia = $configDatas['tipo_recorrencia'] ?? 'semanal';
+    $titulo = trim((string)($dados['servico_nome'] ?? 'Sessoes recorrentes'));
+    if ($titulo === '') $titulo = 'Sessoes recorrentes';
+
+    if ($temSerieIdComandas) {
+        $stmtComanda = $pdo->prepare(" 
+            INSERT INTO comandas
+                (user_id, cliente_id, servico_id, serie_id, titulo, tipo, status, valor_total, qtd_total, data_inicio, frequencia)
+            VALUES
+                (?, ?, ?, ?, ?, 'normal', 'aberta', ?, ?, ?, ?)
+        ");
+        $stmtComanda->execute([
+            $userId,
+            $clienteId,
+            $dados['servico_id'] ?? null,
+            $serieId,
+            $titulo,
+            $valorTotal,
+            $qtdTotal,
+            $dataInicio,
+            $frequencia
+        ]);
+    } else {
+        $stmtComanda = $pdo->prepare(" 
+            INSERT INTO comandas
+                (user_id, cliente_id, servico_id, titulo, tipo, status, valor_total, qtd_total, data_inicio, frequencia)
+            VALUES
+                (?, ?, ?, ?, 'normal', 'aberta', ?, ?, ?, ?)
+        ");
+        $stmtComanda->execute([
+            $userId,
+            $clienteId,
+            $dados['servico_id'] ?? null,
+            $titulo,
+            $valorTotal,
+            $qtdTotal,
+            $dataInicio,
+            $frequencia
+        ]);
+    }
+
+    $comandaId = (int)$pdo->lastInsertId();
+
+    $stmtItem = $pdo->prepare(" 
+        INSERT INTO comanda_itens (comanda_id, numero, data_prevista, valor_sessao, status)
+        VALUES (?, ?, ?, ?, 'pendente')
+    ");
+
+    foreach ($datas as $idx => $dt) {
+        $stmtItem->execute([
+            $comandaId,
+            $idx + 1,
+            $dt->format('Y-m-d'),
+            $valorSessao
+        ]);
+    }
+
+    return $comandaId;
+}
+
 function isFeriado($pdo, $userId, DateTime $date) {
     $sql = "
         SELECT nome 
