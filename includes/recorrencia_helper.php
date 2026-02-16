@@ -189,12 +189,20 @@ function gerarDatasRecorrencia($dataInicio, $config) {
     $tipo           = isset($config['tipo_recorrencia']) ? $config['tipo_recorrencia'] : 'nenhuma';
     $userId         = isset($config['user_id']) ? (int)$config['user_id'] : ($_SESSION['user_id'] ?? 1);
 
+    $estaFechada = function(DateTime $date) use ($pdo, $userId) {
+        return isFeriado($pdo, $userId, clone $date) !== false;
+    };
+
     switch ($tipo) {
         case 'diaria':
-            for ($i = 0; $i < $qtdOcorrencias; $i++) {
-                $dataUtil = proximoDiaUtil($pdo, $userId, clone $dataAtual);
-                $datas[]  = $dataUtil;
+            $tentativas = 0;
+            $limite = max(30, $qtdOcorrencias * 400);
+            while (count($datas) < $qtdOcorrencias && $tentativas < $limite) {
+                if (!$estaFechada($dataAtual)) {
+                    $datas[] = clone $dataAtual;
+                }
                 $dataAtual->modify('+1 day');
+                $tentativas++;
             }
             break;
 
@@ -206,14 +214,14 @@ function gerarDatasRecorrencia($dataInicio, $config) {
             sort($diasSemana);
 
             $dataParaAdicionar = clone $dataAtual;
-            // recua um dia para o loop encontrar o primeiro dia válido
             $dataParaAdicionar->modify('-1 day');
+            $tentativas = 0;
+            $limite = max(60, $qtdOcorrencias * 120);
 
-            while (count($datas) < $qtdOcorrencias) {
+            while (count($datas) < $qtdOcorrencias && $tentativas < $limite) {
                 $diaCorrente = (int)$dataParaAdicionar->format('w');
                 $proximoDia  = null;
 
-                // próximo dia da semana válido ainda nesta semana
                 foreach ($diasSemana as $dia) {
                     if ($dia > $diaCorrente) {
                         $proximoDia = $dia;
@@ -222,81 +230,90 @@ function gerarDatasRecorrencia($dataInicio, $config) {
                 }
 
                 if ($proximoDia === null) {
-                    // pula para o primeiro dia válido da semana seguinte
                     $diasParaSomar = (7 - $diaCorrente) + $diasSemana[0];
                     $dataParaAdicionar->modify("+{$diasParaSomar} days");
                 } else {
-                    // mesma semana, só avança até o próximo dia válido
                     $diasParaSomar = $proximoDia - $diaCorrente;
                     $dataParaAdicionar->modify("+{$diasParaSomar} days");
                 }
 
-                if (count($datas) < $qtdOcorrencias) {
-                    $dataUtil = proximoDiaUtil($pdo, $userId, clone $dataParaAdicionar);
-                    if ($dataUtil >= $dataInicio) {
-                        $datas[] = $dataUtil;
-                    }
+                $candidata = clone $dataParaAdicionar;
+                if ($candidata >= $dataInicio && !$estaFechada($candidata)) {
+                    $datas[] = $candidata;
                 }
+
+                $tentativas++;
             }
             break;
 
         case 'quinzenal':
-            for ($i = 0; $i < $qtdOcorrencias; $i++) {
-                $dataUtil = proximoDiaUtil($pdo, $userId, clone $dataAtual);
-                $datas[]  = $dataUtil;
+            $tentativas = 0;
+            $limite = max(30, $qtdOcorrencias * 200);
+            while (count($datas) < $qtdOcorrencias && $tentativas < $limite) {
+                if (!$estaFechada($dataAtual)) {
+                    $datas[] = clone $dataAtual;
+                }
                 $dataAtual->modify('+15 days');
+                $tentativas++;
             }
             break;
 
         case 'mensal_dia':
             $diaFixo = (int)($config['dia_fixo_mes'] ?? $dataInicio->format('d'));
-            for ($i = 0; $i < $qtdOcorrencias; $i++) {
+            $tentativas = 0;
+            $limite = max(24, $qtdOcorrencias * 36);
+
+            while (count($datas) < $qtdOcorrencias && $tentativas < $limite) {
                 $ano          = $dataAtual->format('Y');
                 $mes          = $dataAtual->format('m');
                 $ultimoDiaMes = (int)date('t', strtotime("$ano-$mes-01"));
 
-                $diaUsar   = min($diaFixo, $ultimoDiaMes);
-                $dataTemp  = new DateTime("$ano-$mes-$diaUsar");
-                $dataUtil  = proximoDiaUtil($pdo, $userId, $dataTemp);
-                $datas[]   = $dataUtil;
+                $diaUsar  = min($diaFixo, $ultimoDiaMes);
+                $dataTemp = new DateTime("$ano-$mes-$diaUsar");
+                if (!$estaFechada($dataTemp)) {
+                    $datas[] = $dataTemp;
+                }
 
                 $dataAtual->modify('+1 month');
+                $tentativas++;
             }
             break;
 
         case 'mensal_semana':
             $diaSemana = (int)($config['dia_semana'] ?? $dataInicio->format('w'));
             $semanaMes = (int)ceil($dataInicio->format('d') / 7);
+            $tentativas = 0;
+            $limite = max(24, $qtdOcorrencias * 36);
 
-            for ($i = 0; $i < $qtdOcorrencias; $i++) {
+            while (count($datas) < $qtdOcorrencias && $tentativas < $limite) {
                 $dataTemp = encontrarDiaMesSemanaNaData($dataAtual, $diaSemana, $semanaMes);
-                if ($dataTemp instanceof DateTime) {
-                    $dataUtil = proximoDiaUtil($pdo, $userId, $dataTemp);
-                    $datas[]  = $dataUtil;
+                if ($dataTemp instanceof DateTime && !$estaFechada($dataTemp)) {
+                    $datas[] = $dataTemp;
                 }
                 $dataAtual->modify('+1 month');
+                $tentativas++;
             }
             break;
 
         case 'personalizada':
             $intervalo  = max(1, (int)($config['intervalo_dias'] ?? 1));
             $diasSemana = !empty($config['dias_semana']) ? json_decode($config['dias_semana'], true) : [];
+            $tentativas = 0;
+            $limite = max(60, $qtdOcorrencias * 300);
 
-            if (empty($diasSemana)) {
-                for ($i = 0; $i < $qtdOcorrencias; $i++) {
-                    $dataUtil = proximoDiaUtil($pdo, $userId, clone $dataAtual);
-                    $datas[]  = $dataUtil;
-                    $dataAtual->modify("+{$intervalo} days");
-                }
-            } else {
-                while (count($datas) < $qtdOcorrencias) {
+            while (count($datas) < $qtdOcorrencias && $tentativas < $limite) {
+                $adicionar = true;
+                if (!empty($diasSemana)) {
                     $diaSemanaAtual = (int)$dataAtual->format('w');
-                    if (in_array($diaSemanaAtual, $diasSemana)) {
-                        $dataUtil = proximoDiaUtil($pdo, $userId, clone $dataAtual);
-                        $datas[]  = $dataUtil;
-                    }
-                    $dataAtual->modify("+{$intervalo} days");
+                    $adicionar = in_array($diaSemanaAtual, $diasSemana);
                 }
+
+                if ($adicionar && !$estaFechada($dataAtual)) {
+                    $datas[] = clone $dataAtual;
+                }
+
+                $dataAtual->modify("+{$intervalo} days");
+                $tentativas++;
             }
             break;
 
