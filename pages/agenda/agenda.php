@@ -1964,9 +1964,31 @@ function renderCard($ag, $clientes) {
     // Link Helper
     function copiarLink(e){
         let input = document.getElementById('linkAgendamento');
+        if (!input) return;
+        
         input.select();
-        document.execCommand('copy');
-        alert('Link copiado!');
+        input.setSelectionRange(0, 99999);
+        
+        try {
+            document.execCommand('copy');
+            
+            // Feedback visual no botão
+            const btn = e.currentTarget || e.target;
+            if (btn) {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Copiado!';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                }, 2000);
+            }
+
+            if (window.AppToast) {
+                AppToast.show('Link copiado com sucesso!');
+            }
+        } catch (err) {
+            console.error('Erro ao copiar:', err);
+            alert('Não foi possível copiar o link. Por favor, copie manualmente.');
+        }
     }
     function compartilharLink(){
         let url = document.getElementById('linkAgendamento').value;
@@ -1975,3 +1997,6 @@ function renderCard($ag, $clientes) {
         window.open(`https://${host}/send?text=${encodeURIComponent(url)}`, '_blank');
     }
 </script>
+
+<?php include '../../includes/ui-toast.php'; ?>
+

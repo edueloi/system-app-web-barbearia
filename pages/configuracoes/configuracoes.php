@@ -1240,6 +1240,7 @@ include '../../includes/menu.php';
 </main>
 
 <?php include '../../includes/footer.php'; ?>
+<?php include '../../includes/ui-toast.php'; ?>
 
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
@@ -1269,6 +1270,10 @@ include '../../includes/menu.php';
             btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Copiado!';
             setTimeout(() => { btn.innerHTML = originalHTML; }, 2000);
         }
+
+        if (window.AppToast) {
+            AppToast.show('Link copiado com sucesso!');
+        }
     }
     
     function copiarLinkEncurtado() {
@@ -1284,6 +1289,10 @@ include '../../includes/menu.php';
             const originalHTML = btn.innerHTML;
             btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Copiado!';
             setTimeout(() => { btn.innerHTML = originalHTML; }, 2000);
+        }
+
+        if (window.AppToast) {
+            AppToast.show('Link encurtado copiado!');
         }
     }
     
