@@ -1,6 +1,7 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/../../includes/config.php';
 include '../../includes/db.php';
+/** @var PDO $pdo */
 
 // Verifica se está logado
 if (session_status() === PHP_SESSION_NONE) {
@@ -19,12 +20,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tipoEstabelecimento = $_POST['tipo_estabelecimento'] ?? 'Salão de Beleza';
     $nome            = $_POST['nome'] ?? '';
     $email           = $_POST['email'] ?? '';
-    $telefone        = $_POST['telefone'] ?? '';
-    $cpf             = preg_replace('/[^0-9]/', '', $_POST['cpf'] ?? ''); // Remove máscara
-    $instagram       = $_POST['instagram'] ?? '';
+    $telefone  = trim($_POST['telefone'] ?? '');
+    $telefone  = $telefone !== '' ? $telefone : null;
+    $cpf = preg_replace('/\D/', '', $_POST['cpf'] ?? '');
+    $cpf = $cpf !== '' ? $cpf : null;
+    $instagram = trim($_POST['instagram'] ?? '');
+    $instagram = $instagram !== '' ? ltrim($instagram, '@') : null;
     $bio             = $_POST['biografia'] ?? '';
     // Endereço
-    $cep      = $_POST['cep'] ?? '';
+    $cep = preg_replace('/\D/', '', $_POST['cep'] ?? '');
+    $cep = $cep !== '' ? $cep : null;
     $endereco = $_POST['endereco'] ?? '';
     $numero   = $_POST['numero'] ?? '';
     $bairro   = $_POST['bairro'] ?? '';
