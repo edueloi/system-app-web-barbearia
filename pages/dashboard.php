@@ -27,9 +27,9 @@ $userId = $_SESSION['user_id'];
 // =========================================================
 $pageTitle = 'Dashboard - Salão Develoi';
 
+include '../includes/db.php';
 include '../includes/header.php';
 include '../includes/menu.php';
-include '../includes/db.php';
 
 // =========================================================
 // 3. LÓGICA: CONSULTAS NO BANCO

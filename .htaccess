@@ -2,26 +2,23 @@ Options -Indexes
 Options -Multiviews
 
 RewriteEngine On
+RewriteBase /
 
-# ✅ Base correta (você está dentro de /karen_site/controle-salao/)
-RewriteBase /karen_site/controle-salao/
-
-# ✅ 1) Não reescrever arquivos/pastas reais
+# não mexe em arquivos/pastas reais
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# ✅ 2) Redireciona acesso direto a /pages/...php para URL bonita
-# Ex: /karen_site/controle-salao/pages/agenda/agenda.php -> /karen_site/controle-salao/agenda
-RewriteCond %{THE_REQUEST} \s/+karen_site/controle-salao/pages/([^/]+)/([^.]+)\.php [NC]
-RewriteRule ^pages/([^/]+)/([^.]+)\.php$ %1 [R=301,L]
+# bloqueia acesso direto a /pages/...php => manda pra URL bonita
+RewriteCond %{THE_REQUEST} \s/+pages/([^/]+)/([^.]+)\.php [NC]
+RewriteRule ^pages/([^/]+)/([^.]+)\.php$ /%1 [R=301,L]
 
-# ✅ 3) NOTA
+# NOTA
 RewriteRule ^nota/?$ pages/agenda/nota.php [L]
-RewriteCond %{THE_REQUEST} \s/+karen_site/controle-salao/agenda/nota\.php[?\s] [NC]
-RewriteRule ^agenda/nota\.php$ nota [R=301,L]
+RewriteCond %{THE_REQUEST} \s/+agenda/nota\.php[?\s] [NC]
+RewriteRule ^agenda/nota\.php$ /nota [R=301,L]
 
-# ✅ 4) ROTAS AMIGÁVEIS
+# ROTAS
 RewriteRule ^dashboard/?$ pages/dashboard.php [L]
 RewriteRule ^agenda/?$ pages/agenda/agenda.php [L]
 RewriteRule ^clientes/?$ pages/clientes/clientes.php [L]
@@ -38,17 +35,15 @@ RewriteRule ^configuracoes/?$ pages/configuracoes/configuracoes.php [L]
 RewriteRule ^vendas/?$ pages/vendas/vendas.php [L]
 RewriteRule ^onboarding/?$ pages/onboarding/onboarding.php [L]
 
-# ✅ 5) Rota pública de agendamento: /barbearia-anivaldo-16
-RewriteRule ^([a-z0-9-]+)-([0-9]+)$ agendar.php?user=$2 [L,QSA]
+# rota pública: /barbearia-anivaldo-16
+RewriteRule ^([a-z0-9-]+)-([0-9]+)$ /agendar.php?user=$2 [L,QSA]
 
-# ✅ 6) Esconder .php só na RAIZ (login -> login.php)
+# esconder .php na raiz
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME}.php -f
-RewriteRule ^([a-z0-9-_]+)/?$ $1.php [NC,L]
+RewriteRule ^([a-z0-9-_]+)/?$ /$1.php [NC,L]
 
-# ✅ 7) Fallback: qualquer rota que sobrar vai para index.php (ou escolha sua "home")
-# Se você não tem index.php, troque para pages/agenda/agenda.php (por exemplo).
-RewriteRule ^ index.php [L]
+# fallback (se não tiver index.php, troca)
+RewriteRule ^ /index.php [L]
 
-# 404
-ErrorDocument 404 /karen_site/controle-salao/404.php
+ErrorDocument 404 /404.php

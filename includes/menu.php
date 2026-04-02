@@ -28,15 +28,12 @@ if (!isset($_SESSION['user_id']) && !in_array(basename($_SERVER['PHP_SELF']), $p
 }
 
 // Conexão BD
-$dbFile1 = __DIR__ . '/includes/db.php';
-$dbFile2 = __DIR__ . '/../../includes/db.php';
-$dbFile3 = dirname(__DIR__) . '/includes/db.php'; // raiz do projeto
+$dbFile1 = __DIR__ . '/db.php';
+$dbFile2 = dirname(__DIR__) . '/includes/db.php';
 if (file_exists($dbFile1)) {
     include_once $dbFile1;
 } elseif (file_exists($dbFile2)) {
     include_once $dbFile2;
-} elseif (file_exists($dbFile3)) {
-    include_once $dbFile3;
 }
 
 // Valores Padrão
@@ -48,10 +45,11 @@ if (isset($pdo) && isset($_SESSION['user_id'])) {
     $notificacoesLista = $stmtNotif->fetchAll(PDO::FETCH_ASSOC);
     $notificacoesNaoLidas = count($notificacoesLista);
 }
-$userName  = 'Visitante';
-$userRole  = 'Profissional';
-$iniciais  = 'V';
-$firstName = 'Visitante';
+$userName     = 'Visitante';
+$userRole     = 'Profissional';
+$iniciais     = 'V';
+$firstName    = 'Visitante';
+$dadoUsuario  = []; // Inicializa para evitar Erro 500 se o banco falhar
 
 if (isset($pdo) && isset($_SESSION['user_id'])) {
     $stmtUser = $pdo->prepare("SELECT nome, email, estabelecimento FROM usuarios WHERE id = ? LIMIT 1");
@@ -75,19 +73,29 @@ if (isset($pdo) && isset($_SESSION['user_id'])) {
         $iniciais = strtoupper($primeiraLetra . $ultimaLetra);
     }
 
+    // 🔹 Lógica de Onboarding (Garantido estar logado e com banco)
     $estabelecimentoNome = trim($dadoUsuario['estabelecimento'] ?? '');
     $paginaAtual = basename($_SERVER['PHP_SELF']);
-    $paginasExcluidas = ['perfil.php', 'onboarding.php'];
+    $paginasExcluidas = ['perfil.php', 'onboarding.php', 'login.php', 'cadastro.php'];
+    
     if ($estabelecimentoNome === '' && !in_array($paginaAtual, $paginasExcluidas)) {
         $onboardingUrl = $isProd
             ? '/onboarding'
             : rtrim(dirname(dirname($_SERVER['PHP_SELF'])), '/') . '/pages/onboarding/onboarding.php';
-        // fallback absoluto caso a detecção falhe
-        if (!str_contains($onboardingUrl, 'onboarding')) {
+        
+        // fallback absoluto (local)
+        if (!$isProd && strpos($onboardingUrl, 'onboarding') === false) {
             $onboardingUrl = '/karen_site/controle-salao/pages/onboarding/onboarding.php';
         }
-        header('Location: ' . $onboardingUrl);
-        exit;
+
+        if (!headers_sent()) {
+            header('Location: ' . $onboardingUrl);
+            exit;
+        } else {
+            echo "<script>window.location.href = '$onboardingUrl';</script>";
+            echo "<noscript><meta http-equiv='refresh' content='0;url=$onboardingUrl'></noscript>";
+            exit;
+        }
     }
 }
 

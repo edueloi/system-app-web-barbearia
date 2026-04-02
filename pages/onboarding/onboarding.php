@@ -19,7 +19,7 @@ $stmt->execute([$userId]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Se já tem estabelecimento, não precisa de onboarding
-if (!empty($user['estabelecimento'])) {
+if (trim($user['estabelecimento'] ?? '') !== '') {
     $dashUrl = $isProd ? '/dashboard' : '../../pages/dashboard.php';
     header('Location: ' . $dashUrl);
     exit;
