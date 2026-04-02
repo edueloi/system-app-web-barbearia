@@ -94,42 +94,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $titulo     = trim($_POST['titulo'] ?: 'ServiÃ§o Avulso');
             $tipo       = $_POST['tipo'] ?? 'normal'; // normal ou pacote
 
-            // Flag: usar agendamentos do cliente para montar as sessões
-            $usarAgenda = !empty($_POST['usar_agenda']);
-
-            // Quantidade informada no formulário (padrão)
-            $qtdForm    = max(1, (int)$_POST['qtd_total']);
-            $qtd        = $qtdForm;
+            // Quantidade informada no formulário
+            $qtd        = max(1, (int)$_POST['qtd_total']);
 
             $valor_tot  = (float)$_POST['valor_final'];
             $dt_inicio  = $_POST['data_inicio'];
-            $frequencia = $_POST['frequencia'] ?? 'diaria';
+            $horario    = trim($_POST['horario'] ?? ''); // horário opcional: cria agenda
+            $frequencia = $_POST['frequencia'] ?? 'unico';
             $diasSemana = isset($_POST['dias_semana']) ? $_POST['dias_semana'] : [];
             $intervaloPersonalizado = isset($_POST['intervalo_personalizado'])
                 ? max(1, (int)$_POST['intervalo_personalizado'])
                 : 1;
 
-            $agendamentos = [];
             $diasSemana = normalizeWeekdays($diasSemana);
-
-            if ($usarAgenda) {
-                // Busca agendamentos futuros (mesmo critÃ©rio da API)
-                $stmtAg = $pdo->prepare("
-                    SELECT id, data_agendamento as data, horario as hora
-                    FROM agendamentos
-                    WHERE user_id    = ?
-                      AND cliente_id = ?
-                      AND status IN ('Pendente','Confirmado')
-                    ORDER BY data_agendamento ASC, horario ASC
-                ");
-                $stmtAg->execute([$uid, $cliente_id]);
-                $agendamentos = $stmtAg->fetchAll(PDO::FETCH_ASSOC);
-
-                if (!empty($agendamentos)) {
-                    // ForÃ§a a quantidade de sessÃµes = total de agendamentos
-                    $qtd = count($agendamentos);
-                }
-            }
 
             // INSERE A COMANDA
             $stmt = $pdo->prepare("
@@ -144,23 +121,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Calcula valor por sessão
             $valor_sessao = $qtd > 0 ? $valor_tot / $qtd : 0;
 
-            // Decide COMO criar os itens
-            if ($usarAgenda && !empty($agendamentos)) {
-                // MONTA ITENS USANDO AS DATAS DA AGENDA
-                $numero = 1;
-                $stmtItem = $pdo->prepare("
-                    INSERT INTO comanda_itens (comanda_id, numero, data_prevista, valor_sessao, agendamento_id, status)
-                    VALUES (?, ?, ?, ?, ?, 'pendente')
-                ");
-
-                foreach ($agendamentos as $ag) {
-                    $dt_sql = $ag['data']; // jÃ¡ estÃ¡ em Y-m-d no banco
-                    $stmtItem->execute([$comanda_id, $numero, $dt_sql, $valor_sessao, (int)$ag['id']]);
-                    $numero++;
-                }
-
-            } else {
-                // Gera itens por recorrencia simples quando nao usa a agenda
+            // Cria itens da comanda por recorrência
+            {
                 $data_inicio = new DateTime($dt_inicio);
                 $data_inicio->setTime(0, 0, 0);
                 $data_atual = clone $data_inicio;
@@ -216,6 +178,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $pdo->commit();
+
+            // Se informou horário, cria agendamentos na agenda para cada sessão
+            if (!empty($horario)) {
+                // Busca as datas das sessões recém-criadas
+                $stmtSessoes = $pdo->prepare("
+                    SELECT id, data_prevista FROM comanda_itens WHERE comanda_id = ? ORDER BY numero ASC
+                ");
+                $stmtSessoes->execute([$comanda_id]);
+                $sessoes = $stmtSessoes->fetchAll(PDO::FETCH_ASSOC);
+
+                // Busca nome do cliente
+                $stmtCli2 = $pdo->prepare("SELECT nome FROM clientes WHERE id = ? AND user_id = ?");
+                $stmtCli2->execute([$cliente_id, $uid]);
+                $nomeCliente = $stmtCli2->fetchColumn() ?: '';
+
+                // Busca nome do serviço
+                $nomeServico = '';
+                if ($servico_id) {
+                    $stmtServ2 = $pdo->prepare("SELECT nome FROM servicos WHERE id = ? AND user_id = ?");
+                    $stmtServ2->execute([$servico_id, $uid]);
+                    $nomeServico = $stmtServ2->fetchColumn() ?: '';
+                }
+
+                $valorSessaoAg = $qtd > 0 ? $valor_tot / $qtd : 0;
+
+                $stmtInsAg = $pdo->prepare("
+                    INSERT INTO agendamentos (user_id, cliente_id, cliente_nome, servico, valor, data_agendamento, horario, observacoes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                $stmtUpdItem = $pdo->prepare("UPDATE comanda_itens SET agendamento_id = ? WHERE id = ?");
+
+                foreach ($sessoes as $sessao) {
+                    $stmtInsAg->execute([
+                        $uid, $cliente_id, $nomeCliente,
+                        $nomeServico, $valorSessaoAg,
+                        $sessao['data_prevista'], $horario, ''
+                    ]);
+                    $novoAgId = (int)$pdo->lastInsertId();
+                    $stmtUpdItem->execute([$novoAgId, $sessao['id']]);
+                }
+            }
+
             header("Location: ?msg=criado");
             exit;
         }
@@ -368,7 +372,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 for ($i = 1; $i <= $qtd_total; $i++) {
                     $pdo->prepare("
-                        INSERT INTO comanda_itens (comanda_id, numero, data_prevista, valor, status)
+                        INSERT INTO comanda_itens (comanda_id, numero, data_prevista, valor_sessao, status)
                         VALUES (?, ?, ?, ?, 'pendente')
                     ")->execute([$id, $i, $data_atual->format('Y-m-d'), $valor_sessao]);
                     
@@ -400,6 +404,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 if (isset($_GET['del'])) {
     $id = (int)$_GET['del'];
+    // Deletar agendamentos vinculados via comanda_itens
+    $stmtAgs = $pdo->prepare("SELECT agendamento_id FROM comanda_itens WHERE comanda_id = ? AND agendamento_id IS NOT NULL");
+    $stmtAgs->execute([$id]);
+    $agIds = $stmtAgs->fetchAll(PDO::FETCH_COLUMN);
+    if (!empty($agIds)) {
+        $in = implode(',', array_map('intval', $agIds));
+        $pdo->exec("DELETE FROM agendamentos WHERE id IN ($in) AND user_id = $uid");
+    }
     $pdo->prepare("DELETE FROM comanda_itens WHERE comanda_id = ?")->execute([$id]);
     $pdo->prepare("DELETE FROM comandas WHERE id = ? AND user_id = ?")->execute([$id, $uid]);
     header("Location: ?msg=deletado");
@@ -434,11 +446,13 @@ if (isset($_GET['acao']) && $_GET['acao'] === 'detalhes_comanda') {
         exit;
     }
 
-    $stmtItens = $pdo->prepare(" 
-        SELECT id, numero, data_prevista, data_realizada, status, valor_sessao
-        FROM comanda_itens
-        WHERE comanda_id = ?
-        ORDER BY numero ASC, data_prevista ASC
+    $stmtItens = $pdo->prepare("
+        SELECT ci.id, ci.numero, ci.data_prevista, ci.data_realizada, ci.status, ci.valor_sessao, ci.agendamento_id,
+               a.horario AS ag_horario, a.data_agendamento AS ag_data, a.servico AS ag_servico
+        FROM comanda_itens ci
+        LEFT JOIN agendamentos a ON a.id = ci.agendamento_id
+        WHERE ci.comanda_id = ?
+        ORDER BY ci.numero ASC, ci.data_prevista ASC
     ");
     $stmtItens->execute([$id]);
     $itens = $stmtItens->fetchAll(PDO::FETCH_ASSOC);
@@ -1290,8 +1304,11 @@ include '../../includes/menu.php';
                     </button>
                 <?php endif; ?>
 
-                <button class="btn-icon" onclick="abrirDetalhesComanda(<?= $c['id'] ?>)" title="Sessoes">
+                <button class="btn-icon" onclick="abrirDetalhesComanda(<?= $c['id'] ?>)" title="Sessões">
                     <i class="bi bi-eye"></i>
+                </button>
+                <button class="btn-icon" onclick="agendarComanda(<?= $c['id'] ?>, <?= (int)$c['cliente_id'] ?>)" title="Agendar na agenda" style="color:#1e3a8a; background:#eff6ff; border-color:#bfdbfe;">
+                    <i class="bi bi-calendar-plus"></i>
                 </button>
                 <button class="btn-icon" onclick='editarComanda(<?= $dataJson ?>)' title="Editar">
                     <i class="bi bi-pencil"></i>
@@ -1323,38 +1340,13 @@ include '../../includes/menu.php';
 
             <div class="form-group">
                 <label class="form-label">Cliente</label>
-                <select name="cliente_id" id="clienteSelect" class="form-input" required onchange="verificarDadosCliente()">
+                <select name="cliente_id" id="clienteSelect" class="form-input" required>
                     <option value="">Selecione...</option>
                     <?php foreach($clientes as $cli): ?>
                         <option value="<?= $cli['id'] ?>"><?= htmlspecialchars($cli['nome']) ?></option>
                     <?php endforeach; ?>
                 </select>
 
-                <!-- Pacotes ativos para copiar -->
-                <div id="boxPacotesAtivos" style="display:none; margin-top:8px; background:#fff7ed; padding:10px; border-radius:14px; border:1px solid #fed7aa;">
-                    <label style="font-size:0.7rem; color:#c2410c; font-weight:700; display:block; margin-bottom:4px;">
-                        <i class="bi bi-exclamation-circle-fill"></i> Reutilizar pacote existente:
-                    </label>
-                    <select id="selPacoteAtivo" class="form-input" style="font-size:0.78rem; padding:8px; border-color:#fdba74; color:#c2410c; background:#fff;" onchange="usarPacoteExistente()">
-                        <option value="">-- Selecione para copiar dados --</option>
-                    </select>
-                </div>
-
-                <!-- Agendamentos do cliente -->
-                <div id="agendamentosBox" style="display:none; margin-top:8px; padding:10px; background:#eff6ff; color:#1e40af; border-radius:14px; font-size:0.78rem; border:1px solid #bfdbfe;">
-                    <div style="font-weight:700; margin-bottom:4px;">
-                        <i class="bi bi-calendar-check"></i> Agendamentos futuros
-                    </div>
-                    <div id="agendamentosResumo" style="margin-bottom:4px; font-size:0.75rem;"></div>
-                    <div id="agendamentosLista" style="max-height:110px; overflow:auto; margin-bottom:6px; padding-left:4px;"></div>
-                    <label style="display:flex; align-items:center; gap:6px; font-size:0.74rem; margin-top:4px;">
-                        <input type="checkbox" name="usar_agenda" id="usarAgenda" value="1" checked onchange="onToggleUsarAgenda()">
-                        <span>Montar com base nas datas da agenda</span>
-                    </label>
-                    <div id="agendaAviso" style="margin-top:6px; font-size:0.72rem; color:#64748b;">
-                        Quando usar a agenda, a quantidade e datas seguem os agendamentos.
-                    </div>
-                </div>
             </div>
 
             <div class="form-group" id="wrapServico">
@@ -1393,46 +1385,25 @@ include '../../includes/menu.php';
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
                 <div class="form-group">
                     <label class="form-label">Sessões</label>
-                    <input type="number" name="qtd_total" id="qtd" class="form-input" value="1" min="1" onchange="calcTotal()">
+                    <input type="number" name="qtd_total" id="qtd" class="form-input" value="1" min="1" oninput="calcTotal()">
+                    <small id="qtdHint" style="display:none; font-size:0.7rem; color:#64748b; margin-top:3px;">
+                        Definido pelo pacote. Edite se necessário.
+                    </small>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Valor (R$)</label>
+                    <label class="form-label">Valor Total (R$)</label>
                     <input type="number" step="0.01" name="valor_final" id="valorFinal" class="form-input" style="color:var(--primary); font-weight:700;">
                 </div>
             </div>
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-                <div class="form-group">
-                    <label class="form-label">Início</label>
-                    <input type="date" name="data_inicio" class="form-input" value="<?= date('Y-m-d') ?>">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Frequência</label>
-                    <select name="frequencia" class="form-input" id="frequenciaSelect">
-                        <option value="diaria">Diaria</option>
-                        <option value="semanal">Semanal</option>
-                        <option value="quinzenal">Quinzenal</option>
-                        <option value="mensal_dia">Mensal (dia fixo)</option>
-                        <option value="mensal_semana">Mensal (semana)</option>
-                        <option value="unico">Único</option>
-                        <option value="personalizada">Personalizada</option>
-                    </select>
-                    <div id="diasSemanaBox" style="display:none; margin-top:6px;">
-                        <label class="form-label">Dia(s) da semana</label>
-                        <div class="weekday-options">
-                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="1"><span>Seg</span></label>
-                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="2"><span>Ter</span></label>
-                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="3"><span>Qua</span></label>
-                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="4"><span>Qui</span></label>
-                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="5"><span>Sex</span></label>
-                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="6"><span>Sáb</span></label>
-                            <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="0"><span>Dom</span></label>
-                        </div>
-                    </div>
-                    <div id="intervaloBox" style="display:none; margin-top:6px;">
-                        <label class="form-label">Intervalo (dias)</label>
-                        <input type="number" name="intervalo_personalizado" class="form-input" min="1" value="1">
-                    </div>
+            <!-- data_inicio hidden com hoje (necessário para o backend montar itens) -->
+            <input type="hidden" name="data_inicio" value="<?= date('Y-m-d') ?>">
+            <input type="hidden" name="frequencia" value="unico">
+
+            <div style="display:none;"><!-- intervalo removido da UI -->
+                <div id="intervaloBox" style="display:none; margin-top:6px;">
+                    <label class="form-label">Intervalo (dias)</label>
+                    <input type="number" name="intervalo_personalizado" class="form-input" min="1" value="7">
                 </div>
             </div>
 
@@ -1616,14 +1587,17 @@ include '../../includes/menu.php';
             wrapServico.style.display = 'none';
             wrapPacote.style.display  = 'block';
             if (selectServico) selectServico.value = "";
-            qtd.setAttribute('readonly', true);
-            qtd.style.backgroundColor = '#e5e7eb';
+            // Qtd editável mesmo no pacote — apenas pré-preenchida
+            qtd.removeAttribute('readonly');
+            qtd.style.backgroundColor = '#f9fafb';
+            qtd.title = 'Quantidade pré-definida pelo pacote, mas você pode alterar';
         } else {
             wrapServico.style.display = 'block';
             wrapPacote.style.display  = 'none';
             if (selectPacote) selectPacote.value = "";
             qtd.removeAttribute('readonly');
             qtd.style.backgroundColor = '#f9fafb';
+            qtd.title = '';
         }
         atualizarValores();
     }
@@ -1652,7 +1626,13 @@ include '../../includes/menu.php';
         }
 
         if (tipo === 'pacote') {
-            document.getElementById('qtd').value = qtdServ > 1 ? qtdServ : 4;
+            // Sempre usa a qtd do pacote ao selecionar (ignora valor anterior)
+            document.getElementById('qtd').value = qtdServ >= 1 ? qtdServ : 1;
+            const hint = document.getElementById('qtdHint');
+            if (hint) hint.style.display = 'block';
+        } else {
+            const hint = document.getElementById('qtdHint');
+            if (hint) hint.style.display = 'none';
         }
 
         calcTotal();
@@ -1745,11 +1725,24 @@ include '../../includes/menu.php';
                     const dataReal = it.data_realizada ? formatarDataBR(it.data_realizada) : '--';
                     const status = it.status || 'pendente';
 
+                    // Info do agendamento vinculado
+                    let agInfo = '';
+                    if (it.agendamento_id) {
+                        const agData = it.ag_data ? formatarDataBR(it.ag_data) : '';
+                        const agHora = it.ag_horario ? it.ag_horario.substring(0,5) : '';
+                        agInfo = `<div style="font-size:0.72rem; background:#eff6ff; color:#1e40af; border-radius:8px; padding:4px 8px; margin-bottom:6px; display:inline-flex; align-items:center; gap:4px;">
+                            <i class="bi bi-calendar-check"></i> Agendado: ${agData}${agHora ? ' às ' + agHora : ''}
+                        </div>`;
+                    } else if (status === 'pendente') {
+                        agInfo = `<div style="font-size:0.72rem; color:#94a3b8; margin-bottom:4px; font-style:italic;">Sem agendamento vinculado</div>`;
+                    }
+
                     html += '<div style="padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px;">';
                     html += '  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">';
-                    html += '    <strong style="font-size:0.82rem;">Sessao ' + n + '</strong>';
+                    html += '    <strong style="font-size:0.82rem;">Sessão ' + n + '</strong>';
                     html +=      badgeStatusSessao(status);
                     html += '  </div>';
+                    html += agInfo;
                     html += '  <div style="font-size:0.75rem; color:#64748b; margin-bottom:6px;">Data prevista: <strong style="color:#0f172a;">' + formatarDataBR(dataPrev) + '</strong></div>';
                     html += '  <div style="font-size:0.74rem; color:#64748b; margin-bottom:8px;">Data realizada: ' + dataReal + '</div>';
 
@@ -1773,6 +1766,13 @@ include '../../includes/menu.php';
             });
     }
 
+    function agendarComanda(comandaId, clienteId) {
+        // Detecta URL da agenda (produção ou local)
+        const isProd = window.location.hostname === 'salao.develoi.com';
+        const agendaUrl = isProd ? '/agenda' : '../agenda/agenda.php';
+        window.location.href = agendaUrl + '?abrir_modal=1&cliente_id=' + clienteId + '&comanda_id=' + comandaId;
+    }
+
     function excluirComanda(id) {
         const input = document.getElementById('excluirComandaId');
         if (input) input.value = String(id || '');
@@ -1787,93 +1787,6 @@ include '../../includes/menu.php';
     }
 
     // CLIENTE: busca pacotes e agendamentos
-    function verificarDadosCliente() {
-        const sel        = document.getElementById('clienteSelect');
-        const boxPacotes = document.getElementById('boxPacotesAtivos');
-        const selPacotes = document.getElementById('selPacoteAtivo');
-        const boxAg      = document.getElementById('agendamentosBox');
-        const agResumo   = document.getElementById('agendamentosResumo');
-        const agLista    = document.getElementById('agendamentosLista');
-        const qtdInput   = document.getElementById('qtd');
-
-        boxPacotes.style.display = 'none';
-        selPacotes.innerHTML = '<option value="">-- Selecione para copiar dados --</option>';
-        boxAg.style.display   = 'none';
-        agResumo.innerHTML    = '';
-        agLista.innerHTML     = '';
-
-        if (!sel.value) return;
-
-        // Pacotes ativos
-        fetch('api_pacotes_cliente.php?cliente_id=' + sel.value)
-            .then(r => r.json())
-            .then(data => {
-                if (data.pacotes && data.pacotes.length > 0) {
-                    boxPacotes.style.display = 'block';
-                    data.pacotes.forEach(p => {
-                        let opt = document.createElement('option');
-                        opt.value = p.id;
-                        opt.text  = `${p.titulo} (${p.feitos}/${p.qtd_total} feitos)`;
-                        opt.setAttribute('data-titulo', p.titulo);
-                        opt.setAttribute('data-qtd', p.qtd_total);
-                        opt.setAttribute('data-valor', p.valor_total);
-                        opt.setAttribute('data-tipo', p.tipo);
-                        selPacotes.appendChild(opt);
-                    });
-                }
-            })
-            .catch(() => {});
-
-        // Agendamentos futuros
-        fetch('api_agendamentos_cliente.php?cliente_id=' + sel.value)
-            .then(r => r.json())
-            .then(data => {
-                if (data.agendamentos && data.agendamentos.length > 0) {
-                    boxAg.style.display = 'block';
-                    agResumo.innerText = `${data.agendamentos.length} agendamento(s) futuro(s) encontrados.`;
-
-                    let html = '';
-                    data.agendamentos.forEach(a => {
-                        const serv = a.servico_nome ? ` Ã¢â‚¬Â¢ ${a.servico_nome}` : '';
-                        html += `<div>Ã¢â‚¬Â¢ ${a.data_br} Ã¢â‚¬Â¢ ${a.hora}${serv}</div>`;
-                    });
-                    agLista.innerHTML = html;
-
-                    if (qtdInput) {
-                        qtdInput.value = data.agendamentos.length;
-                        calcTotal();
-                    }
-                }
-            })
-            .catch(() => {});
-    }
-
-    function usarPacoteExistente() {
-        const sel = document.getElementById('selPacoteAtivo');
-        const opt = sel.options[sel.selectedIndex];
-
-        if (!opt || !opt.value) return;
-
-        const titulo = opt.getAttribute('data-titulo');
-        const qtd    = opt.getAttribute('data-qtd');
-        const valor  = opt.getAttribute('data-valor');
-        const tipo   = opt.getAttribute('data-tipo');
-
-        document.getElementById('titulo').value     = titulo;
-        document.getElementById('qtd').value        = qtd;
-        document.getElementById('valorFinal').value = parseFloat(valor).toFixed(2);
-
-        if (tipo === 'pacote') {
-            const switchPacote = document.querySelectorAll('.switch-opt')[1];
-            if (switchPacote) mudarTipo('pacote', switchPacote);
-        } else {
-            const switchNormal = document.querySelectorAll('.switch-opt')[0];
-            if (switchNormal) mudarTipo('normal', switchNormal);
-        }
-
-        showToast('Dados do pacote copiados!');
-    }
-
     function onFrequenciaChange() {
         const freq           = document.getElementById('frequenciaSelect')?.value;
         const diasSemanaBox  = document.getElementById('diasSemanaBox');
@@ -1884,32 +1797,12 @@ include '../../includes/menu.php';
         intervaloBox.style.display  = (freq === 'personalizada') ? 'block' : 'none';
     }
 
-    function onToggleUsarAgenda() {
-        const usarAgenda = document.getElementById('usarAgenda');
-        const qtdInput   = document.getElementById('qtd');
-        const freqSelect = document.getElementById('frequenciaSelect');
-        const aviso      = document.getElementById('agendaAviso');
-
-        if (!usarAgenda || !qtdInput) return;
-
-        const disabled = usarAgenda.checked;
-
-        qtdInput.readOnly       = disabled;
-        qtdInput.style.backgroundColor = disabled ? '#e5e7eb' : '#f9fafb';
-        if (freqSelect) {
-            freqSelect.disabled = false;
-            freqSelect.style.backgroundColor = '#f9fafb';
-        }
-        if (aviso) aviso.style.display = disabled ? 'block' : 'none';
-    }
-
     document.addEventListener('DOMContentLoaded', function () {
         const freqSelect = document.getElementById('frequenciaSelect');
         if (freqSelect) {
             freqSelect.addEventListener('change', onFrequenciaChange);
             onFrequenciaChange();
         }
-        onToggleUsarAgenda();
     });
 
     // FECHAR MODAL AO CLICAR FORA

@@ -63,22 +63,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tipo    = $_POST['tipo'];
     $calculoServicoId = !empty($_POST['calculo_servico_id']) ? (int)$_POST['calculo_servico_id'] : null;
     
-    // Novos campos de pacote
-    $qtdSessoes = isset($_POST['qtd_sessoes']) ? (int)$_POST['qtd_sessoes'] : 1;
-    $descontoTipo = $_POST['desconto_tipo'] ?? 'percentual';
+    // Campos de pacote — modelo simplificado: serviço base + qtd sessões + desconto
+    $qtdSessoes    = isset($_POST['qtd_sessoes']) ? max(1, (int)$_POST['qtd_sessoes']) : 1;
+    $descontoTipo  = $_POST['desconto_tipo'] ?? 'percentual';
     $descontoValor = isset($_POST['desconto_valor']) ? str_replace(',', '.', $_POST['desconto_valor']) : 0;
     $precoOriginal = isset($_POST['preco_original']) ? str_replace(',', '.', $_POST['preco_original']) : 0;
+    // servico_base_id armazenado em itens_pacote (um único ID)
+    $itens = !empty($_POST['servico_base_id']) ? (string)(int)$_POST['servico_base_id'] : '';
 
-    $itens = isset($_POST['itens_selecionados']) ? implode(',', $_POST['itens_selecionados']) : '';
-
-    // Campos de recorrência
-    $permiteRecorrencia = isset($_POST['permite_recorrencia']) ? 1 : 0;
-    $tipoRecorrencia = $_POST['tipo_recorrencia'] ?? 'sem_recorrencia';
-    $intervaloDias = isset($_POST['intervalo_dias']) ? (int)$_POST['intervalo_dias'] : 1;
-    $duracaoMeses = isset($_POST['duracao_meses']) ? (int)$_POST['duracao_meses'] : 1;
-    $qtdOcorrencias = isset($_POST['qtd_ocorrencias']) ? (int)$_POST['qtd_ocorrencias'] : 1;
-    $diasSemana = isset($_POST['dias_semana']) ? json_encode($_POST['dias_semana']) : null;
-    $diaFixoMes = isset($_POST['dia_fixo_mes']) ? (int)$_POST['dia_fixo_mes'] : null;
+    // Recorrência desativada no pacote — gerenciada no agendamento/comanda
+    $permiteRecorrencia = 0;
+    $tipoRecorrencia    = 'sem_recorrencia';
+    $intervaloDias      = 1;
+    $duracaoMeses       = 1;
+    $qtdOcorrencias     = $qtdSessoes;
+    $diasSemana         = null;
+    $diaFixoMes         = null;
 
     // Caminho FÍSICO da pasta uploads (no servidor)
     $uploadDirFs = __DIR__ . '/../../uploads/';
@@ -1182,198 +1182,70 @@ $calculos = $stmtCalcs->fetchAll();
                 </select>
             </div>
 
-            <div class="form-group" id="areaSelecaoItens" style="display:none;">
-                <label class="form-label">
-                    <i class="bi bi-box-seam-fill"></i>
-                    Itens do pacote
-                </label>
-                <div class="checkbox-list">
-                    <?php if(count($listaServicos) > 0): ?>
+            <!-- Área de pacote: serviço base + qtd sessões + desconto -->
+            <div id="areaPacote" style="display:none;">
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="bi bi-scissors"></i>
+                        Serviço base
+                    </label>
+                    <select name="servico_base_id" id="inputServicoBase" class="form-control" onchange="calcularPacote()">
+                        <option value="">Selecione o serviço...</option>
                         <?php foreach($listaServicos as $s): ?>
-                            <div class="check-item" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                                <div style="display:flex; align-items:center; gap:8px; width:100%;">
-                                    <label style="display:flex; align-items:center; gap:8px; flex:1;">
-                                        <input type="checkbox"
-                                               name="itens_selecionados[]"
-                                               value="<?php echo $s['id']; ?>"
-                                               class="chk-servico"
-                                               data-price="<?php echo $s['preco']; ?>"
-                                               data-time="<?php echo $s['duracao']; ?>"
-                                               data-service-id="<?php echo $s['id']; ?>"
-                                               onchange="toggleQuantidadeServico(this)">
-                                        <?php echo htmlspecialchars($s['nome']); ?>
-                                    </label>
-                                    <span style="font-weight:700;">R$ <?php echo number_format($s['preco'], 2, ',', '.'); ?></span>
-                                </div>
-                                <div class="quantidade-servico-item" id="qtd-<?php echo $s['id']; ?>" style="display:none; width:100%; padding-left:28px;">
-                                    <div style="display:flex; align-items:center; gap:8px; background:#f8fafc; padding:8px 12px; border-radius:8px;">
-                                        <label style="font-size:0.75rem; color:#64748b; font-weight:600; white-space:nowrap;">
-                                            <i class="bi bi-repeat"></i> Quantidade:
-                                        </label>
-                                        <input type="number" 
-                                               min="1" 
-                                               value="1" 
-                                               class="form-control qtd-servico-input" 
-                                               name="qtd_servico_<?php echo $s['id']; ?>"
-                                               data-service-id="<?php echo $s['id']; ?>"
-                                               style="width:80px; padding:6px; text-align:center; font-weight:700;"
-                                               oninput="calcularPacote()">
-                                        <span style="font-size:0.75rem; color:#64748b;">sessões</span>
-                                        <span class="total-servico" style="margin-left:auto; font-weight:700; color:var(--brand-color);">
-                                            R$ <?php echo number_format($s['preco'], 2, ',', '.'); ?>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                            <option value="<?= $s['id'] ?>"
+                                    data-preco="<?= $s['preco'] ?>"
+                                    data-nome="<?= htmlspecialchars($s['nome']) ?>">
+                                <?= htmlspecialchars($s['nome']) ?> — R$ <?= number_format($s['preco'], 2, ',', '.') ?>
+                            </option>
                         <?php endforeach; ?>
-                    <?php else: ?>
-                        <small style="font-size:0.75rem; color:var(--text-muted);">
-                            Cadastre ao menos um serviço para montar pacotes.
-                        </small>
-                    <?php endif; ?>
+                    </select>
                 </div>
-            </div>
 
-            <!-- Campos de Pacote: Desconto -->
-            <div id="areaPacoteExtras" style="display:none;">
                 <div class="dual-input-row">
                     <div class="form-group" style="flex:1;">
-                        <label class="form-label">
-                            <i class="bi bi-percent"></i>
-                            Tipo de desconto
-                        </label>
-                        <select name="desconto_tipo" id="inputDescontoTipo" class="form-control" onchange="calcularDescontoPacote()">
+                        <label class="form-label"><i class="bi bi-hash"></i> Qtd de sessões</label>
+                        <input type="number" name="qtd_sessoes" id="inputQtdSessoes" class="form-control"
+                               min="1" value="4" oninput="calcularPacote()">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label"><i class="bi bi-tag"></i> Valor unitário</label>
+                        <input type="text" id="displayValorUnit" class="form-control" disabled
+                               style="background:#f1f5f9; color:#64748b;" placeholder="R$ 0,00">
+                    </div>
+                </div>
+
+                <!-- Desconto -->
+                <div class="dual-input-row">
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label"><i class="bi bi-percent"></i> Desconto</label>
+                        <select name="desconto_tipo" id="inputDescontoTipo" class="form-control" onchange="calcularPacote()">
                             <option value="percentual">Percentual (%)</option>
-                            <option value="valor">Valor (R$)</option>
+                            <option value="valor">Valor fixo (R$)</option>
                         </select>
                     </div>
                     <div class="form-group" style="flex:1;">
-                        <label class="form-label">
-                            <i class="bi bi-tag"></i>
-                            Desconto
-                        </label>
-                        <input type="number" step="0.01" min="0" name="desconto_valor" id="inputDescontoValor" class="form-control" placeholder="0" value="0" oninput="calcularDescontoPacote()">
+                        <label class="form-label">&nbsp;</label>
+                        <input type="number" step="0.01" min="0" name="desconto_valor" id="inputDescontoValor"
+                               class="form-control" placeholder="0" value="0" oninput="calcularPacote()">
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <div style="background:#f0fdf4; border:1px solid #86efac; padding:12px; border-radius:12px; margin-bottom:12px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                            <strong style="font-size:0.85rem; color:#166534;">Preço Original:</strong>
-                            <span id="displayPrecoOriginal" style="font-weight:700; color:#166534;">R$ 0,00</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                            <strong style="font-size:0.85rem; color:#dc2626;">Desconto:</strong>
-                            <span id="displayDesconto" style="font-weight:700; color:#dc2626;">- R$ 0,00</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; padding-top:8px; border-top:1px solid #86efac;">
-                            <strong style="font-size:0.8125rem; color:#166534;">Valor Final:</strong>
-                            <span id="displayPrecoFinal" style="font-size:0.9375rem; font-weight:700; color:#166534;">R$ 0,00</span>
-                        </div>
+                <!-- Resumo do pacote -->
+                <div id="resumoPacote" style="display:none; background:#f0fdf4; border:1px solid #86efac; border-radius:12px; padding:12px; margin-bottom:4px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <span style="font-size:0.8rem; color:#64748b;">Preço sem desconto:</span>
+                        <span id="displayPrecoOriginal" style="font-weight:700; color:#166534;">R$ 0,00</span>
                     </div>
-                    <input type="hidden" name="preco_original" id="inputPrecoOriginal" value="0">
-                </div>
-            </div>
-
-            <!-- CONFIGURAÇÕES DE RECORRÊNCIA (só aparece para pacotes) -->
-            <div id="areaRecorrencia" style="display:none;">
-                <div class="recorrencia-box">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-                        <i class="bi bi-arrow-repeat" style="color:#0369a1; font-size:1rem;"></i>
-                        <h4 style="margin:0; color:#0369a1; font-size:0.8125rem; font-weight:700;">Agendamento Recorrente</h4>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <span style="font-size:0.8rem; color:#64748b;">Desconto:</span>
+                        <span id="displayDesconto" style="font-weight:700; color:#dc2626;">- R$ 0,00</span>
                     </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">
-                            <i class="bi bi-check2-square"></i>
-                            Permitir agendamento recorrente
-                        </label>
-                        <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-                            <input type="checkbox" name="permite_recorrencia" id="inputPermiteRecorrencia" value="1" onchange="toggleRecorrenciaOpcoes()">
-                            <span style="font-size:0.85rem; color:#64748b;">Ativar repetição automática deste serviço</span>
-                        </label>
-                    </div>
-
-                    <div id="opcoesRecorrencia" style="display:none;">
-                        <div class="form-group">
-                            <label class="form-label">
-                                <i class="bi bi-calendar-event"></i>
-                                Tipo de recorrência
-                            </label>
-                            <select name="tipo_recorrencia" id="inputTipoRecorrencia" class="form-control" onchange="ajustarCamposRecorrencia()">
-                                <option value="sem_recorrencia">Sem recorrência</option>
-                                <option value="diaria">A cada dia</option>
-                                <option value="semanal">Semanal (mesmos dias da semana)</option>
-                                <option value="quinzenal">Quinzenal (a cada 15 dias)</option>
-                                <option value="mensal_dia">Mensal (mesmo dia do mês)</option>
-                                <option value="mensal_semana">Mensal (mesma semana e dia da semana)</option>
-                                <option value="personalizada">Personalizada (escolher dias)</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group" id="campoDiasSemana" style="display:none;">
-                            <label class="form-label">
-                                <i class="bi bi-calendar-week"></i>
-                                Dias da semana
-                            </label>
-                            <div class="weekday-options">
-                                <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="0"><span>Dom</span></label>
-                                <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="1"><span>Seg</span></label>
-                                <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="2"><span>Ter</span></label>
-                                <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="3"><span>Qua</span></label>
-                                <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="4"><span>Qui</span></label>
-                                <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="5"><span>Sex</span></label>
-                                <label class="weekday-chip"><input type="checkbox" name="dias_semana[]" value="6"><span>Sáb</span></label>
-                            </div>
-                        </div>
-
-                        <div class="form-group" id="campoDiaFixo" style="display:none;">
-                            <label class="form-label">
-                                <i class="bi bi-calendar-day"></i>
-                                Dia fixo do mês
-                            </label>
-                            <input type="number" min="1" max="31" name="dia_fixo_mes" id="inputDiaFixo" class="form-control" placeholder="Ex: 10 (dia 10 de cada mês)">
-                        </div>
-
-                        <div class="form-group" id="campoIntervaloDias" style="display:none;">
-                            <label class="form-label">
-                                <i class="bi bi-arrow-left-right"></i>
-                                Intervalo em dias
-                            </label>
-                            <input type="number" min="1" name="intervalo_dias" id="inputIntervaloDias" class="form-control" placeholder="Ex: 3 (a cada 3 dias)" value="1">
-                        </div>
-
-                        <div class="dual-input-row">
-                            <div class="form-group" style="flex:1;">
-                                <label class="form-label">
-                                    <i class="bi bi-calendar-range"></i>
-                                    Duração (meses)
-                                </label>
-                                <input type="number" min="1" name="duracao_meses" id="inputDuracaoMeses" class="form-control" placeholder="Ex: 3" value="1">
-                                <small style="color:#64748b; font-size:0.75rem; display:block; margin-top:4px;">
-                                    Por quantos meses o serviço se repetirá
-                                </small>
-                            </div>
-                            <div class="form-group" style="flex:1;">
-                                <label class="form-label">
-                                    <i class="bi bi-hash"></i>
-                                    Nº de ocorrências
-                                </label>
-                                <input type="number" min="1" name="qtd_ocorrencias" id="inputQtdOcorrencias" class="form-control" placeholder="Ex: 12" value="1">
-                                <small style="color:#64748b; font-size:0.75rem; display:block; margin-top:4px;">
-                                    Quantas vezes o serviço ocorrerá
-                                </small>
-                            </div>
-                        </div>
-
-                        <div style="background:#fef3c7; border-left:4px solid #f59e0b; padding:10px 12px; border-radius:8px; margin-top:12px;">
-                            <p style="margin:0; font-size:0.8rem; color:#92400e; line-height:1.4;">
-                                <i class="bi bi-info-circle-fill"></i>
-                                <strong>Atenção:</strong> Ao agendar este pacote, todos os horários serão criados automaticamente conforme a configuração de recorrência.
-                            </p>
-                        </div>
+                    <div style="display:flex; justify-content:space-between; padding-top:8px; border-top:1px solid #86efac;">
+                        <strong style="font-size:0.875rem;">Valor final:</strong>
+                        <strong id="displayPrecoFinal" style="font-size:1rem; color:#166534;">R$ 0,00</strong>
                     </div>
                 </div>
+                <input type="hidden" name="preco_original" id="inputPrecoOriginal" value="0">
             </div>
 
             <div class="dual-input-row">
@@ -1461,7 +1333,7 @@ $calculos = $stmtCalcs->fetchAll();
     const inputFotoAtual= document.getElementById('inputFotoAtual');
     const modalTitle    = document.getElementById('modalTitle');
     const btnSalvar     = document.getElementById('btnSalvar');
-    const areaItens     = document.getElementById('areaSelecaoItens');
+    const areaPacote    = document.getElementById('areaPacote');
 
     // 1. ABRIR MODAL (NOVO)
     function abrirModal(tipo) {
@@ -1473,31 +1345,26 @@ $calculos = $stmtCalcs->fetchAll();
         inputTempo.value  = '';
         inputObs.value    = '';
         btnSalvar.innerHTML = '<i class="bi bi-check-circle-fill"></i> Salvar';
-        document.querySelectorAll('.chk-servico').forEach(chk => chk.checked = false);
-        
+
         // Resetar campos de pacote
+        const selBase = document.getElementById('inputServicoBase');
+        if (selBase) selBase.value = '';
+        const inputQtd = document.getElementById('inputQtdSessoes');
+        if (inputQtd) inputQtd.value = 4;
         document.getElementById('inputDescontoTipo').value = 'percentual';
         document.getElementById('inputDescontoValor').value = 0;
         document.getElementById('inputPrecoOriginal').value = 0;
-        
-        // Resetar e ocultar todos os campos de quantidade individual
-        document.querySelectorAll('.quantidade-servico-item').forEach(div => {
-            div.style.display = 'none';
-            const input = div.querySelector('.qtd-servico-input');
-            if (input) input.value = 1;
-        });
+        const resumo = document.getElementById('resumoPacote');
+        if (resumo) resumo.style.display = 'none';
 
         inputTipo.value = tipo;
-        const areaPacoteExtras = document.getElementById('areaPacoteExtras');
-        
+
         if (tipo === 'pacote') {
             modalTitle.innerText = 'Novo Pacote';
-            areaItens.style.display = 'block';
-            areaPacoteExtras.style.display = 'block';
+            areaPacote.style.display = 'block';
         } else {
             modalTitle.innerText = 'Novo Serviço';
-            areaItens.style.display = 'none';
-            areaPacoteExtras.style.display = 'none';
+            areaPacote.style.display = 'none';
         }
 
         modal.classList.add('active');
@@ -1514,7 +1381,7 @@ $calculos = $stmtCalcs->fetchAll();
         inputObs.value    = dados.observacao || '';
         inputFotoAtual.value = dados.foto || '';
         btnSalvar.innerHTML = '<i class="bi bi-check-circle-fill"></i> Atualizar';
-        
+
         // Carregar cálculo de custos vinculado
         const selectCalculo = document.getElementById('inputCalculoServico');
         if (selectCalculo && dados.calculo_servico_id) {
@@ -1522,42 +1389,31 @@ $calculos = $stmtCalcs->fetchAll();
         } else if (selectCalculo) {
             selectCalculo.value = '';
         }
-        
+
         // Carregar dados de desconto (pacote)
         document.getElementById('inputDescontoTipo').value = dados.desconto_tipo || 'percentual';
         document.getElementById('inputDescontoValor').value = dados.desconto_valor || 0;
         document.getElementById('inputPrecoOriginal').value = dados.preco_original || 0;
 
-        const areaPacoteExtras = document.getElementById('areaPacoteExtras');
-        
         if (dados.tipo === 'pacote') {
             modalTitle.innerText = 'Editar Pacote';
-            areaItens.style.display = 'block';
-            areaPacoteExtras.style.display = 'block';
+            areaPacote.style.display = 'block';
 
-            // Marcar checkboxes e mostrar quantidades
-            let itens = dados.itens_pacote ? dados.itens_pacote.split(',') : [];
-            document.querySelectorAll('.chk-servico').forEach(chk => {
-                const isChecked = itens.includes(chk.value);
-                chk.checked = isChecked;
-                
-                if (isChecked) {
-                    // Mostrar campo de quantidade
-                    const serviceId = chk.getAttribute('data-service-id');
-                    const qtdDiv = document.getElementById('qtd-' + serviceId);
-                    if (qtdDiv) {
-                        qtdDiv.style.display = 'block';
-                    }
-                }
-            });
-            
-            // Recalcular totais
+            // Selecionar serviço base
+            const selBase = document.getElementById('inputServicoBase');
+            if (selBase && dados.itens_pacote) {
+                selBase.value = dados.itens_pacote.split(',')[0] || '';
+            }
+            // Preencher quantidade de sessões
+            const inputQtd = document.getElementById('inputQtdSessoes');
+            if (inputQtd && dados.qtd_sessoes) {
+                inputQtd.value = dados.qtd_sessoes;
+            }
+
             calcularPacote();
-            calcularDescontoPacote();
         } else {
             modalTitle.innerText = 'Editar Serviço';
-            areaItens.style.display = 'none';
-            areaPacoteExtras.style.display = 'none';
+            areaPacote.style.display = 'none';
         }
 
         modal.classList.add('active');
@@ -1586,23 +1442,6 @@ $calculos = $stmtCalcs->fetchAll();
         }
     }
 
-    // 3. TOGGLE QUANTIDADE POR SERVIÇO
-    function toggleQuantidadeServico(checkbox) {
-        const serviceId = checkbox.getAttribute('data-service-id');
-        const qtdDiv = document.getElementById('qtd-' + serviceId);
-        
-        if (checkbox.checked) {
-            qtdDiv.style.display = 'block';
-        } else {
-            qtdDiv.style.display = 'none';
-            // Reset quantidade quando desmarca
-            const input = qtdDiv.querySelector('.qtd-servico-input');
-            if (input) input.value = 1;
-        }
-        
-        calcularPacote();
-    }
-
     // 4. PESQUISA INSTANTÂNEA
     function filtrarServicos() {
         let termo = document.getElementById('searchInput').value.toLowerCase();
@@ -1618,73 +1457,42 @@ $calculos = $stmtCalcs->fetchAll();
         });
     }
 
-    // 5. CÁLCULO AUTOMÁTICO DE PACOTE
+    // 5. CÁLCULO AUTOMÁTICO DE PACOTE (modelo simplificado: servico_base × qtd)
     function calcularPacote() {
         if (inputTipo.value !== 'pacote') return;
 
-        let totalPreco = 0;
-        let totalTempo = 0;
+        const sel = document.getElementById('inputServicoBase');
+        const opt = sel ? sel.options[sel.selectedIndex] : null;
+        const precoUnit = opt ? (parseFloat(opt.getAttribute('data-preco')) || 0) : 0;
+        const qtd = parseInt(document.getElementById('inputQtdSessoes')?.value) || 1;
 
-        document.querySelectorAll('.chk-servico:checked').forEach(chk => {
-            const serviceId = chk.getAttribute('data-service-id');
-            const preco = parseFloat(chk.getAttribute('data-price')) || 0;
-            const tempo = parseInt(chk.getAttribute('data-time')) || 0;
-            
-            // Buscar quantidade individual deste serviço
-            const qtdInput = document.querySelector(`input[data-service-id="${serviceId}"].qtd-servico-input`);
-            const quantidade = qtdInput ? parseInt(qtdInput.value) || 1 : 1;
-            
-            // Multiplicar preço e tempo pela quantidade individual
-            totalPreco += preco * quantidade;
-            totalTempo += tempo * quantidade;
-            
-            // Atualizar display do total deste serviço
-            const totalSpan = document.querySelector(`#qtd-${serviceId} .total-servico`);
-            if (totalSpan) {
-                totalSpan.textContent = 'R$ ' + (preco * quantidade).toFixed(2).replace('.', ',');
-            }
-        });
+        // Exibe valor unitário
+        const displayUnit = document.getElementById('displayValorUnit');
+        if (displayUnit) displayUnit.value = precoUnit > 0 ? 'R$ ' + precoUnit.toFixed(2).replace('.', ',') : '';
 
-        // Salvar preço original (já com todas as quantidades calculadas)
-        document.getElementById('inputPrecoOriginal').value = totalPreco.toFixed(2);
+        const precoOriginal = precoUnit * qtd;
+        document.getElementById('inputPrecoOriginal').value = precoOriginal.toFixed(2);
 
-        if (inputAcao.value === 'create') {
-            inputTempo.value = totalTempo;
-            // Aplicar desconto se houver
-            calcularDescontoPacote();
-        }
-    }
-    
-    // 5. CALCULAR DESCONTO DO PACOTE
-    function calcularDescontoPacote() {
-        const precoOriginal = parseFloat(document.getElementById('inputPrecoOriginal').value) || 0;
-        const descontoTipo = document.getElementById('inputDescontoTipo').value;
-        const descontoValor = parseFloat(document.getElementById('inputDescontoValor').value) || 0;
-        
+        // Aplica desconto
+        const descontoTipo  = document.getElementById('inputDescontoTipo')?.value || 'percentual';
+        const descontoValor = parseFloat(document.getElementById('inputDescontoValor')?.value) || 0;
         let valorDesconto = 0;
         let precoFinal = precoOriginal;
-        
         if (descontoValor > 0) {
             if (descontoTipo === 'percentual') {
-                // Desconto em %
                 valorDesconto = (precoOriginal * descontoValor) / 100;
-                precoFinal = precoOriginal - valorDesconto;
             } else {
-                // Desconto em R$
                 valorDesconto = descontoValor;
-                precoFinal = precoOriginal - valorDesconto;
             }
+            precoFinal = Math.max(0, precoOriginal - valorDesconto);
         }
-        
-        // Não permitir preço final negativo
-        if (precoFinal < 0) precoFinal = 0;
-        
-        // Atualizar displays
+
+        // Mostra resumo
+        const resumo = document.getElementById('resumoPacote');
+        if (resumo) resumo.style.display = precoOriginal > 0 ? 'block' : 'none';
         document.getElementById('displayPrecoOriginal').innerText = 'R$ ' + precoOriginal.toFixed(2).replace('.', ',');
-        document.getElementById('displayDesconto').innerText = '- R$ ' + valorDesconto.toFixed(2).replace('.', ',');
-        document.getElementById('displayPrecoFinal').innerText = 'R$ ' + precoFinal.toFixed(2).replace('.', ',');
-        
-        // Atualizar campo de preço
+        document.getElementById('displayDesconto').innerText      = '- R$ ' + valorDesconto.toFixed(2).replace('.', ',');
+        document.getElementById('displayPrecoFinal').innerText    = 'R$ ' + precoFinal.toFixed(2).replace('.', ',');
         document.getElementById('inputPreco').value = precoFinal.toFixed(2);
     }
     
@@ -1740,62 +1548,15 @@ $calculos = $stmtCalcs->fetchAll();
         }
     }
 
-    // 8. CONTROLE DE RECORRÊNCIA
-    function toggleRecorrenciaOpcoes() {
-        const checkbox = document.getElementById('inputPermiteRecorrencia');
-        const opcoes = document.getElementById('opcoesRecorrencia');
-        
-        if (checkbox.checked) {
-            opcoes.style.display = 'block';
-        } else {
-            opcoes.style.display = 'none';
-        }
-    }
-
-    function ajustarCamposRecorrencia() {
-        const tipo = document.getElementById('inputTipoRecorrencia').value;
-        const campoDiasSemana = document.getElementById('campoDiasSemana');
-        const campoDiaFixo = document.getElementById('campoDiaFixo');
-        const campoIntervaloDias = document.getElementById('campoIntervaloDias');
-        
-        // Ocultar todos primeiro
-        campoDiasSemana.style.display = 'none';
-        campoDiaFixo.style.display = 'none';
-        campoIntervaloDias.style.display = 'none';
-        
-        // Mostrar campos conforme tipo selecionado
-        switch(tipo) {
-            case 'semanal':
-            case 'personalizada':
-                campoDiasSemana.style.display = 'block';
-                break;
-            case 'mensal_dia':
-                campoDiaFixo.style.display = 'block';
-                break;
-            case 'personalizada':
-                campoIntervaloDias.style.display = 'block';
-                break;
-        }
-    }
-
-    // Detectar mudança de tipo (serviço/pacote) e mostrar/ocultar área de recorrência
+    // 8. CALCULAR PACOTE AO ALTERAR CAMPOS
     document.addEventListener('DOMContentLoaded', function() {
-        // Observer para detectar quando o modal abre
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.target.classList.contains('active')) {
-                    const tipo = inputTipo.value;
-                    const areaRecorrencia = document.getElementById('areaRecorrencia');
-                    
-                    if (tipo === 'pacote') {
-                        areaRecorrencia.style.display = 'block';
-                    } else {
-                        areaRecorrencia.style.display = 'none';
-                    }
-                }
-            });
-        });
-        
-        observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
+        const selBase = document.getElementById('inputServicoBase');
+        const inputQtd = document.getElementById('inputQtdSessoes');
+        const inputDescontoTipo = document.getElementById('inputDescontoTipo');
+        const inputDescontoValor = document.getElementById('inputDescontoValor');
+        if (selBase) selBase.addEventListener('change', calcularPacote);
+        if (inputQtd) inputQtd.addEventListener('input', calcularPacote);
+        if (inputDescontoTipo) inputDescontoTipo.addEventListener('change', calcularPacote);
+        if (inputDescontoValor) inputDescontoValor.addEventListener('input', calcularPacote);
     });
 </script>

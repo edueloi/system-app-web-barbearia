@@ -85,6 +85,25 @@ function criarAgendamentosRecorrentes($pdo, $userId, $dados) {
                     'dia_fixo_mes'     => $diaMesInicio,
                     'user_id'          => $userId
                 ];
+            } elseif ($frequencia === 'mensal_semana') {
+                $configDatas = [
+                    'tipo_recorrencia' => 'mensal_semana',
+                    'qtd_ocorrencias'  => $qtdOcorrencias,
+                    'intervalo_dias'   => 30,
+                    'dias_semana'      => json_encode([$diaInicio]),
+                    'dia_fixo_mes'     => null,
+                    'user_id'          => $userId
+                ];
+            } elseif ($frequencia === 'personalizada') {
+                $intervalo = max(1, (int)($dados['recorrencia_intervalo'] ?? 7));
+                $configDatas = [
+                    'tipo_recorrencia' => 'personalizada',
+                    'qtd_ocorrencias'  => $qtdOcorrencias,
+                    'intervalo_dias'   => $intervalo,
+                    'dias_semana'      => null,
+                    'dia_fixo_mes'     => null,
+                    'user_id'          => $userId
+                ];
             } else {
                 $diasSemanaSemanal = $temDiasSemana
                     ? $recDiasSemana

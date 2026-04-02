@@ -77,9 +77,16 @@ if (isset($pdo) && isset($_SESSION['user_id'])) {
 
     $estabelecimentoNome = trim($dadoUsuario['estabelecimento'] ?? '');
     $paginaAtual = basename($_SERVER['PHP_SELF']);
-    if ($estabelecimentoNome === '' && $paginaAtual !== 'perfil.php') {
-        $perfilUrl = $isProd ? '/perfil' : '/karen_site/controle-salao/pages/perfil/perfil.php';
-        header('Location: ' . $perfilUrl);
+    $paginasExcluidas = ['perfil.php', 'onboarding.php'];
+    if ($estabelecimentoNome === '' && !in_array($paginaAtual, $paginasExcluidas)) {
+        $onboardingUrl = $isProd
+            ? '/onboarding'
+            : rtrim(dirname(dirname($_SERVER['PHP_SELF'])), '/') . '/pages/onboarding/onboarding.php';
+        // fallback absoluto caso a detecção falhe
+        if (!str_contains($onboardingUrl, 'onboarding')) {
+            $onboardingUrl = '/karen_site/controle-salao/pages/onboarding/onboarding.php';
+        }
+        header('Location: ' . $onboardingUrl);
         exit;
     }
 }
