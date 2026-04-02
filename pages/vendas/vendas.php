@@ -239,527 +239,245 @@ foreach ($clientes as $cliente) {
     <style>
         :root {
             --primary: #4f46e5;
-            --primary-dark: #4338ca;
-            --accent: #ec4899;
-            --accent-2: #6366f1;
-            --muted: #6b7280;
-            --bg: #f5f7fb;
-            --card: rgba(255,255,255,0.92);
-            --glass: rgba(255,255,255,0.7);
-            --ink: #0f172a;
+            --primary-light: #eef2ff;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #0f172a;
+            --slate: #64748b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
         }
 
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background: var(--bg);
+            color: var(--dark);
             min-height: 100vh;
-            color: var(--ink);
         }
 
-        .hero-bar {
-            background: #111827;
-            border-bottom: 1px solid rgba(148,163,184,0.2);
-            padding: 28px 0;
-            margin-bottom: 24px;
-        }
-
-        .hero-card {
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 20px;
-            padding: 18px 20px;
+        /* HEADER */
+        .vendas-header {
+            background: var(--dark);
+            padding: 2.5rem 0;
             color: #fff;
-            box-shadow: none;
+            margin-bottom: -2rem;
+            border-bottom: 4px solid var(--primary);
         }
 
+        /* STAT CARDS */
         .stat-card {
             background: var(--card);
-            border-radius: 18px;
-            padding: 14px 16px;
-            border: 1px solid rgba(226,232,240,0.8);
-            box-shadow: none;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::after {
-            content: "";
-            position: absolute;
-            inset: auto -40% -60% auto;
-            width: 160px;
-            height: 160px;
-            border-radius: 50%;
-            background: rgba(79,70,229,0.08);
-            display: none;
-        }
-
-        .section-card {
-            background: var(--card);
-            border-radius: 22px;
-            padding: 16px 18px;
-            border: 1px solid rgba(148,163,184,0.2);
-            box-shadow: none;
-            margin-bottom: 24px;
-        }
-
-        .pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 999px;
-            background: #eef2ff;
-            color: #4338ca;
-            font-size: 0.78rem;
-            font-weight: 600;
-        }
-
-        .status-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-        }
-
-        .status-active {
-            background: #e8edff;
-            color: #166534;
-            border: 1px solid #86efac;
-        }
-
-        .status-inactive {
-            background: #fff1f2;
-            color: #991b1b;
-            border: 1px solid #fecaca;
-        }
-
-        .status-vitalicio {
-            background: #fef3c7;
-            color: #9a3412;
-            border: 1px solid #fdba74;
-        }
-
-        .card-vencido {
-            border: 1px solid rgba(239,68,68,0.5) !important;
-            box-shadow: none;
-        }
-
-        .card-vencendo {
-            border: 1px solid rgba(245,158,11,0.5) !important;
-            box-shadow: none;
-        }
-
-        .table thead th {
-            text-transform: uppercase;
-            font-size: 0.72rem;
-            letter-spacing: 0.08em;
-            color: var(--muted);
-            background: rgba(248,250,252,0.9);
-        }
-
-        .table tbody td {
-            vertical-align: middle;
-            font-size: 0.88rem;
-        }
-
-        .calc-box {
-            background: rgba(79,70,229,0.06);
-            border-radius: 18px;
-            padding: 16px;
-            border: 1px dashed rgba(148,163,184,0.5);
-        }
-
-        .link-box {
-            background: #111827;
-            color: #fff;
-            padding: 10px 14px;
-            border-radius: 12px;
-            font-size: 0.9rem;
-        }
-
-
-        .btn-primary {
-            background: var(--primary);
-            border: none;
-            box-shadow: none;
-        }
-
-        .btn-primary:hover {
-            filter: brightness(1.05);
-        }
-
-        .btn-outline-dark {
-            border-color: #d1d5db;
-            color: #111827;
-        }
-
-        .btn-outline-dark:hover {
-            background: #e5e7eb;
-            color: #111827;
-        }
-
-        .btn-dark {
-            background: #111827;
-            border: none;
-        }
-
-        .form-label {
-            font-weight: 600;
-            color: #111827;
-        }
-
-        .form-steps {
-            display: grid;
-            gap: 18px;
-        }
-
-        .step-indicator {
+            border-radius: 20px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+            height: 100%;
             display: flex;
-            gap: 8px;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
-        .step-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 999px;
-            background: rgba(148,163,184,0.5);
+        .stat-card:hover { transform: translateY(-3px); }
+
+        .stat-icon {
+            width: 42px; height: 42px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.25rem; margin-bottom: 1rem;
         }
 
-        .step-dot.active {
-            background: var(--accent);
+        .stat-success { border-left: 5px solid var(--success); }
+        .stat-warning { border-left: 5px solid var(--warning); }
+        .stat-danger { border-left: 5px solid var(--danger); }
+        .stat-primary { border-left: 5px solid var(--primary); }
+
+        /* GLASS PANEL/CONTAINER */
+        .glass-panel {
+            background: var(--card);
+            border-radius: 24px;
+            padding: 2rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
         }
 
-        .step-panel {
-            display: block;
+        /* BUTTONS */
+        .btn-premium {
+            background: var(--primary);
+            color: #fff;
+            border-radius: 12px;
+            padding: 10px 24px;
+            font-weight: 600;
+            border: none;
+            transition: all 0.3s;
         }
+        .btn-premium:hover { background: #4338ca; transform: translateY(-1px); color: #fff; }
 
-        .step-panel.hidden {
+        /* TABLE CUSTOM */
+        .table-modern { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .table-modern th {
+            padding: 1rem; color: var(--slate); font-size: 0.75rem; 
+            text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;
+            border-bottom: 1px solid var(--border);
+        }
+        .table-modern td { padding: 1.2rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        .table-modern tr:last-child td { border-bottom: none; }
+
+        .badge-premium {
+            padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700;
+        }
+        .badge-active { background: #dcfce7; color: #166534; }
+        .badge-inactive { background: #fee2e2; color: #991b1b; }
+        .badge-vitalicio { background: #fef3c7; color: #92400e; }
+
+        /* MOBILE CARDS */
+        .mobile-user-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+            margin-bottom: 1rem;
             display: none;
         }
 
-        .chart-bars {
-            display: grid;
-            gap: 8px;
-            margin-top: 8px;
+        .mobile-user-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem; }
+        .mobile-user-info { margin-bottom: 1rem; font-size: 0.85rem; color: var(--slate); }
+        .mobile-user-footer { border-top: 1px solid var(--border); padding-top: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
+
+        @media (max-width: 991px) {
+            .table-modern thead { display: none; }
+            .table-modern tbody tr { display: none; }
+            .mobile-user-card { display: block; }
         }
 
-        .chart-row {
-            display: grid;
-            grid-template-columns: 70px 1fr 90px;
-            gap: 10px;
-            align-items: center;
-            font-size: 0.8rem;
-        }
+        /* MODAL STEPS */
+        .step-dot { width: 40px; height: 8px; border-radius: 4px; background: var(--border); transition: 0.3s; }
+        .step-dot.active { background: var(--primary); }
 
-        .chart-bar {
-            height: 10px;
-            border-radius: 999px;
-            background: var(--primary);
-            opacity: 0.9;
-        }
+        .form-control, .form-select { border-radius: 10px; padding: 10px 14px; border: 1px solid var(--border); }
+        .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+        
+        .hidden { display: none !important; }
 
-        @media (max-width: 768px) {
-            .hero-card {
-                padding: 16px;
-            }
-
-            .section-card {
-                padding: 14px 16px;
-            }
-
-            .stat-card {
-                padding: 16px;
-            }
-
-            .table thead {
-                display: none;
-            }
-
-            .table tbody tr {
-                display: block;
-                border: 1px solid rgba(148,163,184,0.2);
-                border-radius: 14px;
-                padding: 12px;
-                margin-bottom: 12px;
-                background: #fff;
-            }
-
-            .table tbody td {
-                display: flex;
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-                padding: 6px 0;
-                border: none;
-                font-size: 0.86rem;
-            }
-
-            .table tbody td::before {
-                content: attr(data-label);
-                font-weight: 700;
-                color: #111827;
-                font-size: 0.72rem;
-                letter-spacing: 0.08em;
-                text-transform: uppercase;
-                margin-bottom: 4px;
-            }
-
-            .hero-bar .btn {
-                width: 100%;
-            }
-
-            .section-card {
-                padding: 14px 16px;
-            }
-
-            .stat-card {
-                padding: 16px;
-            }
-
-            .table tbody tr {
-                box-shadow: 0 10px 18px -20px rgba(15,23,42,0.5);
-            }
-
-            .form-steps {
-                gap: 14px;
-            }
-
-            .step-panel {
-                padding: 12px;
-                border-radius: 16px;
-                border: 1px solid rgba(148,163,184,0.25);
-                background: #fff;
-            }
-        }
+        .chart-bars { display: grid; gap: 12px; margin-top: 15px; }
+        .chart-row { display: grid; grid-template-columns: 80px 1fr 120px; gap: 15px; align-items: center; font-size: 0.85rem; }
+        .chart-bar-container { background: #f1f5f9; height: 10px; border-radius: 999px; overflow: hidden; }
+        .chart-bar { height: 100%; background: var(--primary); border-radius: 999px; }
     </style>
 </head>
 <body>
-    <div class="hero-bar">
-        <div class="container">
-            <div class="hero-card">
-                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-                    <div>
-                        <div class="text-uppercase small" style="letter-spacing:0.2em; opacity:0.7;">Area do vendedor</div>
-                        <h2 class="mb-1" style="font-family:'Outfit',sans-serif; font-weight:800;">Olá, <?= htmlspecialchars($vendedorNome) ?></h2>
-                        <div style="opacity:0.85;">Codigo do vendedor: <span class="pill"><?= htmlspecialchars($vendedorCodigo) ?></span></div>
+    <header class="vendas-header">
+        <div class="container text-center text-md-start">
+            <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-4">
+                <div>
+                    <h2 class="fw-bold mb-1" style="font-family:'Outfit',sans-serif; letter-spacing:-1px;">Olá, <?= htmlspecialchars($vendedorNome) ?> 👋</h2>
+                    <p class="mb-0 opacity-75">Bem-vindo à sua central de vendas. Vamos bater as metas de hoje?</p>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="text-md-end d-none d-md-block">
+                        <div class="small opacity-75 text-uppercase fw-bold">Seu Código</div>
+                        <div class="fw-bold fs-5 text-primary-light"><?= htmlspecialchars($vendedorCodigo) ?></div>
                     </div>
-                    <div class="d-flex flex-column align-items-md-end gap-2">
-                        <a href="<?= $logoutUrl ?>" class="btn btn-outline-light">Sair</a>
-                    </div>
+                    <a href="<?= $logoutUrl ?>" class="btn btn-outline-light border-0 px-4 py-2" style="background: rgba(255,255,255,0.1);">Sair</a>
                 </div>
             </div>
         </div>
-    </div>
+    </header>
 
-    <div class="container">
+    <div class="container py-4" style="margin-top: 1rem;">
         <?php if ($feedback): ?>
-            <div class="alert alert-<?= $feedbackType ?>"><?= htmlspecialchars($feedback) ?></div>
+            <div class="alert alert-<?= $feedbackType ?> alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+                <i class="bi bi-info-circle-fill me-2"></i> <?= htmlspecialchars($feedback) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
         <?php endif; ?>
 
-        <div class="row g-3 mb-4">
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="text-muted small">Clientes totais</div>
-                    <div class="fs-4 fw-bold"><?= $totalClientes ?></div>
+        <div class="row g-3 mb-5">
+            <div class="col-6 col-lg-3">
+                <div class="stat-card stat-primary">
+                    <div class="stat-icon" style="background: var(--primary-light); color: var(--primary);"><i class="bi bi-people-fill"></i></div>
+                    <div>
+                        <div class="text-muted small fw-bold">Clientes Totais</div>
+                        <div class="fs-3 fw-extrabold"><?= $totalClientes ?></div>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="text-muted small">Clientes ativos</div>
-                    <div class="fs-4 fw-bold"><?= $ativos ?></div>
+            <div class="col-6 col-lg-3">
+                <div class="stat-card stat-success">
+                    <div class="stat-icon" style="background: #dcfce7; color: #059669;"><i class="bi bi-check-circle-fill"></i></div>
+                    <div>
+                        <div class="text-muted small fw-bold">Ativos</div>
+                        <div class="fs-3 fw-extrabold"><?= $ativos ?></div>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="text-muted small">Vencendo (15 dias)</div>
-                    <div class="fs-4 fw-bold"><?= $vencendo ?></div>
+            <div class="col-6 col-lg-3">
+                <div class="stat-card stat-warning">
+                    <div class="stat-icon" style="background: #fef3c7; color: #d97706;"><i class="bi bi-clock-fill"></i></div>
+                    <div>
+                        <div class="text-muted small fw-bold">Vencendo</div>
+                        <div class="fs-3 fw-extrabold"><?= $vencendo ?></div>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="text-muted small">Comissao mensal prevista</div>
-                    <div class="fs-4 fw-bold">R$ <?= number_format($comissaoMensalPrevista, 2, ',', '.') ?></div>
+            <div class="col-6 col-lg-3">
+                <div class="stat-card stat-primary">
+                    <div class="stat-icon" style="background: #eef2ff; color: #4f46e5;"><i class="bi bi-cash-stack"></i></div>
+                    <div>
+                        <div class="text-muted small fw-bold">Rend. Previsto</div>
+                        <div class="fs-4 fw-extrabold text-primary">R$ <?= number_format($comissaoMensalPrevista, 0, ',', '.') ?></div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="row g-4">
-            <div class="col-lg-7">
-                <div class="section-card">
-                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
-                        <h4 class="mb-0" style="font-family:'Outfit',sans-serif;">Nova venda</h4>
-                        <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#modalNovaVenda">
-                            Nova venda
+            <div class="col-lg-8">
+                <div class="glass-panel">
+                    <div class="d-flex align-items-center justify-content-between mb-4">
+                        <div>
+                            <h4 class="fw-bold mb-0" style="font-family:'Outfit',sans-serif;">Minha Carteira</h4>
+                            <p class="text-muted small mb-0">Gestão de clientes e assinaturas</p>
+                        </div>
+                        <button class="btn btn-premium d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#modalNovaVenda">
+                            <i class="bi bi-plus-lg"></i> Nova Venda
                         </button>
                     </div>
-                </div>
-                <div class="modal fade" id="modalNovaVenda" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-centered">
-                        <div class="modal-content" style="border-radius:22px;">
-                            <div class="modal-header" style="border:none;">
-                                <h5 class="modal-title" style="font-family:'Outfit',sans-serif; font-weight:700;">Nova venda</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body" style="padding: 1.5rem 2rem;">
-                                <form method="post">
-                                    <input type="hidden" name="action" value="create_sale">
-                                    <div class="form-steps">
-                                        <div class="step-indicator">
-                                            <span class="step-dot active" id="stepDot1"></span>
-                                            <span class="step-dot" id="stepDot2"></span>
-                                        </div>
 
-                                        <div class="step-panel" id="step1">
-                                            <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label">Nome do cliente</label>
-                                            <input type="text" name="cliente_nome" class="form-control" required>
-                                            <div class="invalid-feedback">Informe o nome.</div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">E-mail</label>
-                                            <input type="email" name="cliente_email" class="form-control" required>
-                                            <div class="invalid-feedback">Informe o e-mail.</div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">Telefone</label>
-                                            <input type="text" name="cliente_telefone" class="form-control" id="clienteTelefone">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">CPF ou CNPJ</label>
-                                            <input type="text" name="cliente_cpf" class="form-control" id="clienteCpf">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">Nome do Estabelecimento</label>
-                                            <input type="text" name="cliente_estabelecimento" class="form-control">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">Senha de acesso</label>
-                                            <input type="password" name="cliente_senha" class="form-control" required>
-                                            <div class="invalid-feedback">Informe a senha.</div>
-                                        </div>
-                                        <div class="col-12">
-                                            <div class="alert alert-warning d-none" id="step1Aviso"></div>
-                                        </div>
-                                        <div class="col-12 d-md-none">
-                                            <button type="button" class="btn btn-dark w-100" id="btnAvancar">Avancar</button>
-                                        </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="step-panel" id="step2">
-                                            <div class="row g-3">
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Plano escolhido</label>
-                                                    <select name="plano" class="form-select" id="planoSelect">
-                                                        <?php foreach ($planos as $key => $info): ?>
-                                                            <option value="<?= $key ?>"><?= htmlspecialchars($info['label']) ?></option>
-                                                        <?php endforeach; ?>
-                                                    </select>
-                                                </div>
-                                                <div class="col-md-4 custom-only" style="display:none;">
-                                                    <label class="form-label">Meses (custom)</label>
-                                                    <input type="number" name="meses_custom" class="form-control" min="1" placeholder="Ex: 6">
-                                                </div>
-                                                <div class="col-md-4 custom-only" style="display:none;">
-                                                    <label class="form-label">Valor custom (R$)</label>
-                                                    <input type="text" name="valor_custom" class="form-control" placeholder="Ex: 300,00">
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label">Desconto (%)</label>
-                                                    <select name="desconto_percent" class="form-select">
-                                                        <option value="0">Sem desconto</option>
-                                                        <option value="5">5%</option>
-                                                        <option value="10">10%</option>
-                                                        <option value="15">15%</option>
-                                                        <option value="20">20%</option>
-                                                        <option value="25">25%</option>
-                                                        <option value="30">30%</option>
-                                                    </select>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label">Entrada (R$)</label>
-                                                    <input type="text" name="entrada_valor" class="form-control" placeholder="0,00">
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label">Desconto na entrada (R$)</label>
-                                                    <input type="text" name="desconto_entrada" class="form-control" placeholder="0,00">
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label">Forma de pagamento</label>
-                                                    <select name="metodo_pagamento" class="form-select">
-                                                        <option value="pix">Pix</option>
-                                                        <option value="debito">Debito</option>
-                                                        <option value="credito">Credito</option>
-                                                        <option value="boleto">Boleto</option>
-                                                        <option value="dinheiro">Dinheiro</option>
-                                                    </select>
-                                                </div>
-                                                <div class="col-12">
-                                                    <label class="form-label">Observacoes</label>
-                                                    <textarea name="observacoes" class="form-control" rows="2"></textarea>
-                                                </div>
-                                                <div class="col-12 d-md-none">
-                                                    <div class="d-flex gap-2">
-                                                        <button type="button" class="btn btn-outline-dark w-50" id="btnVoltar">Voltar</button>
-                                                        <button type="submit" class="btn btn-primary w-50">Registrar</button>
-                                                    </div>
-                                                </div>
-                                                <div class="col-12 d-none d-md-block">
-                                                    <button type="submit" class="btn btn-primary w-100">Registrar venda</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </form>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" class="form-control border-start-0" id="filtroBusca" placeholder="Pesquisar cliente ou e-mail...">
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <div class="section-card">
-                    <h4 class="mb-3" style="font-family:'Outfit',sans-serif;">Carteira de clientes</h4>
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-4">
-                            <input type="text" class="form-control" id="filtroBusca" placeholder="Buscar por nome ou email">
-                        </div>
-                        <div class="col-md-3">
+                        <div class="col-6 col-md-3">
                             <select class="form-select" id="filtroStatus">
-                                <option value="todos">Status: todos</option>
+                                <option value="todos">Status: Todos</option>
                                 <option value="ativo">Ativos</option>
                                 <option value="inativo">Inativos</option>
-                                <option value="vitalicio">Vitalicio</option>
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-6 col-md-3">
                             <select class="form-select" id="filtroVencimento">
-                                <option value="todos">Vencimento: todos</option>
+                                <option value="todos">Vencimento: Todos</option>
                                 <option value="vencendo">Vencendo (15 dias)</option>
                                 <option value="vencido">Vencidos</option>
-                                <option value="em_dia">Em dia</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select class="form-select" id="filtroPorPagina">
-                                <option value="5">5 por pagina</option>
-                                <option value="10" selected>10 por pagina</option>
-                                <option value="20">20 por pagina</option>
                             </select>
                         </div>
                     </div>
+
                     <div class="table-responsive">
-                        <table class="table table-bordered align-middle" id="clientesTabela">
+                        <table class="table-modern" id="clientesTabela">
                             <thead>
                                 <tr>
-                                    <th>Cliente</th>
+                                    <th>Profissional</th>
                                     <th>Status</th>
-                                    <th>Vencimento</th>
-                                    <th>Último pagamento</th>
-                                    <th>Ação</th>
+                                    <th class="d-none d-lg-table-cell">Validade</th>
+                                    <th class="d-none d-lg-table-cell">Últ. Pagto</th>
+                                    <th class="text-end">Ação</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -794,159 +512,160 @@ foreach ($clientes as $cliente) {
                                         $msgFinal = $vencStatus === 'vencido' ? $msgVencido : $msgVencendo;
                                         $linkWpp = $telefoneDigits !== '' ? "https://wa.me/" . $telefoneDigits . "?text=" . rawurlencode($msgFinal) : '';
                                         ?>
-                                        <tr class="<?= $vencStatus === 'vencido' ? 'card-vencido' : ($vencStatus === 'vencendo' ? 'card-vencendo' : '') ?>"
-                                            data-nome="<?= htmlspecialchars(mb_strtolower($cliente['nome'])) ?>"
+                                        <tr data-nome="<?= htmlspecialchars(mb_strtolower($cliente['nome'])) ?>"
                                             data-email="<?= htmlspecialchars(mb_strtolower($cliente['email'])) ?>"
                                             data-status="<?= $statusBase ?>"
-                                            data-vencimento="<?= $vencStatus ?>"
-                                            data-exp="<?= $dataExp ? $dataExp->format('Y-m-d') : '' ?>"
-                                            data-ultima="<?= $ultimaData ?>">
-                                            <td data-label="Cliente">
-                                                <div class="fw-semibold"><?= htmlspecialchars($cliente['nome']) ?></div>
+                                            data-vencimento="<?= $vencStatus ?>">
+                                            <td>
+                                                <div class="fw-bold"><?= htmlspecialchars($cliente['nome']) ?></div>
                                                 <div class="small text-muted"><?= htmlspecialchars($cliente['email']) ?></div>
                                             </td>
-                                            <td data-label="Status">
-                                                <?php if (!empty($cliente['ativo'])): ?>
-                                                    <?php if (!empty($cliente['is_vitalicio'])): ?>
-                                                        <span class="status-pill status-vitalicio">Vitalicio</span>
-                                                    <?php else: ?>
-                                                        <span class="status-pill status-active">Ativo</span>
-                                                    <?php endif; ?>
+                                            <td>
+                                                <?php if ($statusBase === 'ativo'): ?>
+                                                    <span class="badge-premium badge-active">Ativo</span>
+                                                <?php elseif ($statusBase === 'vitalicio'): ?>
+                                                    <span class="badge-premium badge-vitalicio">Vitalício</span>
                                                 <?php else: ?>
-                                                    <span class="status-pill status-inactive">Inativo</span>
+                                                    <span class="badge-premium badge-inactive">Inativo</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td data-label="Vencimento">
-                                                <?php if (!empty($cliente['is_vitalicio'])): ?>
-                                                    Vitalicio
-                                                <?php elseif ($dataExp): ?>
-                                                    <?= $dataExp->format('d/m/Y') ?>
-                                                    <?php if ($diasRestantes !== null): ?>
-                                                        <div class="small text-muted"><?= $diasRestantes ?> dias</div>
-                                                    <?php endif; ?>
-                                                <?php else: ?>
-                                                    -
+                                            <td class="d-none d-lg-table-cell">
+                                                <div class="fw-bold"><?= $dataExpTexto ?></div>
+                                                <?php if ($vencStatus === 'vencendo'): ?>
+                                                    <span class="text-warning small fw-bold">Vence em <?= $diasRestantes ?> dias</span>
+                                                <?php elseif ($vencStatus === 'vencido'): ?>
+                                                    <span class="text-danger small fw-bold">Vencido</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td data-label="Ultimo pagamento">
-                                                <?php if ($ultima): ?>
-                                                    <?= date('d/m/Y', strtotime($ultima['criado_em'])) ?>
-                                                    <div class="small text-muted">
-                                                        <?= htmlspecialchars($ultima['plano_tipo']) ?>
-                                                        <?php if (!empty($ultima['metodo_pagamento'])): ?>
-                                                            • <?= htmlspecialchars($ultima['metodo_pagamento']) ?>
-                                                        <?php endif; ?>
-                                                    </div>
-                                                <?php else: ?>
-                                                    -
-                                                <?php endif; ?>
+                                            <td class="d-none d-lg-table-cell">
+                                                <?= $ultima ? date('d/m/Y', strtotime($ultima['criado_em'])) : '-' ?>
                                             </td>
-                                            <td data-label="Acao">
-                                                <?php if ($vencStatus === 'vencendo' || $vencStatus === 'vencido'): ?>
-                                                    <?php if ($linkWpp !== ''): ?>
-                                                        <a class="btn btn-outline-dark btn-sm" href="<?= htmlspecialchars($linkWpp) ?>" target="_blank" rel="noopener">
-                                                            Enviar mensagem
-                                                        </a>
-                                                    <?php else: ?>
-                                                        <span class="small text-muted">Sem telefone</span>
-                                                    <?php endif; ?>
+                                            <td class="text-end">
+                                                <?php if ($linkWpp): ?>
+                                                    <a href="<?= $linkWpp ?>" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                                                        <i class="bi bi-whatsapp"></i> Cobrar
+                                                    </a>
                                                 <?php else: ?>
-                                                    <span class="small text-muted">Em dia</span>
+                                                    <span class="text-muted small">Sem contato</span>
                                                 <?php endif; ?>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
-                                    <tr>
-                                        <td colspan="5" class="text-center text-muted">Nenhum cliente cadastrado ainda.</td>
-                                    </tr>
+                                    <tr><td colspan="5" class="text-center py-5 text-muted">Nenhum cliente encontrado.</td></tr>
                                 <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
-                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mt-3">
+
+                    <!-- MOBILE CARDS -->
+                    <div class="d-lg-none mt-3" id="mobileCardsContainer">
+                        <?php foreach ($clientes as $cliente): ?>
+                            <?php 
+                            // Redefining vars for the specific mobile loop to avoid leak context
+                            $ultima = $ultimaVendaPorCliente[$cliente['id']] ?? null;
+                            $dataExp = !empty($cliente['data_expiracao']) ? new DateTime($cliente['data_expiracao']) : null;
+                            $diasRestantes = $dataExp ? (int)$hoje->diff($dataExp)->format('%r%a') : null;
+                            $statusBase = !empty($cliente['ativo']) ? 'ativo' : 'inativo';
+                            if (!empty($cliente['is_vitalicio'])) $statusBase = 'vitalicio';
+                            $vencStatus = 'em_dia';
+                            if (!empty($cliente['is_vitalicio'])) { $vencStatus = 'vitalicio'; } 
+                            elseif ($dataExp) {
+                                if ($diasRestantes !== null && $diasRestantes < 0) $vencStatus = 'vencido';
+                                elseif ($diasRestantes !== null && $diasRestantes <= 15) $vencStatus = 'vencendo';
+                            }
+                            $telefoneDigits = preg_replace('/\D+/', '', $cliente['telefone'] ?? '');
+                            if ($telefoneDigits !== '' && strlen($telefoneDigits) <= 11) $telefoneDigits = '55' . $telefoneDigits;
+                            $linkWpp = $telefoneDigits !== '' ? "https://wa.me/" . $telefoneDigits . "?text=" . rawurlencode($vencStatus === 'vencido' ? "Ola " . ($cliente['nome'] ?? '') . ", sua assinatura venceu em " . ($dataExp ? $dataExp->format('d/m/Y') : '-') . ". Para reativar, precisamos do pagamento." : "Ola " . ($cliente['nome'] ?? '') . ", sua assinatura vence em " . ($dataExp ? $dataExp->format('d/m/Y') : '-') . ". Para continuar ativo, precisamos do pagamento.") : '';
+                            ?>
+                            <div class="mobile-user-card" 
+                                 data-nome="<?= htmlspecialchars(mb_strtolower($cliente['nome'])) ?>"
+                                 data-email="<?= htmlspecialchars(mb_strtolower($cliente['email'])) ?>"
+                                 data-status="<?= $statusBase ?>"
+                                 data-vencimento="<?= $vencStatus ?>">
+                                <div class="mobile-user-header">
+                                    <div>
+                                        <div class="fw-bold fs-6"><?= htmlspecialchars($cliente['nome']) ?></div>
+                                        <div class="small text-muted"><?= htmlspecialchars($cliente['email']) ?></div>
+                                    </div>
+                                    <span class="badge-premium <?= $statusBase === 'ativo' ? 'badge-active' : ($statusBase === 'vitalicio' ? 'badge-vitalicio' : 'badge-inactive') ?>">
+                                        <?= $statusBase === 'ativo' ? 'Ativo' : ($statusBase === 'vitalicio' ? 'Vitalício' : 'Inativo') ?>
+                                    </span>
+                                </div>
+                                <div class="mobile-user-info">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>Validade:</span>
+                                        <span class="fw-bold <?= $vencStatus === 'vencido' ? 'text-danger' : ($vencStatus === 'vencendo' ? 'text-warning' : '') ?>">
+                                            <?= $dataExp ? $dataExp->format('d/m/Y') : '-' ?>
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Último Pagto:</span>
+                                        <span><?= $ultima ? date('d/m/Y', strtotime($ultima['criado_em'])) : '-' ?></span>
+                                    </div>
+                                </div>
+                                <div class="mobile-user-footer">
+                                    <?php if ($linkWpp): ?>
+                                        <a href="<?= $linkWpp ?>" target="_blank" class="btn btn-premium btn-sm w-100 py-2">
+                                            <i class="bi bi-whatsapp me-2"></i> Cobrar Cliente
+                                        </a>
+                                    <?php else: ?>
+                                        <button class="btn btn-light btn-sm w-100 disabled">Sem Telefone</button>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mt-4">
                         <div class="small text-muted" id="clientesResumo">0 resultados</div>
                         <div class="d-flex gap-2" id="clientesPaginacao"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-lg-5">
-                <div class="section-card">
-                    <h4 class="mb-3" style="font-family:'Outfit',sans-serif;">Resumo de comissoes</h4>
-                    <div class="calc-box mb-3">
-                        <div class="text-muted small">Comissão total acumulada</div>
-                        <div class="fs-3 fw-bold">R$ <?= number_format($comissaoTotalAcumulada, 2, ',', '.') ?></div>
+            <div class="col-lg-4">
+                <div class="glass-panel">
+                    <h5 class="fw-bold mb-4" style="font-family:'Outfit',sans-serif;">Performance Direta</h5>
+                    
+                    <div class="p-3 rounded-4 mb-3" style="background: #f8fafc; border: 1px solid var(--border);">
+                        <div class="text-muted small fw-bold text-uppercase mb-1">Comissão Acumulada</div>
+                        <div class="fs-2 fw-extrabold text-primary">R$ <?= number_format($comissaoTotalAcumulada, 2, ',', '.') ?></div>
+                        <div class="small text-muted mt-1">Ganhos totais confirmados</div>
                     </div>
-                    <div class="calc-box">
-                        <div class="text-muted small">Comissao mensal prevista (ativos)</div>
-                        <div class="fs-4 fw-bold">R$ <?= number_format($comissaoMensalPrevista, 2, ',', '.') ?></div>
+
+                    <div class="p-3 rounded-4" style="background: #f8fafc; border: 1px solid var(--border);">
+                        <div class="text-muted small fw-bold text-uppercase mb-1">Potencial Mensal</div>
+                        <div class="fs-3 fw-bold">R$ <?= number_format($comissaoMensalPrevista, 2, ',', '.') ?></div>
+                        <div class="small text-muted mt-1">Recorrência dos clientes ativos</div>
                     </div>
                 </div>
 
-                <div class="section-card">
-                    <h4 class="mb-3" style="font-family:'Outfit',sans-serif;">Calculadora de meta</h4>
-                    <div class="calc-box mb-3">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label">Clientes ativos atuais</label>
-                                <input type="number" class="form-control" id="metaClientes" value="50" min="0">
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label">Comissao por cliente (R$)</label>
-                                <input type="number" class="form-control" id="metaComissao" value="9.9" min="0" step="0.1">
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label">Novos clientes por mes</label>
-                                <input type="number" class="form-control" id="metaNovos" value="0" min="0">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Meses de projecao</label>
-                                <input type="number" class="form-control" id="metaMeses" value="12" min="1">
-                            </div>
+                <div class="glass-panel mt-4">
+                    <h5 class="fw-bold mb-3" style="font-family:'Outfit',sans-serif;"><i class="bi bi-bullseye me-2 text-primary"></i>Simulador de Metas</h5>
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold">Clientes ativos atuais</label>
+                        <input type="number" class="form-control" id="metaClientes" value="<?= $ativos ?>" min="0">
+                    </div>
+                    <div class="row g-2 mb-4">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Novos /mês</label>
+                            <input type="number" class="form-control" id="metaNovos" value="5" min="0">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Proj. Meses</label>
+                            <input type="number" class="form-control" id="metaMeses" value="6" min="1">
                         </div>
                     </div>
-                    <div class="row g-3">
-                        <div class="col-6">
-                            <div class="stat-card">
-                                <div class="text-muted small">Estimativa mensal (com novos)</div>
-                                <div class="fw-bold" id="metaMensal">R$ 0,00</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="stat-card">
-                                <div class="text-muted small">Estimativa diaria (com novos)</div>
-                                <div class="fw-bold" id="metaDiaria">R$ 0,00</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="stat-card">
-                                <div class="text-muted small">Total acumulado</div>
-                                <div class="fw-bold" id="metaTotal">R$ 0,00</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="stat-card">
-                                <div class="text-muted small">Mensal no mes final</div>
-                                <div class="fw-bold" id="metaMensalFinal">R$ 0,00</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="stat-card">
-                                <div class="text-muted small">Novos clientes total</div>
-                                <div class="fw-bold" id="metaNovosTotal">0</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="stat-card">
-                                <div class="text-muted small">Clientes no fim</div>
-                                <div class="fw-bold" id="metaClientesFinal">0</div>
-                            </div>
-                        </div>
+                    <input type="hidden" id="metaComissao" value="9.90">
+
+                    <div class="p-3 rounded-4 bg-primary text-white">
+                        <div class="small opacity-75">Renda Mensal no final do período:</div>
+                        <div class="fs-3 fw-bold" id="metaMensalFinal">R$ 0,00</div>
                     </div>
-                    <div class="small text-muted mt-2">Valores sao estimativas. O total acumulado soma mes a mes.</div>
-                    <div class="calc-box mt-3">
-                        <div class="text-muted small mb-2">Projecao mes a mes (mensal + acumulado)</div>
+
+                    <div class="mt-4">
+                        <div class="small text-muted fw-bold text-uppercase mb-2">Projeção Acumulada</div>
                         <div id="metaProjecao" class="chart-bars"></div>
                     </div>
                 </div>
@@ -954,326 +673,234 @@ foreach ($clientes as $cliente) {
         </div>
     </div>
 
+    <!-- MODAL NOVA VENDA -->
+    <div class="modal fade" id="modalNovaVenda" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius:28px; overflow:hidden;">
+                <div class="modal-header bg-dark text-white p-4">
+                    <h5 class="modal-title fw-bold" style="font-family:'Outfit',sans-serif;"><i class="bi bi-cart-plus me-2"></i>Registrar Nova Venda</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 p-md-5">
+                    <form method="post" id="formNovaVenda">
+                        <input type="hidden" name="action" value="create_sale">
+                        
+                        <!-- Step Indicators -->
+                        <div class="d-flex justify-content-center gap-2 mb-5">
+                            <div class="step-dot active" id="stepDot1"></div>
+                            <div class="step-dot" id="stepDot2"></div>
+                        </div>
+
+                        <!-- Step 1: Client Data -->
+                        <div id="step1">
+                            <h6 class="fw-extrabold text-uppercase small text-primary mb-4">1. Dados do Profissional</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nome Completo</label>
+                                    <input type="text" name="cliente_nome" class="form-control" placeholder="Ex: João Silva" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">E-mail de Acesso</label>
+                                    <input type="email" name="cliente_email" class="form-control" placeholder="email@exemplo.com" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">WhatsApp / Telefone</label>
+                                    <input type="text" name="cliente_telefone" class="form-control" id="clienteTelefone" placeholder="(00) 00000-0000">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Senha Temporária</label>
+                                    <input type="password" name="cliente_senha" class="form-control" required placeholder="Defina uma senha">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Nome do Salão / Barbearia (Opcional)</label>
+                                    <input type="text" name="cliente_estabelecimento" class="form-control" placeholder="Ex: Studio VIP">
+                                </div>
+                            </div>
+                            <div class="mt-5 text-end">
+                                <button type="button" class="btn btn-premium px-5" id="btnAvancar">Próximo Passo <i class="bi bi-arrow-right ms-2"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Plan & Payment -->
+                        <div id="step2" class="hidden">
+                            <h6 class="fw-extrabold text-uppercase small text-primary mb-4">2. Plano e Pagamento</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Escolha o Plano</label>
+                                    <select name="plano" class="form-select" id="planoSelect">
+                                        <?php foreach ($planos as $key => $info): ?>
+                                            <option value="<?= $key ?>"><?= htmlspecialchars($info['label']) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Forma de Recebimento</label>
+                                    <select name="metodo_pagamento" class="form-select">
+                                        <option value="pix">Pix</option>
+                                        <option value="cartao">Cartão de Crédito/Débito</option>
+                                        <option value="dinheiro">Dinheiro</option>
+                                        <option value="transferencia">Transferência</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Custom Plan Fields -->
+                                <div class="col-md-6 custom-only hidden">
+                                    <label class="form-label">Duração (Meses)</label>
+                                    <input type="number" name="meses_custom" class="form-control" min="1" value="1">
+                                </div>
+                                <div class="col-md-6 custom-only hidden">
+                                    <label class="form-label">Valor Total (R$)</label>
+                                    <input type="text" name="valor_custom" class="form-control" placeholder="0,00">
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label">Observações da Venda</label>
+                                    <textarea name="observacoes" class="form-control" rows="3" placeholder="Ex: Brinde concedido, parcelamento combinado..."></textarea>
+                                </div>
+                            </div>
+                            <div class="mt-5 d-flex justify-content-between">
+                                <button type="button" class="btn btn-light border px-4" id="btnVoltar"><i class="bi bi-arrow-left me-2"></i> Voltar</button>
+                                <button type="submit" class="btn btn-success px-5 fw-bold">Finalizar e Ativar Cliente <i class="bi bi-check-lg ms-2"></i></button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function parseNumero(valor) {
-            if (typeof valor !== 'string') return Number(valor) || 0;
-            return parseFloat(valor.replace(',', '.')) || 0;
-        }
-
-        function atualizarMeta() {
-            const clientesBase = Math.max(0, parseNumero(document.getElementById('metaClientes').value));
-            const comissao = Math.max(0, parseNumero(document.getElementById('metaComissao').value));
-            const novosMes = Math.max(0, parseNumero(document.getElementById('metaNovos').value));
-            const meses = Math.max(0, parseNumero(document.getElementById('metaMeses').value));
-            const clientesMes1 = clientesBase + novosMes;
-            const mensalBase = clientesMes1 * comissao;
-            const diaria = mensalBase / 30;
-            document.getElementById('metaMensal').innerText = mensalBase.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById('metaDiaria').innerText = diaria.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-            const hoje = new Date();
-            const mesesNomes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-            const projecaoEl = document.getElementById('metaProjecao');
-            projecaoEl.innerHTML = '';
-            let ano = hoje.getFullYear();
-            let mesIndex = hoje.getMonth();
-            let acumulado = 0;
-            let maxValor = 1;
-            for (let i = 0; i < meses; i++) {
-                const clientesMes = clientesBase + (novosMes * i);
-                const mensalMes = clientesMes * comissao;
-                if (mensalMes > maxValor) maxValor = mensalMes;
-            }
-            for (let i = 0; i < meses; i++) {
-                const label = `${mesesNomes[mesIndex]} ${ano}`;
-                const clientesMes = clientesBase + (novosMes * i);
-                const mensalMes = clientesMes * comissao;
-                acumulado += mensalMes;
-                const linha = document.createElement('div');
-                linha.className = 'chart-row';
-                const largura = Math.max(6, (mensalMes / maxValor) * 100);
-                linha.innerHTML = `
-                    <span>${label}</span>
-                    <div class="chart-bar" style="width:${largura}%;"></div>
-                    <strong>${mensalMes.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} <span class="text-muted" style="font-weight:500;">(${acumulado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})</span></strong>
-                `;
-                projecaoEl.appendChild(linha);
-                mesIndex += 1;
-                if (mesIndex > 11) {
-                    mesIndex = 0;
-                    ano += 1;
-                }
-            }
-            document.getElementById('metaTotal').innerText = acumulado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            const clientesFinal = clientesBase + (novosMes * Math.max(0, meses));
-            document.getElementById('metaClientesFinal').innerText = Math.round(clientesFinal);
-            const novosTotal = novosMes * Math.max(0, meses);
-            document.getElementById('metaNovosTotal').innerText = Math.round(novosTotal);
-            const clientesFinalMensal = clientesBase + (novosMes * Math.max(0, meses));
-            const mensalFinal = clientesFinalMensal * comissao;
-            document.getElementById('metaMensalFinal').innerText = mensalFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        }
-
-        ['metaClientes', 'metaComissao', 'metaNovos', 'metaMeses'].forEach(id => {
-            document.getElementById(id).addEventListener('input', atualizarMeta);
-        });
-        atualizarMeta();
-
-        const planoSelect = document.getElementById('planoSelect');
-        const customFields = document.querySelectorAll('.custom-only');
-        function atualizarCustom() {
-            const isCustom = planoSelect.value === 'custom';
-            customFields.forEach(field => {
-                field.style.display = isCustom ? '' : 'none';
-            });
-        }
-        planoSelect.addEventListener('change', atualizarCustom);
-        atualizarCustom();
-
-
+        // NAVIGATION STEPS logic
+        const btnAvancar = document.getElementById('btnAvancar');
+        const btnVoltar = document.getElementById('btnVoltar');
         const step1 = document.getElementById('step1');
         const step2 = document.getElementById('step2');
         const dot1 = document.getElementById('stepDot1');
         const dot2 = document.getElementById('stepDot2');
-        const btnAvancar = document.getElementById('btnAvancar');
-        const btnVoltar = document.getElementById('btnVoltar');
 
-        function atualizarSteps() {
-            if (window.innerWidth <= 768) {
-                step2.classList.add('hidden');
-                dot1.classList.add('active');
-                dot2.classList.remove('active');
-            } else {
-                step1.classList.remove('hidden');
-                step2.classList.remove('hidden');
-                dot1.classList.add('active');
-                dot2.classList.add('active');
-            }
-        }
+        btnAvancar.onclick = () => {
+             // Basic validation
+             const nome = document.querySelector('input[name="cliente_nome"]').value;
+             const email = document.querySelector('input[name="cliente_email"]').value;
+             if(!nome || !email) { alert('Por favor, preencha o nome e e-mail.'); return; }
+             
+             step1.classList.add('hidden');
+             step2.classList.remove('hidden');
+             dot1.classList.remove('active');
+             dot2.classList.add('active');
+        };
 
-        btnAvancar.addEventListener('click', () => {
-            const nome = document.querySelector('input[name="cliente_nome"]');
-            const email = document.querySelector('input[name="cliente_email"]');
-            const senha = document.querySelector('input[name="cliente_senha"]');
-            const aviso = document.getElementById('step1Aviso');
-            const faltando = [];
+        btnVoltar.onclick = () => {
+             step2.classList.add('hidden');
+             step1.classList.remove('hidden');
+             dot2.classList.remove('active');
+             dot1.classList.add('active');
+        };
 
-            [nome, email, senha].forEach(campo => campo.classList.remove('is-invalid'));
-
-            if (!nome.value.trim()) { faltando.push('Nome'); nome.classList.add('is-invalid'); }
-            const emailVal = email.value.trim();
-            const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal);
-            if (!emailVal) {
-                faltando.push('E-mail');
-                email.classList.add('is-invalid');
-            } else if (!emailOk) {
-                faltando.push('E-mail valido');
-                email.classList.add('is-invalid');
-            }
-            if (!senha.value.trim()) { faltando.push('Senha'); senha.classList.add('is-invalid'); }
-
-            if (faltando.length > 0) {
-                aviso.textContent = 'Preencha: ' + faltando.join(', ');
-                aviso.classList.remove('d-none');
-                return;
-            }
-
-            aviso.classList.add('d-none');
-            step1.classList.add('hidden');
-            step2.classList.remove('hidden');
-            dot1.classList.remove('active');
-            dot2.classList.add('active');
-        });
-
-        btnVoltar.addEventListener('click', () => {
-            step2.classList.add('hidden');
-            step1.classList.remove('hidden');
-            dot2.classList.remove('active');
-            dot1.classList.add('active');
-        });
-
-        window.addEventListener('resize', atualizarSteps);
-        atualizarSteps();
-
-        const cpfInput = document.getElementById('clienteCpf');
-        const telefoneInput = document.getElementById('clienteTelefone');
-
-        function formatCpfCnpj(value) {
-            const digits = value.replace(/\D/g, '').slice(0, 14);
-            if (digits.length <= 11) {
-                return digits
-                    .replace(/(\d{3})(\d)/, '$1.$2')
-                    .replace(/(\d{3})(\d)/, '$1.$2')
-                    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-            }
-            return digits
-                .replace(/(\d{2})(\d)/, '$1.$2')
-                .replace(/(\d{3})(\d)/, '$1.$2')
-                .replace(/(\d{3})(\d)/, '$1/$2')
-                .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
-        }
-
-        function formatTelefone(value) {
-            const digits = value.replace(/\D/g, '').slice(0, 11);
-            if (digits.length <= 10) {
-                return digits
-                    .replace(/(\d{2})(\d)/, '($1) $2')
-                    .replace(/(\d{4})(\d{1,4})$/, '$1-$2');
-            }
-            return digits
-                .replace(/(\d{2})(\d)/, '($1) $2')
-                .replace(/(\d{5})(\d{1,4})$/, '$1-$2');
-        }
-
-        if (cpfInput) {
-            cpfInput.addEventListener('input', () => {
-                cpfInput.value = formatCpfCnpj(cpfInput.value);
+        // Custom Fields Logic
+        const planoSel = document.getElementById('planoSelect');
+        const customs = document.querySelectorAll('.custom-only');
+        planoSel.onchange = () => {
+            customs.forEach(c => {
+                if(planoSel.value === 'custom') c.classList.remove('hidden');
+                else c.classList.add('hidden');
             });
-        }
+        };
 
-        if (telefoneInput) {
-            telefoneInput.addEventListener('input', () => {
-                telefoneInput.value = formatTelefone(telefoneInput.value);
-            });
-        }
+        // SIMULATOR LOGIC
+        function atualizarMeta() {
+            const ativos = parseInt(document.getElementById('metaClientes').value) || 0;
+            const novos = parseInt(document.getElementById('metaNovos').value) || 0;
+            const meses = parseInt(document.getElementById('metaMeses').value) || 1;
+            const comissao = 9.90;
 
-        function validaCpf(cpf) {
-            if (!cpf || cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
-            let soma = 0;
-            for (let i = 0; i < 9; i++) soma += parseInt(cpf[i], 10) * (10 - i);
-            let resto = (soma * 10) % 11;
-            if (resto === 10 || resto === 11) resto = 0;
-            if (resto !== parseInt(cpf[9], 10)) return false;
-            soma = 0;
-            for (let i = 0; i < 10; i++) soma += parseInt(cpf[i], 10) * (11 - i);
-            resto = (soma * 10) % 11;
-            if (resto === 10 || resto === 11) resto = 0;
-            return resto === parseInt(cpf[10], 10);
-        }
+            const projecaoEl = document.getElementById('metaProjecao');
+            projecaoEl.innerHTML = '';
 
-        function validaCnpj(cnpj) {
-            if (!cnpj || cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
-            let tamanho = cnpj.length - 2;
-            let numeros = cnpj.substring(0, tamanho);
-            const digitos = cnpj.substring(tamanho);
-            let soma = 0;
-            let pos = tamanho - 7;
-            for (let i = tamanho; i >= 1; i--) {
-                soma += parseInt(numeros[tamanho - i], 10) * pos--;
-                if (pos < 2) pos = 9;
+            let totalAcumulado = 0;
+            let finalMensal = (ativos + (novos * meses)) * comissao;
+
+            document.getElementById('metaMensalFinal').innerText = finalMensal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+            for (let i = 1; i <= meses; i++) {
+                let cl = ativos + (novos * i);
+                let rend = cl * comissao;
+                totalAcumulado += rend;
+
+                const row = document.createElement('div');
+                row.className = 'chart-row';
+                row.innerHTML = `
+                    <span class="fw-bold">Mês ${i}</span>
+                    <div class="chart-bar-container">
+                        <div class="chart-bar" style="width: ${Math.min(100, (rend / (finalMensal||1)) * 100)}%"></div>
+                    </div>
+                    <span class="text-end fw-bold text-primary">${rend.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                `;
+                projecaoEl.appendChild(row);
             }
-            let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
-            if (resultado !== parseInt(digitos[0], 10)) return false;
-            tamanho = tamanho + 1;
-            numeros = cnpj.substring(0, tamanho);
-            soma = 0;
-            pos = tamanho - 7;
-            for (let i = tamanho; i >= 1; i--) {
-                soma += parseInt(numeros[tamanho - i], 10) * pos--;
-                if (pos < 2) pos = 9;
-            }
-            resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
-            return resultado === parseInt(digitos[1], 10);
         }
 
-        const formNovaVenda = document.querySelector('#modalNovaVenda form');
-        if (formNovaVenda) {
-            formNovaVenda.addEventListener('submit', (event) => {
-                const cpfVal = (cpfInput ? cpfInput.value : '').replace(/\D/g, '');
-                if (cpfVal.length === 11 && !validaCpf(cpfVal)) {
-                    cpfInput.classList.add('is-invalid');
-                    cpfInput.nextElementSibling?.remove();
-                    const feedback = document.createElement('div');
-                    feedback.className = 'invalid-feedback';
-                    feedback.textContent = 'CPF invalido.';
-                    cpfInput.parentNode.appendChild(feedback);
-                    event.preventDefault();
-                }
-                if (cpfVal.length === 14 && !validaCnpj(cpfVal)) {
-                    cpfInput.classList.add('is-invalid');
-                    cpfInput.nextElementSibling?.remove();
-                    const feedback = document.createElement('div');
-                    feedback.className = 'invalid-feedback';
-                    feedback.textContent = 'CNPJ invalido.';
-                    cpfInput.parentNode.appendChild(feedback);
-                    event.preventDefault();
-                }
-            });
-        }
+        document.getElementById('metaClientes').oninput = atualizarMeta;
+        document.getElementById('metaNovos').oninput = atualizarMeta;
+        document.getElementById('metaMeses').oninput = atualizarMeta;
+        atualizarMeta();
 
-        const tabela = document.getElementById('clientesTabela');
-        const linhas = Array.from(tabela.querySelectorAll('tbody tr'));
-        const resumo = document.getElementById('clientesResumo');
-        const paginacao = document.getElementById('clientesPaginacao');
+        // FILTER LOGIC
         const busca = document.getElementById('filtroBusca');
-        const filtroStatus = document.getElementById('filtroStatus');
-        const filtroVencimento = document.getElementById('filtroVencimento');
-        const filtroPorPagina = document.getElementById('filtroPorPagina');
+        const stFiltro = document.getElementById('filtroStatus');
+        const vcFiltro = document.getElementById('filtroVencimento');
+        const rows = Array.from(document.querySelectorAll('#clientesTabela tbody tr'));
+        const cards = Array.from(document.querySelectorAll('.mobile-user-card'));
 
-        let paginaAtual = 1;
+        function filtrar() {
+            const t = busca.value.toLowerCase();
+            const s = stFiltro.value;
+            const v = vcFiltro.value;
 
-        function filtrarClientes() {
-            const termo = (busca.value || '').toLowerCase();
-            const status = filtroStatus.value;
-            const vencimento = filtroVencimento.value;
-            const porPagina = parseInt(filtroPorPagina.value || '10', 10);
+            const applyFilter = (el) => {
+                const name = el.dataset.nome || '';
+                const email = el.dataset.email || '';
+                const status = el.dataset.status || '';
+                const venc = el.dataset.vencimento || '';
 
-            const filtrados = linhas.filter(linha => {
-                const nome = linha.dataset.nome || '';
-                const email = linha.dataset.email || '';
-                const statusLinha = linha.dataset.status || '';
-                const vencLinha = linha.dataset.vencimento || '';
-                const matchBusca = !termo || nome.includes(termo) || email.includes(termo);
-                const matchStatus = status === 'todos' || statusLinha === status;
-                const matchVenc = vencimento === 'todos' || vencLinha === vencimento;
-                return matchBusca && matchStatus && matchVenc;
-            });
+                const matchesSearch = !t || name.includes(t) || email.includes(t);
+                const matchesStatus = s === 'todos' || status === s;
+                const matchesVenc = v === 'todos' || venc === v;
 
-            const totalPaginas = Math.max(1, Math.ceil(filtrados.length / porPagina));
-            if (paginaAtual > totalPaginas) paginaAtual = totalPaginas;
-            const inicio = (paginaAtual - 1) * porPagina;
-            const fim = inicio + porPagina;
+                if (matchesSearch && matchesStatus && matchesVenc) el.style.setProperty('display', '', 'important');
+                else el.style.setProperty('display', 'none', 'important');
+            };
 
-            linhas.forEach(linha => linha.style.display = 'none');
-            filtrados.slice(inicio, fim).forEach(linha => linha.style.display = '');
+            rows.forEach(applyFilter);
+            cards.forEach(applyFilter);
 
-            resumo.innerText = `${filtrados.length} resultados`;
-            renderizarPaginacao(totalPaginas);
+            const visCount = rows.filter(r => r.style.display !== 'none').length;
+            document.getElementById('clientesResumo').innerText = `${visCount} resultados encontrados`;
         }
 
-        function renderizarPaginacao(totalPaginas) {
-            paginacao.innerHTML = '';
-            const btnPrev = document.createElement('button');
-            btnPrev.className = 'btn btn-outline-dark btn-sm';
-            btnPrev.innerText = 'Anterior';
-            btnPrev.disabled = paginaAtual === 1;
-            btnPrev.onclick = () => { paginaAtual -= 1; filtrarClientes(); };
-            paginacao.appendChild(btnPrev);
+        busca.oninput = filtrar;
+        stFiltro.onchange = filtrar;
+        vcFiltro.onchange = filtrar;
+        filtrar();
 
-            for (let i = 1; i <= totalPaginas; i++) {
-                const btn = document.createElement('button');
-                btn.className = 'btn btn-sm ' + (i === paginaAtual ? 'btn-dark' : 'btn-outline-dark');
-                btn.innerText = i;
-                btn.onclick = () => { paginaAtual = i; filtrarClientes(); };
-                paginacao.appendChild(btn);
+        // Masking
+        const telInput = document.getElementById('clienteTelefone');
+        telInput.oninput = (e) => {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v.length > 11) v = v.substring(0, 11);
+            if (v.length > 10) {
+                v = v.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
+            } else if (v.length > 5) {
+                v = v.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3');
+            } else if (v.length > 2) {
+                v = v.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+            } else if (v.length > 0) {
+                v = v.replace(/^(\d{0,2})/, '($1');
             }
-
-            const btnNext = document.createElement('button');
-            btnNext.className = 'btn btn-outline-dark btn-sm';
-            btnNext.innerText = 'Proxima';
-            btnNext.disabled = paginaAtual === totalPaginas;
-            btnNext.onclick = () => { paginaAtual += 1; filtrarClientes(); };
-            paginacao.appendChild(btnNext);
-        }
-
-        [busca, filtroStatus, filtroVencimento, filtroPorPagina].forEach(el => {
-            el.addEventListener('input', () => { paginaAtual = 1; filtrarClientes(); });
-            el.addEventListener('change', () => { paginaAtual = 1; filtrarClientes(); });
-        });
-
-        filtrarClientes();
+            e.target.value = v;
+        };
 
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
