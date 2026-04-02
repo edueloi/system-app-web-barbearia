@@ -793,14 +793,14 @@ $sql = "SELECT * FROM usuarios";
 if (!empty($conditions)) {
     $sql .= " WHERE " . implode(' AND ', $conditions);
 }
-$sql .= " ORDER BY id DESC";
+$sql .= " ORDER BY nome ASC";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Vendedores e vendas recentes
-$stmtVendedores = $pdo->query("SELECT * FROM vendedores ORDER BY id DESC");
+$stmtVendedores = $pdo->query("SELECT * FROM vendedores ORDER BY nome ASC");
 $vendedores = $stmtVendedores->fetchAll(PDO::FETCH_ASSOC);
 $mapVendedores = [];
 foreach ($vendedores as $v) {
