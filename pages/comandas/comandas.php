@@ -86,12 +86,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $cliente_id = (int)$_POST['cliente_id'];
 
-            // Pega o ID do serviÃ§o OU do pacote selecionado
+            // Pega o ID do Serviços OU do pacote selecionado
             $servico_id = !empty($_POST['servico_id'])
                 ? (int)$_POST['servico_id']
                 : (!empty($_POST['pacote_id']) ? (int)$_POST['pacote_id'] : null);
 
-            $titulo     = trim($_POST['titulo'] ?: 'ServiÃ§o Avulso');
+            $titulo     = trim($_POST['titulo'] ?: 'Serviços Avulso');
             $tipo       = $_POST['tipo'] ?? 'normal'; // normal ou pacote
 
             // Quantidade informada no formulário
@@ -485,7 +485,7 @@ $lista = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $clientes = $pdo->query("SELECT id, nome FROM clientes WHERE user_id = $uid ORDER BY nome")
     ->fetchAll(PDO::FETCH_ASSOC);
 
-// ServiÃ§os avulsos
+// Serviços avulsos
 $servicosUnicos = $pdo->query("
     SELECT id, nome, preco, tipo, qtd_sessoes 
     FROM servicos 
@@ -1334,7 +1334,7 @@ include '../../includes/menu.php';
             <input type="hidden" name="tipo" id="tipoInput" value="normal">
 
             <div class="switch-wrap">
-                <div class="switch-opt active" onclick="mudarTipo('normal', this)">ServiÃ§o</div>
+                <div class="switch-opt active" onclick="mudarTipo('normal', this)">Serviços</div>
                 <div class="switch-opt" onclick="mudarTipo('pacote', this)">Pacote</div>
             </div>
 
@@ -1350,7 +1350,7 @@ include '../../includes/menu.php';
             </div>
 
             <div class="form-group" id="wrapServico">
-                <label class="form-label">ServiÃ§o base</label>
+                <label class="form-label">Serviços base</label>
                 <select name="servico_id" id="selServico" class="form-input" onchange="atualizarValores()">
                     <option value="" data-preco="0">Selecione...</option>
                     <?php foreach($servicosUnicos as $s): ?>
@@ -1571,7 +1571,7 @@ include '../../includes/menu.php';
         document.body.style.overflow = '';
     }
 
-    // TIPO (serviÃ§o / pacote)
+    // TIPO (Serviços / pacote)
     function mudarTipo(tipo, el) {
         document.getElementById('tipoInput').value = tipo;
         document.querySelectorAll('.switch-opt').forEach(e => e.classList.remove('active'));

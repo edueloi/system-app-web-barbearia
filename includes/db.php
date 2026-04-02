@@ -40,7 +40,7 @@ try {
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP 
     )"); 
 
-    // 2. ServiÃ§os 
+    // 2. Serviços 
     $pdo->exec("CREATE TABLE IF NOT EXISTS servicos ( 
         id INTEGER PRIMARY KEY AUTOINCREMENT, 
         user_id INTEGER NOT NULL, 
@@ -209,7 +209,7 @@ try {
         FOREIGN KEY(comanda_id) REFERENCES comandas(id) ON DELETE CASCADE
     )");
 
-    // 9. CÃ¡lculo de serviÃ§os (custos e lucro)
+    // 9. CÃ¡lculo de Serviços (custos e lucro)
     $pdo->exec("CREATE TABLE IF NOT EXISTS calculo_servico (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
@@ -332,6 +332,9 @@ try {
     try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN cliente_id INTEGER"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN valor REAL DEFAULT 0"); } catch (Exception $e) {} 
     try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN observacoes TEXT"); } catch (Exception $e) {} 
+    try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN comanda_id INTEGER"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN servico_id INTEGER"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE agendamentos ADD COLUMN servicos_json TEXT"); } catch (Exception $e) {}
 
     // Financeiro - campos de origem e referÃªncia
     try { $pdo->exec("ALTER TABLE financeiro_movimentos ADD COLUMN origem TEXT DEFAULT 'manual'"); } catch (Exception $e) {}

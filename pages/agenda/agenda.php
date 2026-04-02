@@ -62,8 +62,27 @@ $linkAgendamento = rtrim(BASE_URL, '/') . '/' . $slugAgendamento;
 function redirect($data, $view)
 {
     global $agendaUrl;
-    header("Location: {" . $agendaUrl . "}?data=" . urlencode($data) . "&view=" . $view);
+    header("Location: " . $agendaUrl . "?data=" . urlencode($data) . "&view=" . $view);
     exit;
+}
+
+function agendaColunaExiste(PDO $pdo, string $tabela, string $coluna): bool
+{
+    static $cache = [];
+
+    $cacheKey = $tabela . '.' . $coluna;
+    if (array_key_exists($cacheKey, $cache)) {
+        return $cache[$cacheKey];
+    }
+
+    $stmt = $pdo->query("PRAGMA table_info($tabela)");
+    while ($info = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        if (($info['name'] ?? null) === $coluna) {
+            return $cache[$cacheKey] = true;
+        }
+    }
+
+    return $cache[$cacheKey] = false;
 }
 
 // =========================================================
@@ -373,18 +392,40 @@ if ($viewType === 'month') {
     $tituloData = $diasSemana[date('w', strtotime($dataExibida))] . ', ' . date('d/m', strtotime($dataExibida));
 }
 
-$stmt = $pdo->prepare(" 
-    SELECT 
+$temServicoIdAgendamento = agendaColunaExiste($pdo, 'agendamentos', 'servico_id');
+$temTipoRecorrencia = agendaColunaExiste($pdo, 'servicos', 'tipo_recorrencia');
+$temDiasSemanaRecorrencia = agendaColunaExiste($pdo, 'servicos', 'dias_semana');
+$temIntervaloDias = agendaColunaExiste($pdo, 'servicos', 'intervalo_dias');
+
+$camposExtras = [];
+$camposExtras[] = $temServicoIdAgendamento && $temTipoRecorrencia
+    ? 's.tipo_recorrencia'
+    : 'NULL AS tipo_recorrencia';
+$camposExtras[] = $temServicoIdAgendamento && $temDiasSemanaRecorrencia
+    ? 's.dias_semana AS recorrencia_dias_semana'
+    : 'NULL AS recorrencia_dias_semana';
+$camposExtras[] = $temServicoIdAgendamento && $temIntervaloDias
+    ? 's.intervalo_dias'
+    : 'NULL AS intervalo_dias';
+
+$sqlAgendamentos = "
+    SELECT
         a.*,
-        s.tipo_recorrencia,
-        s.dias_semana as recorrencia_dias_semana,
-        s.intervalo_dias
-    FROM agendamentos a
-    LEFT JOIN servicos s ON s.id = a.servico_id AND s.user_id = a.user_id
-    WHERE a.user_id = ? 
-      AND a.data_agendamento BETWEEN ? AND ? 
+        " . implode(",\n        ", $camposExtras) . "
+    FROM agendamentos a";
+
+if ($temServicoIdAgendamento) {
+    $sqlAgendamentos .= "
+    LEFT JOIN servicos s ON s.id = a.servico_id AND s.user_id = a.user_id";
+}
+
+$sqlAgendamentos .= "
+    WHERE a.user_id = ?
+      AND a.data_agendamento BETWEEN ? AND ?
     ORDER BY a.data_agendamento ASC, a.horario ASC
-");
+";
+
+$stmt = $pdo->prepare($sqlAgendamentos);
 $stmt->execute([$userId, $start, $end]);
 $raw = $stmt->fetchAll();
 
