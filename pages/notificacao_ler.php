@@ -41,18 +41,9 @@ if ($notifId <= 0) {
     exit;
 }
 
-// Log para debug
-error_log("DEBUG notificacao_ler.php: Marcando notif ID={$notifId} como lida para user={$userId}");
-
 // Marca como lida só a notificação do usuário logado
 $stmt = $pdo->prepare("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?");
-$affected = $stmt->execute([$notifId, $userId]);
-
-if ($affected) {
-    error_log("DEBUG notificacao_ler.php: Notificação {$notifId} marcada como lida com SUCESSO");
-} else {
-    error_log("AVISO notificacao_ler.php: Nenhuma linha afetada ao marcar notif {$notifId}");
-}
+$stmt->execute([$notifId, $userId]);
 
 http_response_code(204); // sem conteúdo, mas sucesso
 exit;

@@ -549,17 +549,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // ENVIAR EMAIL DE NOTIFICAÇÃO
         // ===============================
         
-        // Debug: verifica se tem email e ambiente
-        $isProdEmail = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'salao.develoi.com';
-        error_log('DEBUG AGENDAMENTO: Ambiente = ' . ($_SERVER['HTTP_HOST'] ?? 'desconhecido'));
-        error_log('DEBUG AGENDAMENTO: Email do profissional = ' . ($profissional['email'] ?? 'VAZIO'));
-        error_log('DEBUG AGENDAMENTO: É produção? = ' . ($isProdEmail ? 'SIM' : 'NÃO (localhost)'));
-        
         if (!empty($profissional['email'])) {
             require_once __DIR__ . '/includes/mailer.php';
-            
-            error_log('DEBUG AGENDAMENTO: Iniciando envio de email para: ' . $profissional['email']);
-            
+
             // Template HTML bonito do email
             $emailHTML = '
 <!DOCTYPE html>
@@ -713,25 +705,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Envia o email
             try {
-                $enviou = sendMailDeveloi(
+                sendMailDeveloi(
                     $profissional['email'],
                     $nomeProfissional,
                     '🎉 Novo Agendamento - ' . $servicoNome,
                     $emailHTML
                 );
-                
-                if ($enviou) {
-                    error_log('DEBUG: Email enviado com SUCESSO para: ' . $profissional['email']);
-                } else {
-                    error_log('DEBUG: Falha no envio do email para: ' . $profissional['email']);
-                }
-                
             } catch (Exception $e) {
                 // Log do erro mas não interrompe o fluxo
                 error_log('ERRO ao enviar email de notificação: ' . $e->getMessage());
             }
-        } else {
-            error_log('DEBUG: Email NÃO enviado - profissional sem email cadastrado');
         }
 
         // Consumir estoque conforme cálculo vinculado ao serviço (usando servico_id direto)
@@ -4050,9 +4033,6 @@ foreach ($todosServicos as $s) {
             }
             deferredPrompt.prompt();
             const choiceResult = await deferredPrompt.userChoice;
-            if (choiceResult.outcome === 'accepted') {
-                console.log('PWA instalado com sucesso');
-            }
             deferredPrompt = null;
             installPromptBtn.style.display = 'none';
         });

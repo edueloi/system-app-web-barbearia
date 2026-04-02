@@ -990,9 +990,6 @@ if (isset($_SESSION['login_erro'])) {
             }
             deferredPrompt.prompt();
             const choiceResult = await deferredPrompt.userChoice;
-            if (choiceResult.outcome === 'accepted') {
-                console.log('PWA instalado com sucesso');
-            }
             deferredPrompt = null;
             installPromptBtn.style.display = 'none';
         });

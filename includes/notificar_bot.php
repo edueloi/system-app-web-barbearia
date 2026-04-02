@@ -113,12 +113,9 @@ if (!function_exists('notificarBotNovoAgendamento')) {
             $curlError = curl_error($ch);
             curl_close($ch);
 
-            // ====================================
-            // LOG PARA DEBUG
-            // ====================================
             if ($curlError) {
                 error_log("[BOT] Erro cURL ao notificar bot (novo agendamento): {$curlError}");
-            } else {
+            } elseif ($httpCode >= 400) {
                 error_log("[BOT] Novo agendamento -> {$webhookUrl} HTTP {$httpCode} - Resp: {$response}");
             }
 
@@ -190,8 +187,6 @@ if (!function_exists('notificarBotAgendamentoConfirmado')) {
 
             // Se não veio telefone pelo JOIN, tenta achar pelo nome do agendamento
             if (empty($telefoneCliente) && !empty($ag['ag_cliente_nome'])) {
-                error_log("[BOT-DEBUG] Agendamento {$agendamentoId} sem telefone pelo JOIN. Tentando fallback por nome: '{$ag['ag_cliente_nome']}'.");
-
                 $stmtCli = $pdo->prepare("
                     SELECT id, telefone 
                     FROM clientes 
@@ -216,15 +211,10 @@ if (!function_exists('notificarBotAgendamentoConfirmado')) {
                                 ':cid' => $cli['id'],
                                 ':id'  => $agendamentoId
                             ]);
-                            error_log("[BOT-DEBUG] Vinculado cliente_id={$cli['id']} ao agendamento {$agendamentoId} via nome.");
                         } catch (Throwable $e) {
-                            error_log("[BOT-DEBUG] Falha ao atualizar cliente_id do agendamento {$agendamentoId}: " . $e->getMessage());
+                            error_log("[BOT] Falha ao atualizar cliente_id do agendamento {$agendamentoId}: " . $e->getMessage());
                         }
                     }
-
-                    error_log("[BOT-DEBUG] Fallback por nome funcionou para o agendamento {$agendamentoId}.");
-                } else {
-                    error_log("[BOT-DEBUG] Nenhum cliente encontrado por nome '{$ag['ag_cliente_nome']}' para user_id={$ag['user_id']}.");
                 }
             }
 
