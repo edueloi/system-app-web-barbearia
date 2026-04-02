@@ -1,6 +1,7 @@
 <?php
 // pages/comandas/comandas.php
 require_once __DIR__ . '/../../includes/db.php';
+require_once __DIR__ . '/../../includes/recorrencia_helper.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -82,141 +83,89 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         if ($acao === 'salvar') {
-            $pdo->beginTransaction();
-
             $cliente_id = (int)$_POST['cliente_id'];
-
-            // Pega o ID do Serviços OU do pacote selecionado
             $servico_id = !empty($_POST['servico_id'])
                 ? (int)$_POST['servico_id']
                 : (!empty($_POST['pacote_id']) ? (int)$_POST['pacote_id'] : null);
 
             $titulo     = trim($_POST['titulo'] ?: 'Serviços Avulso');
-            $tipo       = $_POST['tipo'] ?? 'normal'; // normal ou pacote
-
-            // Quantidade informada no formulário
+            $tipo       = $_POST['tipo'] ?? 'normal'; 
             $qtd        = max(1, (int)$_POST['qtd_total']);
-
             $valor_tot  = (float)$_POST['valor_final'];
-            $dt_inicio  = $_POST['data_inicio'];
-            $horario    = trim($_POST['horario'] ?? ''); // horário opcional: cria agenda
-            $frequencia = $_POST['frequencia'] ?? 'unico';
-            $diasSemana = isset($_POST['dias_semana']) ? $_POST['dias_semana'] : [];
-            $intervaloPersonalizado = isset($_POST['intervalo_personalizado'])
-                ? max(1, (int)$_POST['intervalo_personalizado'])
-                : 1;
-
-            $diasSemana = normalizeWeekdays($diasSemana);
-
-            // INSERE A COMANDA
-            $stmt = $pdo->prepare("
-                INSERT INTO comandas
-                    (user_id, cliente_id, servico_id, titulo, tipo, status, valor_total, qtd_total, data_inicio, frequencia)
-                VALUES
-                    (?, ?, ?, ?, ?, 'aberta', ?, ?, ?, ?)
-            ");
-            $stmt->execute([$uid, $cliente_id, $servico_id, $titulo, $tipo, $valor_tot, $qtd, $dt_inicio, $frequencia]);
-            $comanda_id = $pdo->lastInsertId();
-
-            // Calcula valor por sessão
             $valor_sessao = $qtd > 0 ? $valor_tot / $qtd : 0;
 
-            // Cria itens da comanda por recorrência
-            {
-                $data_inicio = new DateTime($dt_inicio);
-                $data_inicio->setTime(0, 0, 0);
-                $data_atual = clone $data_inicio;
+            // Se agendar na agenda foi marcado
+            if (!empty($_POST['agendar_na_agenda']) && !empty($_POST['horario'])) {
+                $recAtiva = ($_POST['recorrencia_ativa'] ?? '0') === '1';
+                
+                // Busca nomes para o helper
+                $stmtCli = $pdo->prepare("SELECT nome FROM clientes WHERE id = ? AND user_id = ?");
+                $stmtCli->execute([$cliente_id, $uid]);
+                $clienteNome = $stmtCli->fetchColumn() ?: 'Cliente';
 
-                $diaMesBase = (int)$data_inicio->format('d');
-                $weekdayBase = (int)$data_inicio->format('w');
-                $weekIndexBase = (int)floor(($diaMesBase - 1) / 7) + 1;
-                $weekdayRef = !empty($diasSemana) ? (int)$diasSemana[0] : $weekdayBase;
+                $stmtSrv = $pdo->prepare("SELECT nome FROM servicos WHERE id = ? AND user_id = ?");
+                $stmtSrv->execute([$servico_id, $uid]);
+                $servicoNome = $stmtSrv->fetchColumn() ?: $titulo;
 
-                if (($frequencia === 'semanal' || $frequencia === 'mensal_semana') && !empty($diasSemana)) {
-                    $dow = (int)$data_atual->format('w');
-                    if (!in_array($dow, $diasSemana, true)) {
-                        $data_atual = nextDateByWeekdays($data_atual, $diasSemana, true);
-                    }
-                }
+                $dadosAg = [
+                    'cliente_id'    => $cliente_id,
+                    'cliente_nome'  => $clienteNome,
+                    'servico_id'    => $servico_id,
+                    'servico_nome'  => $servicoNome,
+                    'valor'         => $valor_sessao,
+                    'horario'       => $_POST['horario'],
+                    'data_inicio'   => $_POST['data_inicio'] ?: date('Y-m-d'),
+                    'recorrencia_ativa' => $recAtiva,
+                    'recorrencia_frequencia' => $_POST['rec_frequencia'] ?? 'semanal',
+                    'recorrencia_qtd' => $recAtiva ? (int)($_POST['rec_qtd'] ?? $qtd) : 1,
+                    'recorrencia_intervalo' => (int)($_POST['rec_intervalo'] ?? 7),
+                    'observacoes' => 'Criado via Comandas'
+                ];
 
-                $stmtItem = $pdo->prepare("
-                    INSERT INTO comanda_itens (comanda_id, numero, data_prevista, valor_sessao, status)
-                    VALUES (?, ?, ?, ?, 'pendente')
-                ");
+                if ($recAtiva && $dadosAg['recorrencia_qtd'] > 1) {
+                    // O helper já faz tudo (agendamentos + comanda + itens) e gerencia transação
+                    $res = criarAgendamentosRecorrentes($pdo, $uid, $dadosAg);
+                    if (!$res['sucesso']) throw new Exception($res['erro']);
+                } else {
+                    $pdo->beginTransaction();
+                    try {
+                        // Agendamento único + Comanda manual
+                        $stmtC = $pdo->prepare("INSERT INTO comandas (user_id, cliente_id, servico_id, titulo, tipo, status, valor_total, qtd_total, data_inicio, frequencia) VALUES (?, ?, ?, ?, ?, 'aberta', ?, ?, ?, 'unico')");
+                        $stmtC->execute([$uid, $cliente_id, $servico_id, $titulo, $tipo, $valor_tot, $qtd, $dadosAg['data_inicio']]);
+                        $comanda_id = $pdo->lastInsertId();
 
-                for ($i = 1; $i <= $qtd; $i++) {
-                    $dt_sql = $data_atual->format('Y-m-d');
-                    $stmtItem->execute([$comanda_id, $i, $dt_sql, $valor_sessao]);
+                        $stmtA = $pdo->prepare("INSERT INTO agendamentos (user_id, cliente_id, cliente_nome, servico, valor, data_agendamento, horario, status, observacoes) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendente', ?)");
+                        $stmtA->execute([$uid, $cliente_id, $clienteNome, $servicoNome, $valor_sessao, $dadosAg['data_inicio'], $dadosAg['horario'], $dadosAg['observacoes']]);
+                        $ag_id = $pdo->lastInsertId();
 
-                    if ($frequencia === 'unico') {
-                        continue;
-                    }
-
-                    if ($frequencia === 'diaria') {
-                        $data_atual->modify('+1 day');
-                    } elseif ($frequencia === 'semanal') {
-                        if (!empty($diasSemana)) {
-                            $data_atual = nextDateByWeekdays($data_atual, $diasSemana, false);
-                        } else {
-                            $data_atual->modify('+7 days');
+                        $stmtI = $pdo->prepare("INSERT INTO comanda_itens (comanda_id, numero, data_prevista, valor_sessao, status, agendamento_id) VALUES (?, ?, ?, ?, 'pendente', ?)");
+                        for ($i = 1; $i <= $qtd; $i++) {
+                            $vinculo = ($i === 1) ? $ag_id : null;
+                            $stmtI->execute([$comanda_id, $i, $dadosAg['data_inicio'], $valor_sessao, $vinculo]);
                         }
-                    } elseif ($frequencia === 'quinzenal') {
-                        $data_atual->modify('+15 days');
-                    } elseif ($frequencia === 'mensal_dia') {
-                        $data_atual = addMonthSameDay($data_atual, $diaMesBase);
-                    } elseif ($frequencia === 'mensal_semana') {
-                        $data_atual->modify('first day of next month');
-                        $y = (int)$data_atual->format('Y');
-                        $m = (int)$data_atual->format('m');
-                        $data_atual = getNthWeekdayInMonth($y, $m, $weekdayRef, $weekIndexBase);
-                    } elseif ($frequencia === 'personalizada') {
-                        $data_atual->modify("+{$intervaloPersonalizado} days");
-                    } else {
-                        $data_atual->modify('+1 day');
+                        $pdo->commit();
+                    } catch (Exception $e) {
+                        $pdo->rollBack();
+                        throw $e;
                     }
                 }
-            }
+            } else {
+                // LOGICA ORIGINAL (SEM AGENDA)
+                $pdo->beginTransaction();
+                try {
+                    $dt_inicio = $_POST['data_inicio'] ?: date('Y-m-d');
+                    $stmt = $pdo->prepare("INSERT INTO comandas (user_id, cliente_id, servico_id, titulo, tipo, status, valor_total, qtd_total, data_inicio, frequencia) VALUES (?, ?, ?, ?, ?, 'aberta', ?, ?, ?, 'unico')");
+                    $stmt->execute([$uid, $cliente_id, $servico_id, $titulo, $tipo, $valor_tot, $qtd, $dt_inicio]);
+                    $comanda_id = $pdo->lastInsertId();
 
-            $pdo->commit();
-
-            // Se informou horário, cria agendamentos na agenda para cada sessão
-            if (!empty($horario)) {
-                // Busca as datas das sessões recém-criadas
-                $stmtSessoes = $pdo->prepare("
-                    SELECT id, data_prevista FROM comanda_itens WHERE comanda_id = ? ORDER BY numero ASC
-                ");
-                $stmtSessoes->execute([$comanda_id]);
-                $sessoes = $stmtSessoes->fetchAll(PDO::FETCH_ASSOC);
-
-                // Busca nome do cliente
-                $stmtCli2 = $pdo->prepare("SELECT nome FROM clientes WHERE id = ? AND user_id = ?");
-                $stmtCli2->execute([$cliente_id, $uid]);
-                $nomeCliente = $stmtCli2->fetchColumn() ?: '';
-
-                // Busca nome do serviço
-                $nomeServico = '';
-                if ($servico_id) {
-                    $stmtServ2 = $pdo->prepare("SELECT nome FROM servicos WHERE id = ? AND user_id = ?");
-                    $stmtServ2->execute([$servico_id, $uid]);
-                    $nomeServico = $stmtServ2->fetchColumn() ?: '';
-                }
-
-                $valorSessaoAg = $qtd > 0 ? $valor_tot / $qtd : 0;
-
-                $stmtInsAg = $pdo->prepare("
-                    INSERT INTO agendamentos (user_id, cliente_id, cliente_nome, servico, valor, data_agendamento, horario, observacoes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ");
-                $stmtUpdItem = $pdo->prepare("UPDATE comanda_itens SET agendamento_id = ? WHERE id = ?");
-
-                foreach ($sessoes as $sessao) {
-                    $stmtInsAg->execute([
-                        $uid, $cliente_id, $nomeCliente,
-                        $nomeServico, $valorSessaoAg,
-                        $sessao['data_prevista'], $horario, ''
-                    ]);
-                    $novoAgId = (int)$pdo->lastInsertId();
-                    $stmtUpdItem->execute([$novoAgId, $sessao['id']]);
+                    $stmtItem = $pdo->prepare("INSERT INTO comanda_itens (comanda_id, numero, data_prevista, valor_sessao, status) VALUES (?, ?, ?, ?, 'pendente')");
+                    for ($i = 1; $i <= $qtd; $i++) {
+                        $stmtItem->execute([$comanda_id, $i, $dt_inicio, $valor_sessao]);
+                    }
+                    $pdo->commit();
+                } catch (Exception $e) {
+                    $pdo->rollBack();
+                    throw $e;
                 }
             }
 
@@ -1126,6 +1075,76 @@ include '../../includes/menu.php';
             margin-bottom: 20px;
         }
     }
+    /* CSS RECORRENCIA (Portado da Agenda) */
+    .toggle-group {
+        display: flex;
+        gap: 0.4rem;
+        background: #e2e8f0;
+        padding: 0.25rem;
+        border-radius: 999px;
+    }
+    .toggle-pill {
+        position: relative;
+        flex: 1;
+    }
+    .toggle-pill input {
+        display: none;
+    }
+    .toggle-pill span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        padding: 0.38rem 0.1rem;
+        border-radius: 999px;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all .18s ease;
+    }
+    .toggle-pill input:checked + span {
+        background: linear-gradient(135deg,#0f2f66 0%,#0ea5e9 100%);
+        color: #fff;
+        box-shadow: 0 3px 10px rgba(14,165,233,0.35);
+    }
+    .rec-freq-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .rec-freq-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 6px;
+        border-radius: 12px;
+        border: 2px solid var(--border-color);
+        background: #f8fafc;
+        cursor: pointer;
+        transition: all .18s ease;
+        gap: 2px;
+        color: var(--text-main);
+    }
+    .rec-freq-btn:hover {
+        border-color: var(--primary);
+        background: #eff6ff;
+    }
+    .rec-freq-btn.active {
+        border-color: var(--primary);
+        background: linear-gradient(135deg,#1e3a8a,#1d4ed8);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(30,58,138,.3);
+    }
+    .rec-freq-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+    .rec-freq-sub {
+        font-size: 0.68rem;
+        opacity: 0.75;
+    }
 </style>
 
 <div id="toast" class="toast-box">
@@ -1396,14 +1415,74 @@ include '../../includes/menu.php';
                 </div>
             </div>
 
-            <!-- data_inicio hidden com hoje (necessário para o backend montar itens) -->
-            <input type="hidden" name="data_inicio" value="<?= date('Y-m-d') ?>">
-            <input type="hidden" name="frequencia" value="unico">
+            <div class="form-group">
+                <label class="form-label">Data de Início da Comanda</label>
+                <input type="date" name="data_inicio" id="data_inicio" class="form-input" value="<?= date('Y-m-d') ?>" required>
+            </div>
 
-            <div style="display:none;"><!-- intervalo removido da UI -->
-                <div id="intervaloBox" style="display:none; margin-top:6px;">
-                    <label class="form-label">Intervalo (dias)</label>
-                    <input type="number" name="intervalo_personalizado" class="form-input" min="1" value="7">
+            <!-- OPÇÃO AGENDAR NA AGENDA -->
+            <div style="background:#eff6ff; padding:12px; border-radius:18px; border:1px solid #bfdbfe; margin-bottom:12px;">
+                <label class="form-label" style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#1e40af; margin:0;">
+                    <input type="checkbox" name="agendar_na_agenda" id="checkAgenda" value="1" onchange="toggleSecaoAgenda()" style="width:18px; height:18px; accent-color:#1e3a8a;">
+                    <b>Agendar sessões na Agenda agora?</b>
+                </label>
+            </div>
+
+            <div id="secaoAgenda" style="display:none; border:1px solid #e2e8f0; border-radius:18px; padding:12px; background:#fff; margin-bottom:12px;">
+                <h4 style="font-size:0.75rem; text-transform:uppercase; margin:0 0 10px; color:var(--text-muted);">Configurações de Agendamento</h4>
+                
+                <div class="form-group">
+                    <label class="form-label">Horário das Sessões</label>
+                    <input type="time" name="horario" id="horario_agenda" class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Repetir este agendamento?</label>
+                    <div class="toggle-group">
+                        <label class="toggle-pill">
+                            <input type="radio" name="recorrencia_ativa" value="0" checked onclick="toggleRec(false)">
+                            <span>Não repetir</span>
+                        </label>
+                        <label class="toggle-pill">
+                            <input type="radio" name="recorrencia_ativa" value="1" onclick="toggleRec(true)">
+                            <span>Repetir</span>
+                        </label>
+                    </div>
+
+                    <div id="divRec" style="display:none; margin-top:8px;">
+                        <input type="hidden" name="rec_frequencia" id="rec_frequencia" value="semanal">
+                        <input type="hidden" name="rec_qtd" id="rec_qtd_hidden" value="4">
+
+                        <div class="rec-freq-grid">
+                            <button type="button" class="rec-freq-btn active" data-freq="semanal" data-qtd="4" onclick="selectFreq(this)">
+                                <span class="rec-freq-label">Semanal</span>
+                                <span class="rec-freq-sub">4x</span>
+                            </button>
+                            <button type="button" class="rec-freq-btn" data-freq="quinzenal" data-qtd="2" onclick="selectFreq(this)">
+                                <span class="rec-freq-label">Quinzenal</span>
+                                <span class="rec-freq-sub">2x</span>
+                            </button>
+                            <button type="button" class="rec-freq-btn" data-freq="mensal_dia" data-qtd="4" onclick="selectFreq(this)">
+                                <span class="rec-freq-label">Mensal</span>
+                                <span class="rec-freq-sub">4x</span>
+                            </button>
+                            <button type="button" class="rec-freq-btn" data-freq="personalizada" data-qtd="4" onclick="selectFreq(this)">
+                                <span class="rec-freq-label">Personalizado</span>
+                                <span class="rec-freq-sub">vários</span>
+                            </button>
+                        </div>
+
+                        <div id="recCustomGroup" style="display:none; margin-top:8px; grid-template-columns:1fr 1fr; gap:8px;">
+                            <div class="form-group">
+                                <label class="form-label">A cada (dias)</label>
+                                <input type="number" name="rec_intervalo" id="rec_intervalo" value="7" min="1" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Sessões</label>
+                                <input type="number" id="rec_qtd_input" value="4" min="1" class="form-input" oninput="sincronizarRecQtd(this.value)">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1804,6 +1883,55 @@ include '../../includes/menu.php';
             onFrequenciaChange();
         }
     });
+
+    // RECORRENCIA (Portado da Agenda)
+    function toggleSecaoAgenda() {
+        const check = document.getElementById('checkAgenda');
+        const secao = document.getElementById('secaoAgenda');
+        if (check && secao) {
+            secao.style.display = check.checked ? 'block' : 'none';
+            // Se abrir, garante que o horário ganhe foco ou algo assim
+            if(check.checked) document.getElementById('horario_agenda').focus();
+        }
+    }
+
+    function toggleRec(active) {
+        const div = document.getElementById('divRec');
+        if (div) div.style.display = active ? 'block' : 'none';
+        
+        // Se desativar a recorrencia, voltamos a qtd total da comanda para o valor original do form
+        if(!active) {
+            // opcional: resetar algo?
+        }
+    }
+
+    function selectFreq(btn) {
+        if (!btn) return;
+        document.querySelectorAll('.rec-freq-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const freq = btn.getAttribute('data-freq');
+        const qtd = btn.getAttribute('data-qtd');
+
+        document.getElementById('rec_frequencia').value = freq;
+        document.getElementById('rec_qtd_hidden').value = qtd;
+        document.getElementById('rec_qtd_input').value = qtd;
+        
+        // Sincroniza a quantidade de sessoes da COMANDA com a da recorrencia
+        document.getElementById('qtd').value = qtd;
+        calcTotal();
+
+        const custom = document.getElementById('recCustomGroup');
+        if (custom) {
+            custom.style.display = (freq === 'personalizada') ? 'grid' : 'none';
+        }
+    }
+
+    function sincronizarRecQtd(val) {
+        document.getElementById('rec_qtd_hidden').value = val;
+        document.getElementById('qtd').value = val;
+        calcTotal();
+    }
 
     // FECHAR MODAL AO CLICAR FORA
     document.querySelectorAll('.modal-overlay').forEach(el => {
